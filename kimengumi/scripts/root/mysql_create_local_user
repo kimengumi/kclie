@@ -8,7 +8,7 @@ else
 	read USER
 fi
 
-PASS=`/etc/Kimengumi/scripts/genpass`
+PASS=`/etc/kimengumi/scripts/genpass`
 
 echo "creation du compte : ${USER}"
 echo 'mot de passe généré : '${PASS}

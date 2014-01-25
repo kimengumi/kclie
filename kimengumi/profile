@@ -5,7 +5,7 @@ export HOSTNAME=`hostname`
 # pour repositionner correctement $HOME quand on fait un sudo -u
 if [ "x${USER}" = "xroot" ] ; then
         export HOME=/root
-	export PATH=/etc/Kimengumi/scripts/root:${PATH}
+	export PATH=/etc/kimengumi/scripts/root:${PATH}
 else
 	export HOME=/tmp/${USER}
 	HOMECHECKS=(
@@ -37,7 +37,7 @@ umask 002
 if [ -e /usr/bin/vim.nox ] ; then
 	export SVN_EDITOR=/usr/bin/vim.nox
 fi
-export PATH=/etc/Kimengumi/scripts:${PATH}
+export PATH=/etc/kimengumi/scripts:${PATH}
 eval `dircolors -b`
 
 # alias
