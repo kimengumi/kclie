@@ -1,0 +1,3 @@
+# PROFIL ZSH Kimengumi  
+
+eval `ssh-agent -k` >/dev/null

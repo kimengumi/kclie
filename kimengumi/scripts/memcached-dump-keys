@@ -1,0 +1,59 @@
+#!/usr/bin/php
+<?php
+$host  = isset($argv[1]) ? $argv[1] : null;
+$port  = isset($argv[2]) ? $argv[2] :11211;
+$limit = isset($argv[3]) ? $argv[3] :10000;
+$lookupKey = "";
+$time = time();
+
+if(!$host)
+	die("Utilisation : memcached-dump-keys [serveur] [port (def.11211)] [limite (dev.10000)]");
+
+
+$memcache = new Memcache();
+$memcache->connect($host, $port) || die();
+
+$list = array();
+$allSlabs = $memcache->getExtendedStats('slabs');
+$items = $memcache->getExtendedStats('items');
+
+foreach ($allSlabs as $server => $slabs) {
+    foreach ($slabs as $slabId => $slabMeta) {
+        if (!is_numeric($slabId)) {
+            continue;
+        }
+    
+        $cdump = $memcache->getExtendedStats('cachedump', (int)$slabId, $limit);
+        
+        foreach ($cdump as $server => $entries) {
+            if (!$entries) {
+                continue;
+            }
+            
+            foreach($entries as $eName => $eData) {
+                $list[$eName] = array(
+                    'key' => $eName,
+                    'slabId' => $slabId,
+                    'size' => $eData[0],
+                    'age' => $eData[1]
+                );
+            }
+        }
+    }
+}
+
+ksort($list);
+
+if (!empty($lookupKey)) {
+     echo "Searching for keys that contain: '{$lookupKey}'\n";
+     foreach ($list as $row) {
+        if (strpos($row['key'], $lookupKey) !== FALSE) {
+            echo "Key: {$row['key']}, size: {$row['size']}b, age: ", ($time - $row['age']), "s, slab id: {$row['slabId']}\n";
+        }
+     }
+} else {
+    echo "Printing out all keys\n";
+    foreach ($list as $row) {
+        echo "Key: {$row['key']}, size: {$row['size']}b, age: ", ($time - $row['age']), "s, slab id: {$row['slabId']}\n";
+    } 
+}

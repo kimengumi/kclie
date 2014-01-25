@@ -1,0 +1,71 @@
+#!/usr/bin/env python2.6
+
+""" Search first ports range available for new project
+
+http://plone.org/documentation/kb/debugging-tips-and-tricks-a-real-life-example/read-the-source-luke
+"""
+
+from re import findall
+from re import IGNORECASE
+from re import MULTILINE
+
+from os import tmpfile
+
+from subprocess import call as system_call
+
+
+# common variables
+# http://docs.python.org/howto/regex.html
+search_conf_files = r"""(?i)(/[a-z0-9\/\-\_\.]+)"""
+search_url_port = r"""(?m)BACKEND_PORT:([2-9][0-9]{3,4})"""
+old_search_url_port = r"""(?m)http[s]{0,1}://127.0.0.1:([2-9][0-9]{3,4})"""
+
+PORT_BASE = 2000
+PORT_INC = 10
+PORT_MAX = 32001
+
+def getApacheConfFile():
+    """ Return a set of file path
+
+    Read http://docs.python.org/library/subprocess.html
+    """
+    tmp_file = tmpfile()
+    system_call(['/usr/sbin/apache2ctl',  '-S'], stdout=tmp_file, stderr=tmp_file)
+    
+    tmp_file.seek(0)
+    system_result = tmp_file.read()
+    tmp_file.close()
+
+    return set(findall(search_conf_files, system_result, IGNORECASE))
+  
+def getPortsFromFile(file_path):
+    """ Return a set of ports for a single existing file
+    """
+    f = file(file_path, 'r')
+    file_str = f.read()
+    f.close()
+
+    return set(findall(search_url_port, file_str,  MULTILINE)).union(set(findall(old_search_url_port, file_str,  MULTILINE)))
+
+def getPortsFromConf():
+    ports = set()
+    for file_path in getApacheConfFile():
+        ports.update(getPortsFromFile(file_path))
+
+    return ports
+
+used_ports = set([ port[:-1] + '0'
+                   for port in getPortsFromConf() ])
+                   
+#search_port = PORT_BASE
+#while set([str(search_port)]).issubset(used_ports) and search_port < PORT_MAX:
+#    search_port += PORT_INC
+
+#Display preparation (http://docs.python.org/howto/sorting.html)
+used_ports = sorted(list(used_ports), key=int)
+
+print "Already used ports range by %d: " % PORT_INC + ", ".join(used_ports)
+#print "The first available ports range between %d and %d is:" % (PORT_BASE, PORT_MAX)
+#print "%d - %d" % (search_port, search_port+9)
+
+exit(0)

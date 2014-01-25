@@ -1,0 +1,14 @@
+#!/usr/bin/php
+<?php
+$host  = isset($argv[1]) ? $argv[1] : null;
+$port  = isset($argv[2]) ? $argv[2] :11211;
+
+if(!$host)
+	die("Utilisation : memcached-flush-all [serveur] [port (def.11211)]");
+
+
+
+$m = new Memcache();
+$m->connect($host, $port) || die();
+echo $m->flush(0) ? "OK\n" : "KO\n";
+

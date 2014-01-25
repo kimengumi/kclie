@@ -1,0 +1,8 @@
+#!/bin/bash
+echo "=== File d'attente des mails ==="
+echo " "
+/usr/bin/mailq -bp
+echo " "
+echo "=== Les 25 dernieres lignes de Logs ==="
+echo " "
+tail -n 25 /var/log/mail.log

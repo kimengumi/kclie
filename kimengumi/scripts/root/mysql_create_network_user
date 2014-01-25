@@ -1,0 +1,27 @@
+#!/bin/bash
+
+if [ "x$1" != "x" ]
+then
+	USER=$1
+else
+	echo 'nom du compte à créer :'
+	read USER
+fi
+
+PASS=`/etc/Kimengumi/scripts/genpass`
+
+echo "creation du compte : ${USER}"
+echo 'mot de passe généré : '${PASS}
+
+mysql -e "CREATE USER '${USER}'@'%' IDENTIFIED BY '${PASS}'"
+mysql -e "GRANT USAGE ON * . * TO '${USER}'@'%' IDENTIFIED BY '${PASS}' WITH MAX_QUERIES_PER_HOUR 0 MAX_CONNECTIONS_PER_HOUR 0 MAX_UPDATES_PER_HOUR 0 MAX_USER_CONNECTIONS 0"
+mysql -e "GRANT ALL PRIVILEGES ON \`${USER}\_%\` . * TO '${USER}'@'%'"
+
+echo "### .my.cnf ### A deployer sur php.was ###"
+
+echo "[client]
+user=\"${USER}\"
+password=\"${PASS}\"
+host=\"mysql.was\"" 
+
+echo "Fin de création du compte"

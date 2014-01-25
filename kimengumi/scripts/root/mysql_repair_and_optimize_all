@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# Check, réparation & optimisation/défragementation de TOUTES les tables myisam & innodb
+
+USER="--defaults-extra-file=/etc/mysql/debian.cnf"
+
+exec >/dev/null
+
+#Tables MyISAM
+for TABLE in $(mysql ${USER} -Bse 'SELECT CONCAT_WS("\`.\`",TABLE_SCHEMA,TABLE_NAME) FROM information_schema.TABLES WHERE ENGINE="MyISAM" AND TABLE_SCHEMA NOT IN ("information_schema","performance_schema")')
+do
+	mysql ${USER} -Bse "CHECK TABLE \`${TABLE}\`"
+	mysql ${USER} -Bse "REPAIR TABLE \`${TABLE}\`"
+	mysql ${USER} -Bse "OPTIMIZE TABLE \`${TABLE}\`"
+done
+
+#Tables InnoDB
+for TABLE in $(mysql ${USER} -Bse 'SELECT CONCAT_WS("\`.\`",TABLE_SCHEMA,TABLE_NAME) FROM information_schema.TABLES WHERE ENGINE="InnoDB" AND TABLE_SCHEMA NOT IN ("information_schema","performance_schema")')
+do
+	mysql ${USER} -Bse "CHECK TABLE \`${TABLE}\`"
+	mysql ${USER} -Bse "ALTER TABLE \`${TABLE}\` ENGINE=INNODB"
+done

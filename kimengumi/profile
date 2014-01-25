@@ -1,0 +1,65 @@
+# PROFIL Kimengumi  
+
+export HOSTNAME=`hostname`
+
+# pour repositionner correctement $HOME quand on fait un sudo -u
+if [ "x${USER}" = "xroot" ] ; then
+        export HOME=/root
+	export PATH=/etc/Kimengumi/scripts/root:${PATH}
+else
+	export HOME=/tmp/${USER}
+	HOMECHECKS=(
+		/home/${USER}
+		/home/users/${USER}
+		/${HOSTNAME}/00/${USER}
+		/${HOSTNAME}/01/${USER}
+		/${HOSTNAME}/02/${USER}
+		/${HOSTNAME}/00/users/${USER}
+		/${HOSTNAME}/01/users/${USER}
+		/${HOSTNAME}/02/users/${USER}
+	)
+	for HOMECHECK in ${HOMECHECKS} ; do
+		if [ -d ${HOMECHECK} ] ; then
+			export HOME=${HOMECHECK}
+			break;
+		fi
+	done
+	if [ "x${HOME}" = "x/tmp/${USER}" ] ; then
+		mkdir -p /tmp/${USER}
+		echo '==> MODE HOME TEMPORAIRE <=='
+	fi
+fi
+
+# umask par défaut pour que le groupe puisse ecrire
+umask 002
+
+# variables
+if [ -e /usr/bin/vim.nox ] ; then
+	export SVN_EDITOR=/usr/bin/vim.nox
+fi
+export PATH=/etc/Kimengumi/scripts:${PATH}
+eval `dircolors -b`
+
+# alias
+alias cd..='cd ..'
+alias c=clear
+alias h='history 50'
+alias l='ls -lha --color'
+alias ll='ls -l --color'
+alias la='ls -A --color'
+alias ltr='ls -lhatr --color'
+alias ls='ls --color'
+alias dir='dir --color'
+alias vdir='vdir --color'
+alias grep='grep --color=auto --exclude-dir=.svn'
+alias fgrep='fgrep --color=auto --exclude-dir=.svn'
+alias egrep='egrep --color=auto --exclude-dir=.svn'
+
+if [ -e /usr/bin/colorsvn ] ; then
+	alias svn="colorsvn"
+fi
+if [ -e /usr/bin/colordiff ] ; then
+	alias svndi="svn di --diff-cmd=colordiff"
+fi
+
+# vim: set filetype=sh

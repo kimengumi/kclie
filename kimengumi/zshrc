@@ -1,0 +1,34 @@
+# PROFIL Kimengumi
+# PARTIE SPECIFIQUE A ZSH
+
+if [ ! -e ${HOME}/.zshrc ] ; then
+	touch ${HOME}/.zshrc
+fi
+
+# demarrage ssh-agent que lorsqu'on est pas en sudo (sera killé dans zlogout)
+if [ "x${SUDO_USER}" = "x" ] ; then
+	eval `ssh-agent` >/dev/null
+fi
+
+# historique
+export HISTSIZE=2000
+export HISTFILE="${HOME}/.zshist_${USERNAME}_${SUDO_USER}"
+export SAVEHIST=${HISTSIZE}
+setopt hist_ignore_all_dups
+setopt hist_ignore_space
+setopt extendedglob
+	
+# completion
+autoload -U compinit
+compinit
+setopt correctall
+zstyle ':completion:*:descriptions' format '%U%B%d%b%u'
+zstyle ':completion:*:warnings' format "%BPas d'autocompletion trouvée dans %d%b"
+zstyle ':completion::complete:*' use-cache 1
+	
+# prompt
+setopt AUTOCD
+autoload -U promptinit
+promptinit
+PS1='%n%# '
+prompt bart

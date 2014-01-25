@@ -1,0 +1,11 @@
+#!/bin/sh
+
+if [ "x$1" = "x" ] || [ "x$2" = "x" ]
+then
+        echo "Utilisation: purge [nb-jours] [rep]"
+	exit 1;
+fi
+
+find $2 -atime +$1 -exec rm -rf {} \; 2>/dev/null
+find $2 -ctime +$1 -exec rm -rf {} \; 2>/dev/null
+find $2 -mtime +$1 -exec rm -rf {} \; 2>/dev/null

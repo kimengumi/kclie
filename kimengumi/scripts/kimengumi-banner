@@ -1,0 +1,47 @@
+#!/bin/bash
+# bannière de login Kimengumi
+echo 
+echo "   Kimengumi Informatique"
+if [ -r /root/.mdg ] ; then
+        echo -e "   \033[1m\033[4m`uname -n`\033[0m - serveur OVH n°`cat /root/.mdg`"
+else
+        echo -e "   \033[1m\033[4m`uname -n`\033[0m"
+fi
+echo
+if [ -e /etc/lsb-release ] ; then
+        . /etc/lsb-release
+        echo "${DISTRIB_ID} ${DISTRIB_CODENAME} ${DISTRIB_RELEASE} (${DISTRIB_DESCRIPTION})"
+elif [ -r /etc/debian_version ] ; then
+        echo "Debian `cat /etc/debian_version`"
+elif [ -r /etc/gentoo-release ] ; then
+        cat /etc/gentoo-release
+else
+        uname -o
+fi
+echo "kernel `uname -srm`"
+for IPV in '4' '6'; do
+        IPS=""
+	for IP in `ip -${IPV} addr show | grep "global" | egrep "eth|inet6|ppp|vmbr" | sed -e 's/  / /g' | cut -d ' ' -f4`; do
+                if [ "x${IPS}" == "x" ] ; then IPS="${IP}"; else IPS="${IPS} | ${IP}"; fi
+        done
+        if [ "x${IPS}" != "x" ] ; then echo "ipv${IPV} ${IPS}"; fi
+done
+uptime | sed -e 's/  / /g' | cut -d ' ' -f3,4,5,7-13
+echo
+df -hT | egrep -v "tmpfs|rootfs|iso9660|debugfs" | grep " "
+if [ -e /usr/sbin/vzlist ] ; then
+        echo
+        /usr/sbin/vzlist -a -o ctid,hostname,status,numproc,laverage
+fi
+if [ -e /usr/bin/mailq ] ; then
+        echo
+        /usr/bin/mailq
+fi
+echo
+if [ "x${UID}" = "x0" ] ; then
+        for info in `ls /usr/lib/update-notifier/update-motd-* 2>/dev/null`
+        do
+                $info
+        done
+fi
+exit 0

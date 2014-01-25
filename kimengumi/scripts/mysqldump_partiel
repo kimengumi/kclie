@@ -1,0 +1,33 @@
+#!/bin/bash
+
+if [ "x$1" != "x" ] ; then
+        BASE=$1
+else
+        echo 'nom de la base :'
+        read BASE
+fi
+if [ "x$2" != "x" ] ; then
+        EXPR=$2
+else
+        echo 'expression "grep style" des tables à exporter :'
+        read EXPR || exit
+fi
+
+FIC="partdump_${BASE}_${EXPR}_`date +%Y-%m-%d_%H-%M-%S`.sql"
+TABLES=$(mysql ${BASE} -Bse 'show tables'|grep ${EXPR})
+
+if [ "x${TABLES}" = "x" ] ; then
+	echo "Pas de tables à exporter"
+	exit 1
+fi
+
+echo "Liste des tables exportées:"
+for TABLE in ${TABLES} ; do
+	echo $TABLE
+done
+
+echo "Export en cours ..."
+mysqldump ${BASE} ${TABLES} >> ${FIC}
+
+echo "Fini"
+du -h ${FIC}

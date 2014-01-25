@@ -1,0 +1,4 @@
+# /etc/zsh/zlogout: system-wide .zlogout file for zsh(1).
+
+# Personnalisation Kimengumi
+. /etc/Kimengumi/zlogout
