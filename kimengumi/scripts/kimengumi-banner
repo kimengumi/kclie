@@ -1,7 +1,7 @@
 #!/bin/bash
 # bannière de login Kimengumi
 echo 
-echo "   Kimengumi Informatique"
+echo "   Kimengumi.fr"
 if [ -r /root/.mdg ] ; then
         echo -e "   \033[1m\033[4m`uname -n`\033[0m - serveur OVH n°`cat /root/.mdg`"
 else
