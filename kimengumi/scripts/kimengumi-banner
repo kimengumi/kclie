@@ -2,11 +2,15 @@
 # bannière de login Kimengumi
 echo 
 echo "   Kimengumi.fr"
+
+# Nom du serveur
 if [ -r /root/.mdg ] ; then
         echo -e "   \033[1m\033[4m`uname -n`\033[0m - serveur OVH n°`cat /root/.mdg`"
 else
         echo -e "   \033[1m\033[4m`uname -n`\033[0m"
 fi
+
+# Version du Système
 echo
 if [ -e /etc/lsb-release ] ; then
         . /etc/lsb-release
@@ -19,6 +23,8 @@ else
         uname -o
 fi
 echo "kernel `uname -srm`"
+
+# Infos IP
 for IPV in '4' '6'; do
         IPS=""
 	for IP in `ip -${IPV} addr show | grep "global" | egrep "eth|inet6|ppp|vmbr" | sed -e 's/  / /g' | cut -d ' ' -f4`; do
@@ -26,22 +32,44 @@ for IPV in '4' '6'; do
         done
         if [ "x${IPS}" != "x" ] ; then echo "ipv${IPV} ${IPS}"; fi
 done
+
+# Uptime
 uptime | sed -e 's/  / /g' | cut -d ' ' -f3,4,5,7-13
 echo
+
+# espace disque
 df -hT | egrep -v "tmpfs|rootfs|iso9660|debugfs" | grep " "
+
+# températures
+if [ -e /usr/bin/sensors ] ; then 
+	echo
+	/usr/bin/sensors | cut -d\( -f1 | grep C | grep \+ --color=never
+fi
+
+# températures HDD
+if [ -e /usr/sbin/hddtemp ] ; then 
+	/usr/sbin/hddtemp `fdisk -l 2>/dev/null | grep Disk | cut -d' ' -f2 | egrep -v "0|1|2|3|4|5|6|7|8|9|identifier|-" | cut -d":" -f1`
+fi
+
+# listes des VMs
 if [ -e /usr/sbin/vzlist ] ; then
         echo
         /usr/sbin/vzlist -a -o ctid,hostname,status,numproc,laverage
 fi
+
+# Mails en attente
 if [ -e /usr/bin/mailq ] ; then
         echo
         /usr/bin/mailq
 fi
 echo
+
+# Si exec en root : liste MAJ dispo (Ubuntu)
 if [ "x${UID}" = "x0" ] ; then
         for info in `ls /usr/lib/update-notifier/update-motd-* 2>/dev/null`
         do
                 $info
         done
 fi
+
 exit 0
