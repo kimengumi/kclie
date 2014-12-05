@@ -5,9 +5,18 @@ if [ ! -e ${HOME}/.zshrc ] ; then
 	touch ${HOME}/.zshrc
 fi
 
-# demarrage ssh-agent que lorsqu'on est pas en sudo (sera killé dans zlogout)
-if [ "x${SUDO_USER}" = "x" ] ; then
+# on vérifie si un ssh-agent existe deja pour le user courant 
+export SSH_AGENT_PID="`pgrep -u ${USERNAME} ssh-agent | head -n1`"
+if [ "x${SSH_AGENT_PID}" != "x" ] ; then
+	# on retrouve le socket d'apres le PID
+	for SOCK in `ls --color=never /tmp/ssh-*/agent.*.${SSH_AGENT_PID} 2>/dev/null` ; do
+	 	export SSH_AUTH_SOCK="`cat ${SOCK}`"
+	done
+else
+	# demarrage ssh-agent
 	eval `ssh-agent` >/dev/null
+	# fichier permmetant de retrouver le socket d'apres le PID pour la prochaine connexion
+	echo ${SSH_AUTH_SOCK} > ${SSH_AUTH_SOCK}.${SSH_AGENT_PID} 
 fi
 
 # historique
