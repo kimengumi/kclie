@@ -2,13 +2,40 @@
 # bannière de login Kimengumi
 echo 
 echo "   Kimengumi.fr"
+echo -e "   \033[1m\033[4m`uname -n`\033[0m"
+echo
 
-# Nom du serveur
+# Materiel
 if [ -r /root/.mdg ] ; then
-        echo -e "   \033[1m\033[4m`uname -n`\033[0m - serveur OVH n°`cat /root/.mdg`"
-else
-        echo -e "   \033[1m\033[4m`uname -n`\033[0m"
+        echo -e "Serveur OVH n°`cat /root/.mdg`"
+elif [ -r /proc/vz/veinfo ] ; then
+	echo -e "Container OpenVZ n°`awk '{print $1}' /proc/vz/veinfo`"
+elif [ -r /proc/1/cgroup ] ; then
+        case "`cat /proc/1/cgroup | cut -d \/ -f 2 | sort | tail -n 1`" in
+
+                "docker")
+			echo -e "Container Docker ID `cat /proc/1/cgroup | cut -d \/ -f 3 | sort | tail -n 1`"
+		;;
+		"lxc")
+			echo -e "Container LXC n°`cat /proc/1/cgroup | cut -d \/ -f 3 | sort | tail -n 1`"
+		;;
+                * )
+			if [ -r /sys/class/dmi/id/sys_vendor ] ; then
+				case "`cat /sys/class/dmi/id/sys_vendor`" in
+					"System manufacturer")  
+						if [ -r /sys/class/dmi/id/board_vendor ] ; then
+							cat /sys/class/dmi/id/board_vendor
+						fi
+					;;
+					* )
+						cat /sys/class/dmi/id/sys_vendor
+					;;
+				esac
+			fi
+		;;
+	esac
 fi
+		
 
 # Version du Système
 echo
@@ -23,6 +50,7 @@ else
         uname -o
 fi
 echo "kernel `uname -srm`"
+echo
 
 # Infos IP
 for IPV in '4' '6'; do
