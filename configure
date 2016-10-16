@@ -15,6 +15,16 @@ if [ -w /etc/zsh/zshrc ] ; then
 	fi
 fi
 
+# Motd
+if [ -w /etc/update-motd.d ] ; then
+	mv /etc/update-motd.d /etc/update-motd.d.ubuntu
+	mkdir /etc/update-motd.d
+	ln -s  ${KCLIEDIR}/bin/kimengumi-banner /etc/update-motd.d/0000-kimengumi 
+else
+	echo "#!/bin/bash\n${KCLIEDIR}/bin/kimengumi-banner > /etc/motd" > /etc/cron.hourly/kimengumimotd
+	chmod 755 /etc/cron.hourly/kimengumimotd
+fi
+
 # Ubuntu LightDm config
 if [ -d '/usr/share/lightdm/lightdm.conf.d' ] ; then
 echo '[SeatDefaults]
