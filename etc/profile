@@ -1,6 +1,7 @@
 # PROFIL Kimengumi  
 
-export KCLIEDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/../"
+KCLIEETC=`dirname $0`
+export KCLIEDIR=`dirname ${KCLIEETC}`
 export HOSTNAME=`hostname`
 
 
