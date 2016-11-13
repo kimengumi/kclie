@@ -1,2 +1,0 @@
-#!/bin/sh
-sudo /etc/kimengumi/scripts/sudo/`echo $0 | sed -e "s/\/etc\/kimengumi\/scripts\///g"`
