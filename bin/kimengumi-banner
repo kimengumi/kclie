@@ -55,7 +55,7 @@ echo
 # Infos IP
 for IPV in '4' '6'; do
         IPS=""
-	for IP in `ip -${IPV} addr show | grep "global" | egrep "eth|inet6|ppp|vmbr" | sed -e 's/  / /g' | cut -d ' ' -f4`; do
+	for IP in `ip -${IPV} addr show | grep "global" | egrep "eth|enp|inet6|ppp|vmbr" | sed -e 's/  / /g' | cut -d ' ' -f4`; do
                 if [ "x${IPS}" == "x" ] ; then IPS="${IP}"; else IPS="${IPS} | ${IP}"; fi
         done
         if [ "x${IPS}" != "x" ] ; then echo "ipv${IPV} ${IPS}"; fi
@@ -66,7 +66,7 @@ uptime | sed -e 's/  / /g' | cut -d ' ' -f3,4,5,7-13
 echo
 
 # espace disque
-df -hT | egrep -v "tmpfs|rootfs|iso9660|debugfs" | grep " " | awk 'NR<3{print $0;next}{print $0| "sort -k7"}'
+df -hT -x tmpfs -x rootfs -x iso9660 -x debugfs -x fuse.mhddfs -x devtmpfs | grep " " | awk 'NR<3{print $0;next}{print $0| "sort -k7"}'
 
 # températures
 if [ -e /usr/bin/sensors ] ; then 
