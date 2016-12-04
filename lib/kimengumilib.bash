@@ -277,3 +277,18 @@ SmartCheckDisk() {
 		Title "Vérification Smart du disque $1 OK" 
         fi
 }
+
+Purge() {
+	
+	if [ "x$1" = "x" ] || [ "x$2" = "x" ]
+	then
+	        echo "Utilisation: Purge [nb-jours] [rep]"
+	        return 1;
+	fi
+	
+	#Find created of modified files more than X days
+	find $2 -ctime +$1 -mtime +$1 -type f -exec rm {} \;
+	
+	#Find empty directories, created of modified more than X days
+	find $2 -depth -type d -empty -ctime +$1 -mtime +$1 -exec rmdir {} \;
+}
