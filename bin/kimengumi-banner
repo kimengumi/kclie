@@ -20,7 +20,10 @@ elif [ -r /proc/1/cgroup ] ; then
 			echo -e "Container LXC n°`cat /proc/1/cgroup | cut -d \/ -f 3 | sort | tail -n 1`"
 		;;
                 * )
-			if [ -r /sys/class/dmi/id/sys_vendor ] ; then
+			mount | grep lxcfs >/dev/null
+			if [ "`awk '/lxcfs/{print $1;exit}' /proc/1/task/1/mounts`" = "lxcfs" ] ; then
+				echo -e "Container LXC"
+			elif [ -r /sys/class/dmi/id/sys_vendor ] ; then
 				case "`cat /sys/class/dmi/id/sys_vendor`" in
 					"System manufacturer")  
 						if [ -r /sys/class/dmi/id/board_vendor ] ; then
