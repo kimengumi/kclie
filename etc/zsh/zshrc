@@ -10,9 +10,11 @@ fi
 export SSH_AGENT_PID="`pgrep -u ${USERNAME} ssh-agent | head -n1`"
 if [ "x${SSH_AGENT_PID}" != "x" ] ; then
         # on retrouve le socket d'apres le PID
-        for SOCK in `ls --color=never /tmp/ssh-*/agent.*.${SSH_AGENT_PID} 2>/dev/null` ; do
-                export SSH_AUTH_SOCK="`cat ${SOCK}`"
-        done
+	if [ `ls /tmp/ssh-*/agent.*.${SSH_AGENT_PID} >/dev/null 2>&1` ] ; then
+        	for SOCK in `ls --color=never /tmp/ssh-*/agent.*.${SSH_AGENT_PID}` ; do
+                	export SSH_AUTH_SOCK="`cat ${SOCK}`"
+        	done
+	fi
 else
         # demarrage ssh-agent
         eval `ssh-agent` >/dev/null

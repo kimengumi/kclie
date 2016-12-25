@@ -2,17 +2,30 @@
 
 export KCLIEDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+#BASH
 if [ -w /etc/bash.bashrc ] ; then
 	if ! grep -q "\. ${KCLIEDIR}/etc/profile" /etc/bash.bashrc ; then
 		echo ". ${KCLIEDIR}/etc/profile" >> /etc/bash.bashrc
 	fi
+elif [ -w /etc/bashrc ] ; then
+	if ! grep -q "\. ${KCLIEDIR}/etc/profile" /etc/bashrc ; then
+		echo ". ${KCLIEDIR}/etc/profile" >> /etc/bashrc
+	fi
 fi
+
+#ZSH
 if [ -w /etc/zsh/zshrc ] ; then
 	if ! grep -q "\. ${KCLIEDIR}/etc/profile" /etc/zsh/zshrc ; then
         	echo ". ${KCLIEDIR}/etc/profile" >> /etc/zsh/zshrc
 		echo ". ${KCLIEDIR}/etc/zsh/zshrc" >> /etc/zsh/zshrc
 		echo ". ${KCLIEDIR}/etc/zsh/zlogout" >> /etc/zsh/zlogout
 	fi
+elif [ -w /etc/zshrc ] ; then
+        if ! grep -q "\. ${KCLIEDIR}/etc/profile" /etc/zshrc ; then
+                echo ". ${KCLIEDIR}/etc/profile" >> /etc/zshrc
+                echo ". ${KCLIEDIR}/etc/zsh/zshrc" >> /etc/zshrc
+                echo ". ${KCLIEDIR}/etc/zsh/zlogout" >> /etc/zlogout
+        fi
 fi
 
 # Motd
@@ -20,7 +33,7 @@ if [ -w /etc/update-motd.d ] ; then
 	mv /etc/update-motd.d /etc/update-motd.d.ubuntu
 	mkdir /etc/update-motd.d
 	ln -s  ${KCLIEDIR}/bin/kimengumi-banner /etc/update-motd.d/0000-kimengumi 
-else
+elif [ -w /etc/motd ] ; then
 	echo -e "#!/bin/bash\\n${KCLIEDIR}/bin/kimengumi-banner > /etc/motd" > /etc/cron.hourly/kimengumimotd
 	chmod 755 /etc/cron.hourly/kimengumimotd
 fi
