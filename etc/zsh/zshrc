@@ -29,18 +29,28 @@ export SAVEHIST=${HISTSIZE}
 setopt hist_ignore_all_dups
 setopt hist_ignore_space
 setopt extendedglob
+
+# If a local Oh My Zsh is detected, we use it
+if [ -e $HOME/.oh-my-zsh/oh-my-zsh.sh ] ; then
 	
-# completion
-autoload -U compinit
-compinit
-setopt correctall
-zstyle ':completion:*:descriptions' format '%U%B%d%b%u'
-zstyle ':completion:*:warnings' format "%BPas d'autocompletion trouvée dans %d%b"
-zstyle ':completion::complete:*' use-cache 1
-	
-# prompt
-setopt AUTOCD
-autoload -U promptinit
-promptinit
-PS1='%n%# '
-prompt bart
+	# No default configuration in this case, all have to be done in the local user ~/.zshrc
+
+elif [ -e $HOME/.oh-my-zsh/oh-my-zsh.sh ] ; then
+
+	#Basic Oh My Zsh configuration
+	export ZSH=$HOME/.oh-my-zsh
+	ZSH_THEME="candy"
+else
+	# standard zsh prompt
+	autoload -U compinit
+	compinit
+	setopt correctall
+	zstyle ':completion:*:descriptions' format '%U%B%d%b%u'
+	zstyle ':completion:*:warnings' format "%BPas d'autocompletion trouvée dans %d%b"
+	zstyle ':completion::complete:*' use-cache 1
+	setopt AUTOCD
+	autoload -U promptinit
+	promptinit
+	PS1='%n%# '
+	prompt bart
+fi

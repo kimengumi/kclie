@@ -2,6 +2,9 @@
 
 export KCLIEDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+echo "KClie directory is : ${KCLIEDIR}"
+
+echo "Applying shells customizations ..."
 #BASH
 if [ -w /etc/bash.bashrc ] ; then
 	if ! grep -q "\. ${KCLIEDIR}/etc/profile" /etc/bash.bashrc ; then
@@ -28,19 +31,24 @@ elif [ -w /etc/zshrc ] ; then
         fi
 fi
 
+echo "Installing welcome banner ..."
 # Motd
-if [ -w /etc/update-motd.d ] ; then
-	mv /etc/update-motd.d /etc/update-motd.d.ubuntu
+if [ -w /etc/update-motd.d ] && [ ! -d /etc/update-motd.d.dist ] ; then
+	mv /etc/update-motd.d /etc/update-motd.d.dist
 	mkdir /etc/update-motd.d
-	ln -s  ${KCLIEDIR}/bin/kimengumi-banner /etc/update-motd.d/0000-kimengumi 
+	ln -s  ${KCLIEDIR}/bin/motd /etc/update-motd.d/0000-kclie
 elif [ -w /etc/motd ] ; then
-	echo -e "#!/bin/bash\\n${KCLIEDIR}/bin/kimengumi-banner > /etc/motd" > /etc/cron.hourly/kimengumimotd
+	echo -e "#!/bin/bash
+${KCLIEDIR}/bin/motd > /etc/motd" > /etc/cron.hourly/kcliebanner
 	chmod 755 /etc/cron.hourly/kimengumimotd
 fi
 
+
 # Ubuntu LightDm config
 if [ -d '/usr/share/lightdm/lightdm.conf.d' ] ; then
-echo '[SeatDefaults]
+
+	echo "Applying LightDM customization ..."
+	echo '[SeatDefaults]
 greeter-hide-users=true
 greeter-show-manual-login=true' > /usr/share/lightdm/lightdm.conf.d/99-kclie.conf
 fi
