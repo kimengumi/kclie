@@ -127,18 +127,30 @@ if [ -e /usr/bin/sensors ] ; then
 fi
 
 # Harddrive tempreatures (if available)
-if [ -e /usr/sbin/hddtemp ] ; then 
+if [ -x /usr/sbin/hddtemp ] ; then 
 	/usr/sbin/hddtemp `fdisk -l 2>/dev/null | egrep "Disk|Disque" | cut -d' ' -f2 | egrep -v "0|1|2|3|4|5|6|7|8|9|identifier|-" | cut -d":" -f1` 2>/dev/null
 fi
 
-# VM list (if available)
-if [ -e /usr/sbin/vzlist ] ; then
+# OpenVZ contriners list (if available)
+if [ -x /usr/sbin/vzlist ] ; then
 	echo
 	/usr/sbin/vzlist -a -o ctid,hostname,status,numproc,laverage
 fi
 
+# LXC containers list (if available)
+if [ -x /usr/sbin/pct ] ; then
+	echo
+	/usr/sbin/pct list
+fi
+
+# QEMU VN list (if available)
+if [ -x /usr/sbin/qm ] ; then
+	echo
+	/usr/sbin/qm list
+fi
+
 # Mail server queue (if available)
-if [ -e /usr/bin/mailq ] ; then
+if [ -x /usr/bin/mailq ] ; then
 	NB=`mailq 2>/dev/null | grep -c "^[A-F0-9]"`
 	if [ "x$NB" != "x0" ] ; then 
 		echo "$NB emails in queue"
@@ -147,7 +159,7 @@ fi
 echo
 
 # OS Update notifier (if available)
-if [ "x${UID}" = "x0" ] ; then
+if [ ${WNIX} = 'linux' ] && [ "x${UID}" = "x0" ] ; then
 	for info in `ls /usr/lib/update-notifier/update-motd-* 2>/dev/null`
 	do
 		$info
