@@ -8,8 +8,8 @@ case "${OSTYPE}" in
 	*linux*)	WNIX='linux'	;;
 	* )		WNIX='other'	;;
 esac
-if [ ${WNIX} = 'linux' ] && [ grep -q 'Microsoft' /proc/version ] ; then 
-	WNIX=WSL
+if [ "${WNIX}" = 'linux' ] && grep -q 'Microsoft' /proc/version ; then 
+	WNIX='wsl'
 fi
 
 
@@ -20,8 +20,10 @@ echo -e "   \033[1m\033[4m`uname -n`\033[0m"
 echo
 
 # hardware
-if [ ${WNIX} = 'osx' ] ; then
+if [ "${WNIX}" = 'osx' ] ; then
 	sysctl hw.model | cut -d \: -f2
+elif [ "${WNIX}" = 'wsl' ] ; then
+	echo "Windows Subsystem for Linux (WSL)"
 elif [ -r /root/.mdg ] ; then # OVH server
 	echo -e "OVH server n°`cat /root/.mdg`"
 elif [ -r /proc/vz/veinfo ] ; then
@@ -29,10 +31,10 @@ elif [ -r /proc/vz/veinfo ] ; then
 elif [ -r /proc/1/cgroup ] ; then
 	case "`cat /proc/1/cgroup | cut -d \/ -f 2 | sort | tail -n 1`" in
 
-		"docker")
+		docker)
 			echo -e "Docker container ID `cat /proc/1/cgroup | cut -d \/ -f 3 | sort | tail -n 1`"
 		;;
-		"lxc")
+		lxc)
 			echo -e "LXC container n°`cat /proc/1/cgroup | cut -d \/ -f 3 | sort | tail -n 1`"
 		;;
 		* )
@@ -64,18 +66,22 @@ elif [ -r /etc/debian_version ] ; then
 	echo "Debian `cat /etc/debian_version`"
 elif [ -r /etc/gentoo-release ] ; then
 	cat /etc/gentoo-release
-elif [ ${WNIX} = 'osx' ] ; then #OSX
+elif [ "${WNIX}" = 'osx' ] ; then #OSX
 	echo `/usr/bin/sw_vers -productName` `/usr/bin/sw_vers -productVersion` `/usr/bin/sw_vers -buildVersion`
 else
 	uname -s
 fi
-echo "kernel `uname -srm`"
+if [ "${WNIX}" = 'wsl' ] ; then
+	echo "Kernel `cat /proc/version | cut -d \( -f1` `uname -m`"
+else
+	echo "kernel `uname -srm`"
+fi
 echo
 
 # Ip info
-if [ ${WNIX} = 'osx' ] ; then
+if [ "${WNIX}" = 'osx' ] ; then
 	ifconfig | grep inet | egrep -v "127.0.0.1|fe80::|6 ::1" | cut -d " " -f 2
-elif [ ${WNIX} = 'linux' ] && [ -e /bin/ip ] ; then 
+elif [ "${WNIX}" = 'linux' ] && [ -e /bin/ip ] ; then 
 	for IPV in '4' '6'; do
 		IPS=""
 		for IP in `ip -${IPV} addr show | grep "global" | egrep "eth|enp|inet6|ppp|vmbr" | sed -e 's/  / /g' | cut -d ' ' -f4`; do
@@ -89,7 +95,7 @@ elif [ ${WNIX} = 'linux' ] && [ -e /bin/ip ] ; then
 			echo "ipv${IPV} ${IPS}"; 
 		fi
 	done
-elif [ ${WNIX} = 'cygwin' ] ; then
+elif [ "${WNIX}" = 'cygwin' ] ; then
 	IPS=""
 	for IP in `hostname -i` ; do
 		case "${IP}" in
@@ -112,11 +118,11 @@ uptime | sed -e 's/  / /g' | cut -d ' ' -f3,4,5,7-13
 echo
 
 # disk space
-if [ ${WNIX} = 'osx' ] ; then 
+if [ "${WNIX}" = 'osx' ] ; then 
 	df -hl
-elif [ ${WNIX} = 'linux' ] || [ ${WNIX} = 'osx' ] ; then
+elif [ "${WNIX}" = 'linux' ] || [ "${WNIX}" = 'osx' ] ; then
 	df -hT -x tmpfs -x rootfs -x iso9660 -x debugfs -x fuse.mhddfs -x devtmpfs | grep " " | awk 'NR<3{print $0;next}{print $0| "sort -k7"}'
-elif [ ${WNIX}='wsl' ] ; then
+elif [ "${WNIX}" = 'wsl' ] ; then
 	df -hT  -x tmpfs  
 fi
 
@@ -159,7 +165,7 @@ fi
 echo
 
 # OS Update notifier (if available)
-if [ ${WNIX} = 'linux' ] && [ "x${UID}" = "x0" ] ; then
+if [ "x${UID}" = "x0" ] ; then
 	for info in `ls /usr/lib/update-notifier/update-motd-* 2>/dev/null`
 	do
 		$info
