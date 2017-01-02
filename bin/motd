@@ -84,7 +84,7 @@ if [ "${WNIX}" = 'osx' ] ; then
 elif [ "${WNIX}" = 'linux' ] && [ -e /bin/ip ] ; then 
 	for IPV in '4' '6'; do
 		IPS=""
-		for IP in `ip -${IPV} addr show | grep "global" | egrep "eth|enp|inet6|ppp|vmbr" | sed -e 's/  / /g' | cut -d ' ' -f4`; do
+		for IP in `ip -${IPV} addr show | grep "global" | egrep "eth|enp|inet6|ppp|vmbr|wlp|wlan" | sed -e 's/  / /g' | cut -d ' ' -f4`; do
 			if [ "x${IPS}" == "x" ] ; then 
 				IPS="${IP}"; 
 			else 
