@@ -120,7 +120,7 @@ echo
 # disk space
 if [ "${WNIX}" = 'osx' ] ; then 
 	df -hl
-elif [ "${WNIX}" = 'linux' ] || [ "${WNIX}" = 'osx' ] ; then
+elif [ "${WNIX}" = 'linux' ] || [ "${WNIX}" = 'osx' ] || [ "${WNIX}" = 'cygwin' ] ; then
 	df -hT -x tmpfs -x rootfs -x iso9660 -x debugfs -x fuse.mhddfs -x devtmpfs | grep " " | awk 'NR<3{print $0;next}{print $0| "sort -k7"}'
 elif [ "${WNIX}" = 'wsl' ] ; then
 	df -hT  -x tmpfs  
