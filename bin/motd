@@ -1,28 +1,44 @@
 #!/bin/bash
-# bannière de login Kimengumi
+# kclien motd / login banner
+
+# OS dectection
+case "${OSTYPE}" in
+	*cygwin*)	WNIX='cygwin'	;;
+	*darwin*)	WNIX='osx'	;;
+	*linux*)	WNIX='linux'	;;
+	* )		WNIX='other'	;;
+esac
+if [ ${WNIX} = 'linux' ] && [ grep -q 'Microsoft' /proc/version ] ; then 
+	WNIX=WSL
+fi
+
+
+# Header
 echo 
 echo "   Kimengumi.fr"
 echo -e "   \033[1m\033[4m`uname -n`\033[0m"
 echo
 
-# Materiel
-if [ -r /root/.mdg ] ; then
-	echo -e "Serveur OVH n°`cat /root/.mdg`"
+# hardware
+if [ ${WNIX} = 'osx' ] ; then
+	sysctl hw.model | cut -d \: -f2
+elif [ -r /root/.mdg ] ; then # OVH server
+	echo -e "OVH server n°`cat /root/.mdg`"
 elif [ -r /proc/vz/veinfo ] ; then
-	echo -e "Container OpenVZ n°`awk '{print $1}' /proc/vz/veinfo`"
+	echo -e "OpenVZ container n°`awk '{print $1}' /proc/vz/veinfo`"
 elif [ -r /proc/1/cgroup ] ; then
 	case "`cat /proc/1/cgroup | cut -d \/ -f 2 | sort | tail -n 1`" in
 
 		"docker")
-			echo -e "Container Docker ID `cat /proc/1/cgroup | cut -d \/ -f 3 | sort | tail -n 1`"
+			echo -e "Docker container ID `cat /proc/1/cgroup | cut -d \/ -f 3 | sort | tail -n 1`"
 		;;
 		"lxc")
-			echo -e "Container LXC n°`cat /proc/1/cgroup | cut -d \/ -f 3 | sort | tail -n 1`"
+			echo -e "LXC container n°`cat /proc/1/cgroup | cut -d \/ -f 3 | sort | tail -n 1`"
 		;;
 		* )
 			mount | grep lxcfs >/dev/null
 			if [ "`awk '/lxcfs/{print $1;exit}' /proc/1/task/1/mounts`" = "lxcfs" ] ; then
-				echo -e "Container LXC"
+				echo -e "LXC container"
 			elif [ -r /sys/class/dmi/id/sys_vendor ] ; then
 				case "`cat /sys/class/dmi/id/sys_vendor`" in
 					"System manufacturer")  
@@ -37,11 +53,9 @@ elif [ -r /proc/1/cgroup ] ; then
 			fi
 		;;
 	esac
-elif [ -e /usr/bin/sw_vers ] ; then #OSX
-	sysctl hw.model | cut -d \: -f2
 fi
 		
-# Version du Système
+# OS version
 echo
 if [ -e /etc/lsb-release ] ; then
 	. /etc/lsb-release
@@ -50,7 +64,7 @@ elif [ -r /etc/debian_version ] ; then
 	echo "Debian `cat /etc/debian_version`"
 elif [ -r /etc/gentoo-release ] ; then
 	cat /etc/gentoo-release
-elif [ -e /usr/bin/sw_vers ] ; then #OSX
+elif [ ${WNIX} = 'osx' ] ; then #OSX
 	echo `/usr/bin/sw_vers -productName` `/usr/bin/sw_vers -productVersion` `/usr/bin/sw_vers -buildVersion`
 else
 	uname -s
@@ -58,48 +72,72 @@ fi
 echo "kernel `uname -srm`"
 echo
 
-# Infos IP
-if [ -e /usr/bin/sw_vers ] ; then #OSX
+# Ip info
+if [ ${WNIX} = 'osx' ] ; then
 	ifconfig | grep inet | egrep -v "127.0.0.1|fe80::|6 ::1" | cut -d " " -f 2
-elif [ -e /bin/ip ] ; then 
+elif [ ${WNIX} = 'linux' ] && [ -e /bin/ip ] ; then 
 	for IPV in '4' '6'; do
 		IPS=""
 		for IP in `ip -${IPV} addr show | grep "global" | egrep "eth|enp|inet6|ppp|vmbr" | sed -e 's/  / /g' | cut -d ' ' -f4`; do
-			if [ "x${IPS}" == "x" ] ; then IPS="${IP}"; else IPS="${IPS} | ${IP}"; fi
+			if [ "x${IPS}" == "x" ] ; then 
+				IPS="${IP}"; 
+			else 
+				IPS="${IPS} | ${IP}"; 
+			fi
 		done
-		if [ "x${IPS}" != "x" ] ; then echo "ipv${IPV} ${IPS}"; fi
+		if [ "x${IPS}" != "x" ] ; then 
+			echo "ipv${IPV} ${IPS}"; 
+		fi
 	done
+elif [ ${WNIX} = 'cygwin' ] ; then
+	IPS=""
+	for IP in `hostname -i` ; do
+		case "${IP}" in
+			fe80\:\:*) ;; # ipv6 local
+			2001\:0\:*) ;; # Teredo Tunneling Pseudo-Interface
+			* )
+				if [ "x${IPS}" == "x" ] ; then 
+					IPS="${IP}"; 
+				else 
+					IPS="${IPS} | ${IP}"; 
+				fi
+			;;
+		esac
+	done
+	echo "ip ${IPS}"
 fi
 
 # Uptime
 uptime | sed -e 's/  / /g' | cut -d ' ' -f3,4,5,7-13
 echo
 
-# espace disque
-if [ -e /usr/bin/sw_vers ] ; then #OSX
+# disk space
+if [ ${WNIX} = 'osx' ] ; then 
 	df -hl
-else
+elif [ ${WNIX} = 'linux' ] || [ ${WNIX} = 'osx' ] ; then
 	df -hT -x tmpfs -x rootfs -x iso9660 -x debugfs -x fuse.mhddfs -x devtmpfs | grep " " | awk 'NR<3{print $0;next}{print $0| "sort -k7"}'
+elif [ ${WNIX}='wsl' ] ; then
+	df -hT  -x tmpfs  
 fi
 
-# températures
+# temperatures (if available)
 if [ -e /usr/bin/sensors ] ; then 
 	echo
 	/usr/bin/sensors | cut -d\( -f1 | grep C | grep \+ --color=never
 fi
 
-# températures HDD
+# Harddrive tempreatures (if available)
 if [ -e /usr/sbin/hddtemp ] ; then 
 	/usr/sbin/hddtemp `fdisk -l 2>/dev/null | egrep "Disk|Disque" | cut -d' ' -f2 | egrep -v "0|1|2|3|4|5|6|7|8|9|identifier|-" | cut -d":" -f1` 2>/dev/null
 fi
 
-# listes des VMs
+# VM list (if available)
 if [ -e /usr/sbin/vzlist ] ; then
 	echo
 	/usr/sbin/vzlist -a -o ctid,hostname,status,numproc,laverage
 fi
 
-# Mails en attente
+# Mail server queue (if available)
 if [ -e /usr/bin/mailq ] ; then
 	NB=`mailq 2>/dev/null | grep -c "^[A-F0-9]"`
 	if [ "x$NB" != "x0" ] ; then 
@@ -108,7 +146,7 @@ if [ -e /usr/bin/mailq ] ; then
 fi
 echo
 
-# Si exec en root : liste MAJ dispo (Ubuntu)
+# OS Update notifier (if available)
 if [ "x${UID}" = "x0" ] ; then
 	for info in `ls /usr/lib/update-notifier/update-motd-* 2>/dev/null`
 	do
