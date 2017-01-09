@@ -20,27 +20,31 @@ echo -e "   \033[1m\033[4m`uname -n`\033[0m"
 echo
 
 # hardware
+if [ -r /root/.mdg ] ; then # OVH server
+	echo -e "OVH server n°`cat /root/.mdg`"
+fi
 if [ "${WNIX}" = 'osx' ] ; then
 	sysctl hw.model | cut -d \: -f2
 elif [ "${WNIX}" = 'wsl' ] ; then
 	echo "Windows Subsystem for Linux (WSL)"
-elif [ -r /root/.mdg ] ; then # OVH server
-	echo -e "OVH server n°`cat /root/.mdg`"
 elif [ -r /proc/vz/veinfo ] ; then
-	echo -e "OpenVZ container n°`awk '{print $1}' /proc/vz/veinfo`"
+	echo -e "OpenVZ container n°`awk '{print $1}' /proc/vz/veinfo` \
+		(`LANG=C lscpu | awk -F ":" '/Core/ { c=$2; }; /Socket/ { print c*$2 }'` vCores)"
 elif [ -r /proc/1/cgroup ] ; then
 	case "`cat /proc/1/cgroup | cut -d \/ -f 2 | sort | tail -n 1`" in
 
 		docker)
-			echo -e "Docker container ID `cat /proc/1/cgroup | cut -d \/ -f 3 | sort | tail -n 1`"
+			echo -e "Docker container ID `cat /proc/1/cgroup | cut -d \/ -f 3 | sort | tail -n 1` \
+				(`LANG=C lscpu | awk -F ":" '/Core/ { c=$2; }; /Socket/ { print c*$2 }'` vCores)"
 		;;
 		lxc)
-			echo -e "LXC container n°`cat /proc/1/cgroup | cut -d \/ -f 3 | sort | tail -n 1`"
+			echo -e "LXC container n°`cat /proc/1/cgroup | cut -d \/ -f 3 | sort | tail -n 1` \
+				(`LANG=C lscpu | awk -F ":" '/Core/ { c=$2; }; /Socket/ { print c*$2 }'` vCores)"
 		;;
 		* )
 			mount | grep lxcfs >/dev/null
 			if [ "`awk '/lxcfs/{print $1;exit}' /proc/1/task/1/mounts`" = "lxcfs" ] ; then
-				echo -e "LXC container"
+				echo -e "LXC container (`LANG=C lscpu | awk -F ":" '/Core/ { c=$2; }; /Socket/ { print c*$2 }'` vCores)"
 			elif [ -r /sys/class/dmi/id/sys_vendor ] ; then
 				case "`cat /sys/class/dmi/id/sys_vendor`" in
 					"System manufacturer")  
@@ -52,6 +56,8 @@ elif [ -r /proc/1/cgroup ] ; then
 						cat /sys/class/dmi/id/sys_vendor
 					;;
 				esac
+				echo "`grep "model name" /proc/cpuinfo | cut -d \:  -f 2 | sort | uniq` \
+					(`LANG=C lscpu | awk -F ":" '/Core/ { c=$2; }; /Socket/ { print c*$2 }'` Cores)" | sed -e "s/ \+/ /g"
 			fi
 		;;
 	esac
@@ -113,8 +119,20 @@ elif [ "${WNIX}" = 'cygwin' ] ; then
 	echo "ip ${IPS}"
 fi
 
-# Uptime
+# Uptime / load avg / mem
+echo
 uptime | sed -e 's/  / /g' | cut -d ' ' -f3,4,5,7-13
+if [ -e /proc/meminfo ] ; then
+	if grep -q "MemAvailable:" /proc/meminfo ; then
+		# kernel 3.14 and more
+		awk '/MemTotal:/ {total=$2} /MemAvailable:/ {ava=$2
+		printf "Mem Total: %.2fG, Used: %.2fG, Avail: %.2fG\n",total/1024/1024,(total-ava)/1024/1024,ava/1024/1024}' /proc/meminfo 
+	else
+		# kernel less than 3.14
+		awk '/MemTotal:/ {total=$2} /MemFree:/ {free=$2} /^Cached:/ {cache=$2} /^Shmem:/ {shm=$2
+		printf "Mem Total: %.2fG, Used: %.2fG, Avail: %.2fG\n",total/1024/1024,(total-free-cache+shm)/1024/1024,(free+cache-shm)/1024/1024}' /proc/meminfo
+	fi
+fi
 echo
 
 # disk space
