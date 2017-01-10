@@ -25,11 +25,13 @@ if [ -r /root/.mdg ] ; then # OVH server
 fi
 
 # hardware / virtual
-CORES=`LANG=C lscpu | awk -F ":" '/Core/ { c=$2; }; /Socket/ { print c*$2 }'`
 if [ "${WNIX}" = 'osx' ] ; then
-	sysctl hw.model | cut -d \: -f2
-
-elif [ "${WNIX}" = 'wsl' ] ; then
+	sysctl -n hw.model
+	echo "`sysctl -n machdep.cpu.brand_string` (`sysctl -n machdep.cpu.core_count` Cores)"
+else
+	CORES=`LANG=C lscpu | awk -F ":" '/Core/ { c=$2; }; /Socket/ { print c*$2 }'`
+fi
+if [ "${WNIX}" = 'wsl' ] ; then
 	echo "Windows Subsystem for Linux (WSL) (${CORES} vCores)"
 
 elif [ -r /.dockerenv  ] ; then
@@ -45,7 +47,7 @@ elif [ -r /proc/$$/attr/current ] && grep -qa 'lxc-container' /proc/$$/attr/curr
 elif [ -r /sys/class/dmi/id/sys_vendor ] && grep -q "QEMU" /sys/class/dmi/id/sys_vendor ;then
 	echo -e "QEMU/KVM Virtual Machine (${CORES} vCores)"
 
-else
+elif [ -r /sys/class/dmi/id/board_vendor ] ; then
 	cat /sys/class/dmi/id/board_vendor
 	echo "`grep "model name" /proc/cpuinfo | cut -d \:  -f 2 | sort | uniq` (${CORES} Cores)" | \
 		sed -e "s/ \+/ /g" -e "s/\t//g" -e "s/^ //g"
