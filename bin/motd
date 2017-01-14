@@ -40,7 +40,6 @@ elif [ -r /.dockerenv  ] ; then
 elif [ -r /proc/vz/veinfo ] ; then
 	echo -e "OpenVZ container n°`awk '{print $1}' /proc/vz/veinfo` (${CORES} vCores)"
 
-
 elif [ -r /proc/$$/attr/current ] && grep -qa 'lxc-container' /proc/$$/attr/current ; then
 	echo -e "LXC container (${CORES} vCores)"
 
@@ -49,12 +48,14 @@ elif [ -r /sys/class/dmi/id/sys_vendor ] && grep -q "QEMU" /sys/class/dmi/id/sys
 
 elif [ -r /sys/class/dmi/id/board_vendor ] ; then
 	cat /sys/class/dmi/id/board_vendor
+	if [ -r /proc/cpuinfo ] && [ "x${CORES}" != "x" ] ; then
+		echo "`grep "model name" /proc/cpuinfo | cut -d \:  -f 2 | sort | uniq` (${CORES} Cores)" | \
+			sed -e "s/ \+/ /g" -e "s/\t//g" -e "s/^ //g"
+	fi
+elif [ -r /proc/cpuinfo ] ; then
+	grep "model name" /proc/cpuinfo | cut -d \:  -f 2 | sort | uniq | sed -e "s/ \+/ /g" -e "s/\t//g" -e "s/^ //g"
 fi
-if [ -r /proc/cpuinfo ] && [ "x${CORES}" != "x" ]; then
-	echo "`grep "model name" /proc/cpuinfo | cut -d \:  -f 2 | sort | uniq` (${CORES} Cores)" | \
-		sed -e "s/ \+/ /g" -e "s/\t//g" -e "s/^ //g"
-fi
-		
+
 # OS version
 echo
 if [ -e /etc/lsb-release ] ; then
