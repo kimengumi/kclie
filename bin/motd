@@ -29,7 +29,7 @@ if [ "${WNIX}" = 'osx' ] ; then
 	sysctl -n hw.model
 	echo "`sysctl -n machdep.cpu.brand_string` (`sysctl -n machdep.cpu.core_count` Cores)"
 else
-	CORES=`LANG=C lscpu | awk -F ":" '/Core/ { c=$2; }; /Socket/ { print c*$2 }'`
+	CORES=`LANG=C lscpu 2>/dev/null | awk -F ":" '/Core/ { c=$2; }; /Socket/ { print c*$2 }'`
 fi
 if [ "${WNIX}" = 'wsl' ] ; then
 	echo "Windows Subsystem for Linux (WSL) (${CORES} vCores)"
@@ -49,6 +49,8 @@ elif [ -r /sys/class/dmi/id/sys_vendor ] && grep -q "QEMU" /sys/class/dmi/id/sys
 
 elif [ -r /sys/class/dmi/id/board_vendor ] ; then
 	cat /sys/class/dmi/id/board_vendor
+fi
+if [ -r /proc/cpuinfo ] && [ "x${CORES}" != "x" ]; then
 	echo "`grep "model name" /proc/cpuinfo | cut -d \:  -f 2 | sort | uniq` (${CORES} Cores)" | \
 		sed -e "s/ \+/ /g" -e "s/\t//g" -e "s/^ //g"
 fi
