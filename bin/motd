@@ -8,13 +8,13 @@ case "${OSTYPE}" in
 	*linux*)	WNIX='linux'	;;
 	* )		WNIX='other'	;;
 esac
-if [ "${WNIX}" = 'linux' ] && grep -q 'Microsoft' /proc/version ; then 
+if [ "${WNIX}" = 'linux' ] && grep -q 'Microsoft' /proc/version ; then
 	WNIX='wsl'
 fi
 
 
 # Header
-echo 
+echo
 echo "   Kimengumi.fr"
 echo -e "   \033[1m\033[4m`uname -n`\033[0m"
 echo
@@ -40,10 +40,10 @@ elif [ -r /.dockerenv  ] ; then
 elif [ -r /proc/vz/veinfo ] ; then
 	echo -e "OpenVZ container n°`awk '{print $1}' /proc/vz/veinfo` (${CORES} vCores)"
 
-elif [ -r /proc/$$/attr/current ] && grep -qa 'lxc-container' /proc/$$/attr/current ; then
+elif [ -r /proc/$$/attr/current ] && (grep -qa 'lxc-container' /proc/$$/attr/current 2>/dev/null) ; then
 	echo -e "LXC container (${CORES} vCores)"
 
-elif [ -r /sys/class/dmi/id/sys_vendor ] && grep -q "QEMU" /sys/class/dmi/id/sys_vendor ;then
+elif [ -r /sys/class/dmi/id/sys_vendor ] && (grep -q "QEMU" /sys/class/dmi/id/sys_vendor 2>/dev/null) ;then
 	echo -e "QEMU/KVM Virtual Machine (${CORES} vCores)"
 
 elif [ -r /sys/class/dmi/id/board_vendor ] ; then
@@ -80,18 +80,18 @@ echo
 # Ip info
 if [ "${WNIX}" = 'osx' ] ; then
 	ifconfig | grep inet | egrep -v "127.0.0.1|fe80::|6 ::1" | cut -d " " -f 2
-elif [ "${WNIX}" = 'linux' ] && [ -e /bin/ip ] ; then 
+elif [ "${WNIX}" = 'linux' ] && [ -e /bin/ip ] ; then
 	for IPV in '4' '6'; do
 		IPS=""
 		for IP in `ip -${IPV} addr show | grep "global" | egrep "eth|enp|inet6|ppp|vmbr|wlp|wlan" | sed -e 's/  / /g' | cut -d ' ' -f4`; do
-			if [ "x${IPS}" == "x" ] ; then 
-				IPS="${IP}"; 
-			else 
-				IPS="${IPS} | ${IP}"; 
+			if [ "x${IPS}" == "x" ] ; then
+				IPS="${IP}";
+			else
+				IPS="${IPS} | ${IP}";
 			fi
 		done
-		if [ "x${IPS}" != "x" ] ; then 
-			echo "ipv${IPV} ${IPS}"; 
+		if [ "x${IPS}" != "x" ] ; then
+			echo "ipv${IPV} ${IPS}";
 		fi
 	done
 elif [ "${WNIX}" = 'cygwin' ] ; then
@@ -101,10 +101,10 @@ elif [ "${WNIX}" = 'cygwin' ] ; then
 			fe80\:\:*) ;; # ipv6 local
 			2001\:0\:*) ;; # Teredo Tunneling Pseudo-Interface
 			* )
-				if [ "x${IPS}" == "x" ] ; then 
-					IPS="${IP}"; 
-				else 
-					IPS="${IPS} | ${IP}"; 
+				if [ "x${IPS}" == "x" ] ; then
+					IPS="${IP}";
+				else
+					IPS="${IPS} | ${IP}";
 				fi
 			;;
 		esac
@@ -119,7 +119,7 @@ if [ -e /proc/meminfo ] ; then
 	if grep -q "MemAvailable:" /proc/meminfo ; then
 		# kernel 3.14 and more
 		awk '/MemTotal:/ {total=$2} /MemAvailable:/ {ava=$2
-		printf "Mem Total: %.2fG, Used: %.2fG, Avail: %.2fG\n",total/1024/1024,(total-ava)/1024/1024,ava/1024/1024}' /proc/meminfo 
+		printf "Mem Total: %.2fG, Used: %.2fG, Avail: %.2fG\n",total/1024/1024,(total-ava)/1024/1024,ava/1024/1024}' /proc/meminfo
 	else
 		# kernel less than 3.14
 		awk '/MemTotal:/ {total=$2} /MemFree:/ {free=$2} /^Cached:/ {cache=$2} /^Shmem:/ {shm=$2
@@ -129,22 +129,22 @@ fi
 echo
 
 # disk space
-if [ "${WNIX}" = 'osx' ] ; then 
+if [ "${WNIX}" = 'osx' ] ; then
 	df -hl
-elif [ "${WNIX}" = 'linux' ] || [ "${WNIX}" = 'osx' ] || [ "${WNIX}" = 'cygwin' ] ; then
+elif [ "${WNIX}" = 'linux' ] || [ "${WNIX}" = 'cygwin' ] ; then
 	df -hT -x tmpfs -x rootfs -x iso9660 -x debugfs -x fuse.mhddfs -x devtmpfs | grep " " | awk 'NR<3{print $0;next}{print $0| "sort -k7"}'
 elif [ "${WNIX}" = 'wsl' ] ; then
-	df -hT  -x tmpfs  
+	df -hT  -x tmpfs
 fi
 
 # temperatures (if available)
-if [ -e /usr/bin/sensors ] ; then 
+if [ -e /usr/bin/sensors ] ; then
 	echo
 	/usr/bin/sensors | cut -d\( -f1 | grep C | grep \+ --color=never
 fi
 
 # Harddrive tempreatures (if available)
-if [ -x /usr/sbin/hddtemp ] ; then 
+if [ -x /usr/sbin/hddtemp ] ; then
 	/usr/sbin/hddtemp `fdisk -l 2>/dev/null | egrep "Disk|Disque" | cut -d' ' -f2 | egrep -v "0|1|2|3|4|5|6|7|8|9|identifier|-" | cut -d":" -f1` 2>/dev/null
 fi
 
@@ -169,7 +169,7 @@ fi
 # Mail server queue (if available)
 if [ -x /usr/bin/mailq ] ; then
 	NB=`mailq 2>/dev/null | grep -c "^[A-F0-9]"`
-	if [ "x$NB" != "x0" ] ; then 
+	if [ "x$NB" != "x0" ] ; then
 		echo "$NB emails in queue"
 	fi
 fi
