@@ -1,14 +1,36 @@
-# PROFIL Kimengumi  
+#
+# Kimengumi Command Line Interface Environnement
+#
+# Generic shell profile
+#
+# Copyright 2017 Antonio Rossetti (https://www.kimengumi.fr)
+#
+# Licensed under the EUPL, Version 1.1 or – as soon they will be approved by
+# the European Commission - subsequent versions of the EUPL (the "Licence");
+# You may not use this work except in compliance with the Licence.
+# You may obtain a copy of the Licence at:
+#
+# https://joinup.ec.europa.eu/software/page/eupl
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the Licence is distributed on an "AS IS" basis,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the Licence for the specific language governing permissions and
+# limitations under the Licence.
 
-KCLIEETC=`dirname $0`
-export KCLIEDIR=`dirname ${KCLIEETC}`
+# Check KCLIE env and load if necessary
+if [ "x${KCLIE_PATH}" = "x" ] ; then
+  set -a
+	source `dirname $0`/../env
+  set +a
+fi
+
 export HOSTNAME=`hostname`
-
 
 # pour repositionner correctement $HOME quand on fait un sudo -u
 if [ "x${USER}" = "xroot" ] ; then
-        export HOME=/root
-	export PATH=${KCLIEDIR}/sbin:${PATH}
+	export HOME=/root
+	export PATH=${	KCLIE_PATH}/sbin:${PATH}
 else
 	OLDHOME=${HOME}
 	export HOME=/tmp/${USER}
@@ -41,7 +63,7 @@ umask 002
 if [ -e /usr/bin/vim.nox ] ; then
 	export SVN_EDITOR=/usr/bin/vim.nox
 fi
-export PATH=${KCLIEDIR}/bin:${PATH}
+export PATH=${KCLIE_PATH}/bin:${PATH}
 if [ -e "`which dircolors`" ] ; then
 	eval `dircolors -b`
 	LSCOLOR='--color'
@@ -61,8 +83,8 @@ alias ls="ls ${LSCOLOR}"
 alias dir="dir ${LSCOLOR}"
 alias vdir="vdir ${LSCOLOR}"
 alias grep='grep --color=auto --exclude-dir=.svn'
-alias fgrep='fgrep --color=auto --exclude-dir=.svn'
-alias egrep='egrep --color=auto --exclude-dir=.svn'
+alias fgrep='fgrep --color=auto --exclude-dir={.git,.svn}'
+alias egrep='egrep --color=auto --exclude-dir={.git,.svn}'
 
 # si colorsvn est dispo
 if [ -e /usr/bin/colorsvn ] ; then

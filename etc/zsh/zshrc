@@ -1,25 +1,42 @@
-# PROFIL Kimengumi
-# PARTIE SPECIFIQUE A ZSH
+#
+# Kimengumi Command Line Interface Environnement
+#
+# ZSH profile
+#
+# Copyright 2017 Antonio Rossetti (https://www.kimengumi.fr)
+#
+# Licensed under the EUPL, Version 1.1 or – as soon they will be approved by
+# the European Commission - subsequent versions of the EUPL (the "Licence");
+# You may not use this work except in compliance with the Licence.
+# You may obtain a copy of the Licence at:
+#
+# https://joinup.ec.europa.eu/software/page/eupl
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the Licence is distributed on an "AS IS" basis,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the Licence for the specific language governing permissions and
+# limitations under the Licence.
 
 if [ ! -e ${HOME}/.zshrc ] ; then
 	touch ${HOME}/.zshrc
 fi
 
 # ssh-agent (clefs ssh)
-# on vérifie si un ssh-agent existe deja pour le user courant 
+# on vérifie si un ssh-agent existe deja pour le user courant
 export SSH_AGENT_PID="`pgrep -u ${USERNAME} ssh-agent | head -n1`"
 if [ "x${SSH_AGENT_PID}" != "x" ] ; then
-        # on retrouve le socket d'apres le PID
+	# on retrouve le socket d'apres le PID
 	if [ `ls /tmp/ssh-*/agent.*.${SSH_AGENT_PID} >/dev/null 2>&1` ] ; then
-        	for SOCK in `ls --color=never /tmp/ssh-*/agent.*.${SSH_AGENT_PID}` ; do
-                	export SSH_AUTH_SOCK="`cat ${SOCK}`"
-        	done
+		for SOCK in `ls --color=never /tmp/ssh-*/agent.*.${SSH_AGENT_PID}` ; do
+			export SSH_AUTH_SOCK="`cat ${SOCK}`"
+		done
 	fi
 else
-        # demarrage ssh-agent
-        eval `ssh-agent` >/dev/null
-        # fichier permmetant de retrouver le socket d'apres le PID pour la prochaine connexion
-        echo ${SSH_AUTH_SOCK} > ${SSH_AUTH_SOCK}.${SSH_AGENT_PID}
+	# demarrage ssh-agent
+	eval `ssh-agent` >/dev/null
+	# fichier permmetant de retrouver le socket d'apres le PID pour la prochaine connexion
+	echo ${SSH_AUTH_SOCK} > ${SSH_AUTH_SOCK}.${SSH_AGENT_PID}
 fi
 
 # historique
@@ -32,14 +49,17 @@ setopt extendedglob
 
 # If a local Oh My Zsh is detected, we use it
 if [ -e $HOME/.oh-my-zsh/oh-my-zsh.sh ] ; then
-	
+
 	# No default configuration in this case, all have to be done in the local user ~/.zshrc
 
-elif [ -e $HOME/.oh-my-zsh/oh-my-zsh.sh ] ; then
+elif [ -e ${KCLIE_PATH}/vendor/oh-my-zsh/oh-my-zsh.sh ] ; then
 
 	#Basic Oh My Zsh configuration
-	export ZSH=$HOME/.oh-my-zsh
+	export ZSH=${KCLIE_PATH}/vendor/oh-my-zsh/
 	ZSH_THEME="candy"
+	DISABLE_UPDATE_PROMPT=true
+	DISABLE_AUTO_UPDATE=true
+
 else
 	# standard zsh prompt
 	autoload -U compinit

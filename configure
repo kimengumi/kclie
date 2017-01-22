@@ -1,54 +1,160 @@
 #!/bin/bash
+#
+# Kimengumi Command Line Interface Environnement
+#
+# Install & configure / update utillity
+#
+# Copyright 2017 Antonio Rossetti (https://www.kimengumi.fr)
+#
+# Licensed under the EUPL, Version 1.1 or – as soon they will be approved by
+# the European Commission - subsequent versions of the EUPL (the "Licence");
+# You may not use this work except in compliance with the Licence.
+# You may obtain a copy of the Licence at:
+#
+# https://joinup.ec.europa.eu/software/page/eupl
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the Licence is distributed on an "AS IS" basis,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the Licence for the specific language governing permissions and
+# limitations under the Licence.
 
-export KCLIEDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-echo "KClie directory is : ${KCLIEDIR}"
+if [ "$(id -u)" != "0" ] ; then
+   echo "This script must be run as root" 1>&2
+   exit 1
+fi
+
+#
+# Environnement positioning & update
+#
+export KCLIE_SETUP_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+if [ -e ${KCLIE_SETUP_DIR}/env ] ; then
+		source ${KCLIE_SETUP_DIR}/env
+else
+	  echo '#
+# Kimengumi Command Line Interface Environnement
+#
+# Host configuration file
+#
+# This file must only contain KEY=VALUE lines.
+# Please do not use advanced shell script constructs!
+#
+' > ${KCLIE_SETUP_DIR}/env
+fi
+if [ "x${KCLIE_SETUP_DIR}" != "x${KCLIE_PATH}" ] ; then
+	echo "KCLIE_PATH=\"${KCLIE_SETUP_DIR}\"" >> ${KCLIE_SETUP_DIR}/env
+	KCLIE_PATH=${KCLIE_SETUP_DIR}
+fi
+
+#
+# INTERACTIVE PART
+#
+
+# Team Name
+if [ "x${KCLIE_TEAM_NAME}" = "x" ] ; then
+	echo
+	read -p 'Name of the management team : ' KCLIE_TEAM_NAME
+	if [ "x${KCLIE_TEAM_NAME}" != "x" ] ; then
+		echo "KCLIE_TEAM_NAME='${KCLIE_TEAM_NAME}'" >> ${KCLIE_PATH}/env
+	fi
+fi
+
+# Color picker
+if [ "x${KCLIE_TEAM_COLOR}" = "x" ] || [ "x${KCLIE_HOST_COLOR}" = "x" ] ; then
+	echo
+	echo "Color code picker :"
+	echo
+	BACKGS=(049 040 100 047 107 041 101 042 102 043 103 044 104 045 105 046 106)
+	FOREGS=( 30  90  37  97  39  31  91  32  92  33  93  34  94  35  95  36  96)
+	for FID in "${!FOREGS[@]}"; do
+		for BID in "${!BACKGS[@]}"; do
+			echo -en "\033[${BACKGS[$BID]};${FOREGS[$FID]}m${FOREGS[$FID]}${BACKGS[$BID]}\033[0m "
+		done
+		echo
+	done
+fi
+
+# Team Color
+if [ "x${KCLIE_TEAM_COLOR}" = "x" ]  ; then
+	echo
+	read -p "Color code for Team : " INPUT_COLOR
+	KCLIE_TEAM_COLOR="\033[`echo ${INPUT_COLOR} | cut -c 1-2`;`echo ${INPUT_COLOR} | cut -c 3-5`m"
+	if [ "x${KCLIE_TEAM_COLOR}" != "x" ] ; then
+		echo "KCLIE_TEAM_COLOR='${KCLIE_TEAM_COLOR}'" >> ${KCLIE_PATH}/env
+	fi
+fi
+
+# Host Color picker
+if [ "x${KCLIE_HOST_COLOR}" = "x" ] ; then
+	echo
+	read -p "Color code for Host : " INPUT_COLOR
+	KCLIE_HOST_COLOR="\033[`echo ${INPUT_COLOR} | cut -c 1-2`;`echo ${INPUT_COLOR} | cut -c 3-5`m"
+	if [ "x${KCLIE_HOST_COLOR}" != "x" ] ; then
+		echo "KCLIE_HOST_COLOR='${KCLIE_HOST_COLOR}'" >> ${KCLIE_PATH}/env
+	fi
+fi
+
+#
+# AUTOMATED PART
+#
+
+echo
+echo "=== Setup / Upgrade ==="
+echo "KCLIE directory is : ${KCLIE_PATH}"
 
 echo "Applying shells customizations ..."
-#BASH
+
+# BASH
 if [ -w /etc/bash.bashrc ] ; then
-	if ! grep -q "\. ${KCLIEDIR}/etc/profile" /etc/bash.bashrc ; then
-		echo ". ${KCLIEDIR}/etc/profile" >> /etc/bash.bashrc
+	if ! grep -q "\. ${KCLIE_PATH}/etc/profile" /etc/bash.bashrc ; then
+		echo ". ${KCLIE_PATH}/etc/profile" >> /etc/bash.bashrc
 	fi
 elif [ -w /etc/bashrc ] ; then
-	if ! grep -q "\. ${KCLIEDIR}/etc/profile" /etc/bashrc ; then
-		echo ". ${KCLIEDIR}/etc/profile" >> /etc/bashrc
+	if ! grep -q "\. ${KCLIE_PATH}/etc/profile" /etc/bashrc ; then
+		echo ". ${KCLIE_PATH}/etc/profile" >> /etc/bashrc
 	fi
 fi
 
-#ZSH
+# ZSH
 if [ -w /etc/zsh/zshrc ] ; then
-	if ! grep -q "\. ${KCLIEDIR}/etc/profile" /etc/zsh/zshrc ; then
-        	echo ". ${KCLIEDIR}/etc/profile" >> /etc/zsh/zshrc
-		echo ". ${KCLIEDIR}/etc/zsh/zshrc" >> /etc/zsh/zshrc
-		echo ". ${KCLIEDIR}/etc/zsh/zlogout" >> /etc/zsh/zlogout
+	if ! grep -q "\. ${KCLIE_PATH}/etc/profile" /etc/zsh/zshrc ; then
+		echo ". ${KCLIE_PATH}/etc/profile" >> /etc/zsh/zshrc
+		echo ". ${KCLIE_PATH}/etc/zsh/zshrc" >> /etc/zsh/zshrc
+		echo ". ${KCLIE_PATH}/etc/zsh/zlogout" >> /etc/zsh/zlogout
 	fi
 elif [ -w /etc/zshrc ] ; then
-        if ! grep -q "\. ${KCLIEDIR}/etc/profile" /etc/zshrc ; then
-                echo ". ${KCLIEDIR}/etc/profile" >> /etc/zshrc
-                echo ". ${KCLIEDIR}/etc/zsh/zshrc" >> /etc/zshrc
-                echo ". ${KCLIEDIR}/etc/zsh/zlogout" >> /etc/zlogout
-        fi
+	if ! grep -q "\. ${KCLIE_PATH}/etc/profile" /etc/zshrc ; then
+		echo ". ${KCLIE_PATH}/etc/profile" >> /etc/zshrc
+		echo ". ${KCLIE_PATH}/etc/zsh/zshrc" >> /etc/zshrc
+		echo ". ${KCLIE_PATH}/etc/zsh/zlogout" >> /etc/zlogout
+	fi
 fi
+
+# Oh My ZSH
+#@TODO
+#git clone git://github.com/robbyrussell/oh-my-zsh.git ~/.oh-my-zsh
 
 echo "Installing welcome banner ..."
 # Motd
 if [ -w /etc/update-motd.d ] && [ ! -d /etc/update-motd.d.dist ] ; then
 	mv /etc/update-motd.d /etc/update-motd.d.dist
 	mkdir /etc/update-motd.d
-	ln -s  ${KCLIEDIR}/bin/motd /etc/update-motd.d/0000-kclie
+	ln -s  ${KCLIE_PATH}/bin/motd /etc/update-motd.d/0000-kclie
 elif [ -w /etc/motd ] ; then
 	echo -e "#!/bin/bash
-${KCLIEDIR}/bin/motd > /etc/motd" > /etc/cron.hourly/kcliebanner
-	chmod 755 /etc/cron.hourly/kimengumimotd
+${KCLIE_PATH}/bin/motd > /etc/motd 2>&1" > /etc/cron.hourly/kcliebanner
+	chmod 755 /etc/cron.hourly/kcliebanner
 fi
 
 
 # Ubuntu LightDm config
 if [ -d '/usr/share/lightdm/lightdm.conf.d' ] ; then
-
 	echo "Applying LightDM customization ..."
 	echo '[SeatDefaults]
 greeter-hide-users=true
 greeter-show-manual-login=true' > /usr/share/lightdm/lightdm.conf.d/99-kclie.conf
 fi
+
+echo done
+echo
