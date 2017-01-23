@@ -20,17 +20,17 @@
 
 # Check KCLIE env and load if necessary
 if [ "x${KCLIE_PATH}" = "x" ] ; then
-  set -a
-	source `dirname $0`/../env
-  set +a
+    set -a
+    source $( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/../env
+    set +a
 fi
 
 export HOSTNAME=`hostname`
 
 # pour repositionner correctement $HOME quand on fait un sudo -u
 if [ "x${USER}" = "xroot" ] ; then
-	export HOME=/root
-	export PATH=${	KCLIE_PATH}/sbin:${PATH}
+    export HOME=/root
+	export PATH=${KCLIE_PATH}/sbin:${PATH}
 else
 	OLDHOME=${HOME}
 	export HOME=/tmp/${USER}
