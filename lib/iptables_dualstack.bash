@@ -179,8 +179,8 @@ OvhMonitoring () {
 
   for SENS in "INPUT" ; do # non nécéssaire sur les vms car NAT
     $ip4t -A $SENS -j ACCEPT -p tcp  -s 213.186.50.100 --dport 22
-    $ip4t -A $SENS -j ACCEPT -p icmp -s ${EXTERNAL_IP4_PREFIX}.250 #spécifique au sous réseau du serveur
-    $ip4t -A $SENS -j ACCEPT -p icmp -s ${EXTERNAL_IP4_PREFIX}.251 #spécifique au sous réseau du serveur
+    $ip4t -A $SENS -j ACCEPT -p icmp -s ${EXTERNAL_IP4_PREFIX}250 #spécifique au sous réseau du serveur
+    $ip4t -A $SENS -j ACCEPT -p icmp -s ${EXTERNAL_IP4_PREFIX}251 #spécifique au sous réseau du serveur
     $ip4t -A $SENS -j ACCEPT -p icmp -s 167.114.37.0/24
     $ip4t -A $SENS -j ACCEPT -p icmp -s 213.186.33.13
     $ip4t -A $SENS -j ACCEPT -p icmp -s 213.186.33.62
