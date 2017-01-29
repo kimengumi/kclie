@@ -1,27 +1,22 @@
 Kimengumi Command Line Interface Environnement
 ===================
 
-Usefull command line environnement & tools
+Usefull command line environnement, tools & libraries.
+
+Designed for Linux Debia & Ubuntu, Mac OSX, Cygwin (including Babun packages), WSL (Windows Subsystem for Linux)
 
 Installation
 -------------
 
-### Generate Deploy key on local system
-
-`ssh-keygen -t rsa -b 4096`
-
-`cat ~/.ssh/id_rsa.pub`
-
-Allow the key on the GIT repository
-
-### Install & configure the environement 
+### Recommanded softwares
 
 `apt-get install htop git vim-nox zsh`
 
-`mkdir -p /opt/kimengumi/`
+### Install & configure the environement 
 
-`cd /opt/kimengumi/`
+as root
 
-`git clone ssh://git@git.kimengumi.fr:617/sys/kclie.git`
-
-`cd kclie && ./configure`
+`cd /opt/`
+`git clone https://github.com/kimengumi/kclie.git`
+`cd kclie`
+`./configure`
