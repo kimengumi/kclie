@@ -220,6 +220,17 @@ DualDefaultRules () {
   done
 
   # activation du Forwarding
-  echo 1 > /proc/sys/net/ipv4/ip_forward
+  sysctl -w net.ipv4.ip_forward=1
+  sysctl -w net.ipv4.conf.all.forwarding=1
+  sysctl -w net.ipv4.conf.all.accept_redirects=0
+  sysctl -w net.ipv4.conf.all.send_redirects=0
+  sysctl -w net.ipv4.conf.default.forwarding=1
+
+  sysctl -w net.ipv6.conf.all.forwarding=1
+  sysctl -w net.ipv6.conf.all.accept_redirects=0
+  sysctl -w net.ipv6.conf.all.router_solicitations=1
+  sysctl -w net.ipv6.conf.default.forwarding=1
+  sysctl -w net.ipv6.conf.default.proxy_ndp=1
+  sysctl -w net.ipv6.conf.all.proxy_ndp=1
 
 }
