@@ -1,4 +1,23 @@
-#!/bin/sh
+#!/bin/bash
+#
+# Kimengumi Command Line Interface Environnement
+#
+# Library helping write batch scripts
+#
+# Copyright 2017 Antonio Rossetti (https://www.kimengumi.fr)
+#
+# Licensed under the EUPL, Version 1.1 or – as soon they will be approved by
+# the European Commission - subsequent versions of the EUPL (the "Licence");
+# You may not use this work except in compliance with the Licence.
+# You may obtain a copy of the Licence at:
+#
+# https://joinup.ec.europa.eu/software/page/eupl
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the Licence is distributed on an "AS IS" basis,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the Licence for the specific language governing permissions and
+# limitations under the Licence.
 
 export SCRIPT_NAME=""
 export HOSTNAME=`hostname`
@@ -34,7 +53,7 @@ Init() {
 			echo "Une autre instance de \"${SCRIPT_NAME}\" est deja en cours d'execution !" >&2
 			echo "Annulation de l'execution" >&2
 			echo "---" >&2
-			ps -eaf | head -n 1 >&2 
+			ps -eaf | head -n 1 >&2
 			echo "${EXISTINGPROC}" >&2
 			exit 2
 		else
@@ -197,7 +216,7 @@ BackupRep() {
 	fi
 	if [ -e  ${REP}/.backup-exclude ] ; then
 	        EXCLUDE="--exclude-from=${REP}/.backup-exclude"
-	else 
+	else
 		if [ -e  ${TAREP}/.exclude ] ; then
 	        	EXCLUDE="--exclude-from=${TAREP}/.exclude"
 		fi
@@ -233,12 +252,12 @@ RsyncRep() {
 	        # --del : permet de supprimer les fichiers sur "destination" qui n'existent plus sur "source"
 	        # --ignore-errors : efface même s'il y a eu des erreurs E/S
 	        # --force : force la suppression de répertoires même non-vides
-	        # --delete-excluded : efface également les fichiers exclus côté réception 
+	        # --delete-excluded : efface également les fichiers exclus côté réception
 	else
 	        echo -e "\n!!! $1: repertoire de backup ${DEFAULT_BACKUP_DIR}/${HOSTNAME}$1 inacessible !!!"
 	fi
-}	
-	
+}
+
 RotateLog() {
         FICTAILLE=$(stat -c%s "$1")
         if [ "x$FICTAILLE" = "x0" ] ; then
@@ -274,21 +293,21 @@ SmartCheckDisk() {
                 echo ${ERRORL} >&2
                 echo ${SLFTST} >&2
 	else
-		Title "Vérification Smart du disque $1 OK" 
+		Title "Vérification Smart du disque $1 OK"
         fi
 }
 
 Purge() {
-	
+
 	if [ "x$1" = "x" ] || [ "x$2" = "x" ]
 	then
 	        echo "Utilisation: Purge [nb-jours] [rep]"
 	        return 1;
 	fi
-	
+
 	#Find created of modified files more than X days
 	find $2 -ctime +$1 -mtime +$1 -type f -exec rm {} \;
-	
+
 	#Find empty directories, created of modified more than X days
 	find $2 -depth -type d -empty -ctime +$1 -mtime +$1 -exec rmdir {} \;
 }
