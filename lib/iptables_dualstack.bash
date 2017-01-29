@@ -19,87 +19,109 @@
 # See the Licence for the specific language governing permissions and
 # limitations under the Licence.
 
-export ip4t=/sbin/iptables # executable iptables
-export ip6t=/sbin/ip6tables # executable ip6tables
+# CHECK CONFIGURATION
+if [ "x${EXTIF}" = "x" ] || \
+  [ "x${LOCIF}" = "x" ] || \
+  [ "x${LOCIP4NETW}" = "x" ] || \
+  [ "x${LOCIP4PREF}" = "x" ] || \
+  [ "x${LOCIP6NETW}" = "x" ] || \
+  [ "x${LOCIP6PREF}" = "x" ] ; then
 
-# DEFAULT CONFIGURATION (can be overrident after sourcing)
+    echo 'Please initialise your script before loading the library.
+Sample configuration :
 
-export HOST_SSH_PORT="22"
+export EXTIF="eth1"                     # Interface with the public / external IP
+export LOCIF="eth0"                     # Interface with the local / internal IP
+export LOCIP4NETW="192.168.0.0/16"      # Local ipv4 Subnet (could be more than the connected subnet if necessary)
+export LOCIP4PREF="192.168.1."          # Prefix used to write ipv4 rules
+export LOCIP6NETW="fd85:e1b1:e282::/48" # Local ipv6 Subnet (could be more than the connected subnet if necessary)
+export LOCIP6PREF="fd85:e1b1:e282:1::"  # Prefix used to write ipv6 rules
+'
+  exit 1
+fi
 
-export EXTERNAL_IF="eth1"
-
-export LOCAL_IF="eth0"
-export LOCAL_IP4_NETWORK="192.168.0.0/16"     # could be more than the local subnet (if VPN connected example)
-export LOCAL_IP6_NETWORK="fd85:e1b1:e282::/48"  # could be more than the local subnet (if VPN connected example)
-export LOCAL_IP4_PREFIX="192.168.1."          # used to write Ips in the local subnet
-export LOCAL_IP6_PREFIX="fd85:e1b1:e282:1::"  # used to write Ips in the local subnet
+# Check iptables
+if [ "$(id -u)" != "0" ]; then
+  echo 'You are not root : entering preview mode ...'
+  export ip4t="echo IPv4"
+  export ip6t="echo IPv6"
+  export sctl="echo sysctl"
+else
+  export ip4t=`which iptables`
+  export ip6t=`which ip6tables`
+  export sctl=`which sysctl`
+  if [ ! -x ${ip4t} ] || [ ! -x ${ip6t} ] || [ ! -x $sctl ] ; then
+    echo 'No executable for iptables or ip6tables or sysctl found !'
+    exit 1
+  fi
+fi
 
 # Reset tables and allow ssh to host
 DualBasicRules () {
 
+  if [ "x$1" = "x" ] ; then
+    echo "Usage: DualBasicRules [SSH Port to Current Host]"
+    exit 1 # we do not start anything (ssh connection to host no securized)
+  fi
+  HOST_SSH_PORT=$1
+
   echo "reseting ip4/6 tables ..."
 
-  $ip4t -P INPUT ACCEPT
-  $ip4t -P OUTPUT ACCEPT
-  $ip4t -P FORWARD ACCEPT
-  $ip4t -F
-  $ip4t -X
-  $ip4t -t nat -F
-  $ip4t -t nat -X
-  $ip4t -t mangle -F
-  $ip4t -t mangle -X
-  $ip6t -P INPUT ACCEPT
-  $ip6t -P OUTPUT ACCEPT
-  $ip6t -P FORWARD ACCEPT
-  $ip6t -F
-  $ip6t -X
-  $ip6t -t nat -F
-  $ip6t -t nat -X
-  $ip6t -t mangle -F
-  $ip6t -t mangle -X
+  ${ip4t} -P INPUT ACCEPT
+  ${ip6t} -P INPUT ACCEPT
+  ${ip4t} -P OUTPUT ACCEPT
+  ${ip6t} -P OUTPUT ACCEPT
+  ${ip4t} -P FORWARD ACCEPT
+  ${ip6t} -P FORWARD ACCEPT
+  ${ip4t} -F
+  ${ip6t} -F
+  ${ip4t} -X
+  ${ip6t} -X
+  ${ip4t} -t nat -F
+  ${ip6t} -t nat -F
+  ${ip4t} -t nat -X
+  ${ip6t} -t nat -X
+  ${ip4t} -t mangle -F
+  ${ip6t} -t mangle -F
+  ${ip4t} -t mangle -X
+  ${ip6t} -t mangle -X
 
   echo "Applying ip4/6 safe rules ..."
 
   # SSH autorisé dans tout les cas, de partout
-  $ip4t -A INPUT -j ACCEPT -p tcp --dport ${HOST_SSH_PORT}
-  $ip6t -A INPUT -j ACCEPT -p tcp --dport ${HOST_SSH_PORT}
+  ${ip4t} -A INPUT -j ACCEPT -p tcp --dport ${HOST_SSH_PORT}
+  ${ip6t} -A INPUT -j ACCEPT -p tcp --dport ${HOST_SSH_PORT}
 
-  # Multicast
-  $ip6t -A INPUT -j ACCEPT -d ff00::/8
-
-  # Neighbor Solicitation & Advertisement
-  $ip6t -A INPUT -j ACCEPT -p icmpv6 --icmpv6-type 135 # Neighbor Solicitation
-  $ip6t -A INPUT -j ACCEPT -p icmpv6 --icmpv6-type 136 # Neighbor Advertisement
+  # specific ipv6
+  ${ip6t} -A INPUT -j ACCEPT -d ff00::/8 # ipv6 Multicast
+  ${ip6t} -A INPUT -j ACCEPT -p icmpv6 --icmpv6-type 135 # Neighbor Solicitation
+  ${ip6t} -A INPUT -j ACCEPT -p icmpv6 --icmpv6-type 136 # Neighbor Advertisement
 
   # Limit ping
-  $ip4t -A INPUT -j ACCEPT -p icmp --icmp-type 8 -m limit --limit 5/sec --limit-burst 10
-  $ip6t -A INPUT -j ACCEPT -p icmpv6 --icmpv6-type 128 -m limit --limit 5/sec --limit-burst 10
-
-  # Protection contre l'IP spoofing
-  if [ -e /proc/sys/net/ipv4/conf/all/rp_filter ] ; then
-          for f in /proc/sys/net/ipv4/conf/*/rp_filter
-          do
-                  echo 1 > $f
-          done
-  fi
+  ${ip4t} -A INPUT -j ACCEPT -p icmp   --icmp-type 8     -m limit --limit 5/sec --limit-burst 10
+  ${ip6t} -A INPUT -j ACCEPT -p icmpv6 --icmpv6-type 128 -m limit --limit 5/sec --limit-burst 10
 
   echo "Applying ip4/6 local rules ..."
 
   # LOCAL HOST
-  $ip4t -A INPUT -j ACCEPT -i lo
-  $ip6t -A INPUT -j ACCEPT -i lo
+  ${ip4t} -A INPUT -j ACCEPT -i lo
+  ${ip6t} -A INPUT -j ACCEPT -i lo
 
   # LOCAL NET
-  $ip4t -A INPUT -j ACCEPT -i ${LOCAL_IF} -s ${LOCAL_IP4_NETWORK}
-  $ip6t -A INPUT -j ACCEPT -i ${LOCAL_IF} -s ${LOCAL_IP6_NETWORK}
-  $ip4t -A FORWARD -j ACCEPT -i ${LOCAL_IF} -s ${LOCAL_IP4_NETWORK}
-  $ip6t -A FORWARD -j ACCEPT -i ${LOCAL_IF} -s ${LOCAL_IP6_NETWORK}
+  ${ip4t} -A INPUT -j ACCEPT -i ${LOCIF} -s ${LOCIP4NETW}
+  ${ip6t} -A INPUT -j ACCEPT -i ${LOCIF} -s ${LOCIP6NETW}
+  ${ip4t} -A FORWARD -j ACCEPT -i ${LOCIF} -s ${LOCIP4NETW}
+  ${ip6t} -A FORWARD -j ACCEPT -i ${LOCIF} -s ${LOCIP6NETW}
+
+  # LOCAL NET specific ipv6
+  ${ip6t} -A INPUT -j ACCEPT -i ${LOCIF} -s fe80::/10 # Link Local addresses
+  ${ip6t} -A FORWARD -j ACCEPT -i ${LOCIF} -s fe80::/10 # Link Local addresses
 
   # LOCAL NAT OUTPUT
-  $ip4t -A POSTROUTING -t nat -j ACCEPT -s ${LOCAL_IP4_NETWORK} -d ${LOCAL_IP4_NETWORK}
-  $ip6t -A POSTROUTING -t nat -j ACCEPT -s ${LOCAL_IP6_NETWORK} -d ${LOCAL_IP6_NETWORK}
-  $ip4t -A POSTROUTING -t nat -j MASQUERADE -s ${LOCAL_IP4_NETWORK} -o ${EXTERNAL_IF}
-  $ip6t -A POSTROUTING -t nat -j MASQUERADE -s ${LOCAL_IP6_NETWORK} -o ${EXTERNAL_IF}
+  ${ip4t} -A POSTROUTING -t nat -j ACCEPT -s ${LOCIP4NETW} -d ${LOCIP4NETW}
+  ${ip6t} -A POSTROUTING -t nat -j ACCEPT -s ${LOCIP6NETW} -d ${LOCIP6NETW}
+  ${ip4t} -A POSTROUTING -t nat -j MASQUERADE -s ${LOCIP4NETW} -o ${EXTIF}
+  ${ip6t} -A POSTROUTING -t nat -j MASQUERADE -s ${LOCIP6NETW} -o ${EXTIF}
 
 }
 
@@ -109,20 +131,19 @@ DualHttpNat () {
     echo "Usage: DualHttpNat [End of local ip4/6]"
     return 1
   fi
-  END_IP=$1
-  echo "Redirecting Http/Https to ${LOCAL_IP4_PREFIX}${END_IP} / ${LOCAL_IP6_PREFIX}${END_IP} ..."
+  ENDIP=$1
+  echo "Redirecting Http/Https to ${LOCIP4PREF}${ENDIP} / ${LOCIP6PREF}${ENDIP} ..."
 
-  $ip4t -A PREROUTING -t nat -j DNAT -i ${EXTERNAL_IF} -p tcp --dport 80 --to ${LOCAL_IP4_PREFIX}${END_IP}:80
-  $ip4t -A PREROUTING -t nat -j DNAT -i ${EXTERNAL_IF} -p tcp --dport 443 --to ${LOCAL_IP4_PREFIX}${END_IP}:443
-  $ip4t -A FORWARD -j DROP   -p tcp --dport 80 -m string --to 70 --algo bm --string 'GET /w00tw00t.at.ISC.SANS.'
-  $ip4t -A FORWARD -j ACCEPT -p tcp -d ${LOCAL_IP4_PREFIX}${END_IP} --dport 80
-  $ip4t -A FORWARD -j ACCEPT -p tcp -d ${LOCAL_IP4_PREFIX}${END_IP} --dport 443
-
-  $ip6t -A PREROUTING -t nat -j DNAT -i ${EXTERNAL_IF} -p tcp --dport 80  --to [${LOCAL_IP6_PREFIX}${END_IP}]:80
-  $ip6t -A PREROUTING -t nat -j DNAT -i ${EXTERNAL_IF} -p tcp --dport 443 --to [${LOCAL_IP6_PREFIX}${END_IP}]:443
-  $ip6t -A FORWARD -j DROP   -p tcp --dport 80 -m string --to 70 --algo bm --string 'GET /w00tw00t.at.ISC.SANS.'
-  $ip6t -A FORWARD -j ACCEPT -p tcp -d ${LOCAL_IP6_PREFIX}${END_IP} --dport 80
-  $ip6t -A FORWARD -j ACCEPT -p tcp -d ${LOCAL_IP6_PREFIX}${END_IP} --dport 443
+  ${ip4t} -A PREROUTING -t nat -j DNAT -i ${EXTIF} -p tcp --dport 80 --to ${LOCIP4PREF}${ENDIP}:80
+  ${ip6t} -A PREROUTING -t nat -j DNAT -i ${EXTIF} -p tcp --dport 80 --to [${LOCIP6PREF}${ENDIP}]:80
+  ${ip4t} -A PREROUTING -t nat -j DNAT -i ${EXTIF} -p tcp --dport 443 --to ${LOCIP4PREF}${ENDIP}:443
+  ${ip6t} -A PREROUTING -t nat -j DNAT -i ${EXTIF} -p tcp --dport 443 --to [${LOCIP6PREF}${ENDIP}]:443
+  ${ip4t} -A FORWARD -j DROP   -p tcp --dport 80 -m string --to 70 --algo bm --string 'GET /w00tw00t.at.ISC.SANS.'
+  ${ip6t} -A FORWARD -j DROP   -p tcp --dport 80 -m string --to 70 --algo bm --string 'GET /w00tw00t.at.ISC.SANS.'
+  ${ip4t} -A FORWARD -j ACCEPT -p tcp -d ${LOCIP4PREF}${ENDIP} --dport 80
+  ${ip6t} -A FORWARD -j ACCEPT -p tcp -d ${LOCIP6PREF}${ENDIP} --dport 80
+  ${ip4t} -A FORWARD -j ACCEPT -p tcp -d ${LOCIP4PREF}${ENDIP} --dport 443
+  ${ip6t} -A FORWARD -j ACCEPT -p tcp -d ${LOCIP6PREF}${ENDIP} --dport 443
 
 }
 
@@ -135,15 +156,14 @@ DualCustomNat () {
   TYPE=$1
   DPORT=$2
   LPORT=$3
-  END_IP=$4
+  ENDIP=$4
 
-  echo "Redirecting port ${DPORT} (${TYPE}) TO ${LOCAL_IP4_PREFIX}${END_IP} / ${LOCAL_IP6_PREFIX}${END_IP} port ${LPORT} ..."
+  echo "Redirecting port ${DPORT} (${TYPE}) TO ${LOCIP4PREF}${ENDIP} / ${LOCIP6PREF}${ENDIP} port ${LPORT} ..."
 
-  $ip4t -A PREROUTING -t nat -j DNAT -i ${EXTERNAL_IF} -p ${TYPE} --dport ${DPORT} --to ${LOCAL_IP4_PREFIX}${END_IP}:${LPORT}
-  $ip4t -A FORWARD -j ACCEPT -p tcp -d ${LOCAL_IP4_PREFIX}${END_IP} --dport ${LPORT}
-
-  $ip6t -A PREROUTING -t nat -j DNAT -i ${EXTERNAL_IF} -p ${TYPE} --dport ${DPORT}  --to [${LOCAL_IP6_PREFIX}${END_IP}]:${LPORT}
-  $ip6t -A FORWARD -j ACCEPT -p tcp -d ${LOCAL_IP6_PREFIX}${END_IP} --dport ${LPORT}
+  ${ip4t} -A PREROUTING -t nat -j DNAT -i ${EXTIF} -p ${TYPE} --dport ${DPORT} --to ${LOCIP4PREF}${ENDIP}:${LPORT}
+  ${ip6t} -A PREROUTING -t nat -j DNAT -i ${EXTIF} -p ${TYPE} --dport ${DPORT}  --to [${LOCIP6PREF}${ENDIP}]:${LPORT}
+  ${ip4t} -A FORWARD -j ACCEPT -p tcp -d ${LOCIP4PREF}${ENDIP} --dport ${LPORT}
+  ${ip6t} -A FORWARD -j ACCEPT -p tcp -d ${LOCIP6PREF}${ENDIP} --dport ${LPORT}
 
 }
 
@@ -154,16 +174,16 @@ DualSshNat () {
     return 1
   fi
   DPREFIX=$1
-  FIRST_END_IP=$2
-  LAST_END_IP=$3
+  FIRST_ENDIP=$2
+  LAST_ENDIP=$3
 
-  echo "Redirecting SSH ports ${DPREFIX}XXX FROM (ip-prefix)${FIRST_END_IP} TO (ip-prefix)${LAST_END_IP}"
+  echo "Redirecting SSH ports ${DPREFIX}XXX FROM (ip-prefix)${FIRST_ENDIP} TO (ip-prefix)${LAST_ENDIP}"
 
-  for i in `seq -w ${FIRST_END_IP} ${LAST_END_IP}` ; do
-          $ip4t -A PREROUTING -t nat -j DNAT -i ${EXTERNAL_IF} -p tcp --dport ${DPREFIX}$i --to ${LOCAL_IP4_PREFIX}${i}:22
-          $ip4t -A FORWARD -j ACCEPT -p tcp -d ${LOCAL_IP4_PREFIX}${i} --dport 22
-          $ip6t -A PREROUTING -t nat -j DNAT -i ${EXTERNAL_IF} -p tcp --dport ${DPREFIX}$i --to [${LOCAL_IP6_PREFIX}${i}]:22
-          $ip6t -A FORWARD -j ACCEPT -p tcp -d ${LOCAL_IP6_PREFIX}${i} --dport 22
+  for ENDIP in `seq -w ${FIRST_ENDIP} ${LAST_ENDIP}` ; do
+          ${ip4t} -A PREROUTING -t nat -j DNAT -i ${EXTIF} -p tcp --dport ${DPREFIX}${ENDIP} --to ${LOCIP4PREF}${ENDIP}:22
+          ${ip6t} -A PREROUTING -t nat -j DNAT -i ${EXTIF} -p tcp --dport ${DPREFIX}${ENDIP} --to [${LOCIP6PREF}${ENDIP}]:22
+          ${ip4t} -A FORWARD -j ACCEPT -p tcp -d ${LOCIP4PREF}${ENDIP} --dport 22
+          ${ip6t} -A FORWARD -j ACCEPT -p tcp -d ${LOCIP6PREF}${ENDIP} --dport 22
   done
 }
 
@@ -177,60 +197,62 @@ OvhMonitoring () {
 
   echo "Allowing OVH Monitoring servers ..."
 
-  for SENS in "INPUT" ; do # non nécéssaire sur les vms car NAT
-    $ip4t -A $SENS -j ACCEPT -p tcp  -s 213.186.50.100 --dport 22
-    $ip4t -A $SENS -j ACCEPT -p icmp -s ${EXTERNAL_IP4_PREFIX}250 #spécifique au sous réseau du serveur
-    $ip4t -A $SENS -j ACCEPT -p icmp -s ${EXTERNAL_IP4_PREFIX}251 #spécifique au sous réseau du serveur
-    $ip4t -A $SENS -j ACCEPT -p icmp -s 167.114.37.0/24
-    $ip4t -A $SENS -j ACCEPT -p icmp -s 213.186.33.13
-    $ip4t -A $SENS -j ACCEPT -p icmp -s 213.186.33.62
-    $ip4t -A $SENS -j ACCEPT -p icmp -s 213.186.45.4
-    $ip4t -A $SENS -j ACCEPT -p icmp -s 213.186.50.100
-    $ip4t -A $SENS -j ACCEPT -p icmp -s 213.186.50.98
-    $ip4t -A $SENS -j ACCEPT -p icmp -s 213.251.184.9
-    $ip4t -A $SENS -j ACCEPT -p icmp -s 37.187.231.251
-    $ip4t -A $SENS -j ACCEPT -p icmp -s 37.59.0.235
-    $ip4t -A $SENS -j ACCEPT -p icmp -s 8.33.137.2
-    $ip4t -A $SENS -j ACCEPT -p icmp -s 92.222.184.0/24
-    $ip4t -A $SENS -j ACCEPT -p icmp -s 92.222.185.0/24
-    $ip4t -A $SENS -j ACCEPT -p icmp -s 92.222.186.0/24
-  done
+  ${ip4t} -A INPUT -j ACCEPT -p tcp  -s 213.186.50.100 --dport 22
+  ${ip4t} -A INPUT -j ACCEPT -p icmp -s ${EXTERNAL_IP4_PREFIX}250 #spécifique au sous réseau du serveur
+  ${ip4t} -A INPUT -j ACCEPT -p icmp -s ${EXTERNAL_IP4_PREFIX}251 #spécifique au sous réseau du serveur
+  ${ip4t} -A INPUT -j ACCEPT -p icmp -s 167.114.37.0/24
+  ${ip4t} -A INPUT -j ACCEPT -p icmp -s 213.186.33.13
+  ${ip4t} -A INPUT -j ACCEPT -p icmp -s 213.186.33.62
+  ${ip4t} -A INPUT -j ACCEPT -p icmp -s 213.186.45.4
+  ${ip4t} -A INPUT -j ACCEPT -p icmp -s 213.186.50.100
+  ${ip4t} -A INPUT -j ACCEPT -p icmp -s 213.186.50.98
+  ${ip4t} -A INPUT -j ACCEPT -p icmp -s 213.251.184.9
+  ${ip4t} -A INPUT -j ACCEPT -p icmp -s 37.187.231.251
+  ${ip4t} -A INPUT -j ACCEPT -p icmp -s 37.59.0.235
+  ${ip4t} -A INPUT -j ACCEPT -p icmp -s 8.33.137.2
+  ${ip4t} -A INPUT -j ACCEPT -p icmp -s 92.222.184.0/24
+  ${ip4t} -A INPUT -j ACCEPT -p icmp -s 92.222.185.0/24
+  ${ip4t} -A INPUT -j ACCEPT -p icmp -s 92.222.186.0/24
+
 }
 
 DualDefaultRules () {
 
+  if [ "x$1" != "xlog" ] && [ "x$1" != "x" ] ; then
+    echo "Usage: DualDefaultRules [log]"
+  fi
+
   echo "Applying ip4/6 default end rules ..."
 
-  for SENS in "INPUT" "FORWARD" ; do
-    $ip4t -A $SENS -j ACCEPT -p icmp -m state --state ESTABLISHED,RELATED
-    $ip4t -A $SENS -j ACCEPT -p tcp  -m state --state ESTABLISHED,RELATED
-    $ip4t -A $SENS -j ACCEPT -p udp  -m state --state ESTABLISHED,RELATED
-    $ip4t -A $SENS -j DROP
-    $ip4t -A $SENS -j LOG --log-prefix="[IP4 ${SENS} DROP] "
-    $ip4t -A $SENS -j REJECT
-    $ip4t -P $SENS DROP
-
-    $ip6t -A $SENS -j ACCEPT -p icmpv6 -m state --state ESTABLISHED,RELATED
-    $ip6t -A $SENS -j ACCEPT -p tcp    -m state --state ESTABLISHED,RELATED
-    $ip6t -A $SENS -j ACCEPT -p udp    -m state --state ESTABLISHED,RELATED
-    $ip6t -A $SENS -j DROP
-    $ip6t -A $SENS -j LOG --log-prefix="[IP6 ${SENS} DROP] "
-    $ip6t -A $SENS -j REJECT
-    $ip6t -P $SENS DROP
+  for WAY in "INPUT" "FORWARD" ; do
+    ${ip4t} -A ${WAY} -j ACCEPT -p icmp   -m state --state ESTABLISHED,RELATED
+    ${ip6t} -A ${WAY} -j ACCEPT -p icmpv6 -m state --state ESTABLISHED,RELATED
+    ${ip4t} -A ${WAY} -j ACCEPT -p tcp -m state --state ESTABLISHED,RELATED
+    ${ip6t} -A ${WAY} -j ACCEPT -p tcp -m state --state ESTABLISHED,RELATED
+    ${ip4t} -A ${WAY} -j ACCEPT -p udp -m state --state ESTABLISHED,RELATED
+    ${ip6t} -A ${WAY} -j ACCEPT -p udp -m state --state ESTABLISHED,RELATED
+    if [ "x$1" = "xlog" ] ; then
+      ${ip4t} -A ${WAY} -j LOG --log-prefix="[IP4 ${WAY} DROP] "
+      ${ip6t} -A ${WAY} -j LOG --log-prefix="[IP6 ${WAY} DROP] "
+    fi
+    ${ip4t} -P ${WAY} DROP
+    ${ip6t} -P ${WAY} DROP
   done
 
   # activation du Forwarding
-  sysctl -w net.ipv4.ip_forward=1
-  sysctl -w net.ipv4.conf.all.forwarding=1
-  sysctl -w net.ipv4.conf.all.accept_redirects=0
-  sysctl -w net.ipv4.conf.all.send_redirects=0
-  sysctl -w net.ipv4.conf.default.forwarding=1
 
-  sysctl -w net.ipv6.conf.all.forwarding=1
-  sysctl -w net.ipv6.conf.all.accept_redirects=0
-  sysctl -w net.ipv6.conf.all.router_solicitations=1
-  sysctl -w net.ipv6.conf.default.forwarding=1
-  sysctl -w net.ipv6.conf.default.proxy_ndp=1
-  sysctl -w net.ipv6.conf.all.proxy_ndp=1
+  ${sctl} -w net.ipv4.conf.all.accept_redirects=0
+  ${sctl} -w net.ipv4.conf.all.forwarding=1
+  ${sctl} -w net.ipv4.conf.all.rp_filter=1
+  ${sctl} -w net.ipv4.conf.all.send_redirects=0
+  ${sctl} -w net.ipv4.conf.default.forwarding=1
+  ${sctl} -w net.ipv4.ip_forward=1
+
+  ${sctl} -w net.ipv6.conf.all.accept_redirects=0
+  ${sctl} -w net.ipv6.conf.all.forwarding=1
+  ${sctl} -w net.ipv6.conf.all.router_solicitations=1
+  ${sctl} -w net.ipv6.conf.default.forwarding=1
+  ${sctl} -w net.ipv6.conf.default.proxy_ndp=1
+  ${sctl} -w net.ipv6.conf.all.proxy_ndp=1
 
 }
