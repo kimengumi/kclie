@@ -3,7 +3,7 @@ Kimengumi Command Line Interface Environnement
 
 Usefull command line environnement, tools & libraries.
 
-Designed for Linux Debia & Ubuntu, Mac OSX, Cygwin (including Babun packages), WSL (Windows Subsystem for Linux)
+Designed for Linux Debian & Ubuntu, Mac OSX, Cygwin (including Babun packages), WSL (Windows Subsystem for Linux)
 
 Installation
 -------------
@@ -17,6 +17,9 @@ Installation
 as root
 
 `cd /opt/`
+
 `git clone https://github.com/kimengumi/kclie.git`
+
 `cd kclie`
+
 `./configure`
