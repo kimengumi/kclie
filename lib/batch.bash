@@ -29,7 +29,7 @@ export DEFAULT_BACKUP_DIR="/home/backup"
 export DEFAULT_LOG_DIR="/var/log/kimengumi"
 export DEFAULT_LIB_DIR="/var/lib/kimengumi"
 
-Init() {
+BatchStart() {
         if [ "x$1" = "x" ] ; then
                 echo 'Init : pas de nom';
                 exit 1
@@ -73,12 +73,12 @@ Init() {
 	BackupSetDayFull 6 #samedi
 }
 
-Fin() {
+BatchEnd() {
         echo "## `date +"%T ## %F"` ## Fin de ${SCRIPT_NAME} ##"
         rm ${SHMDIR}/${SCRIPT_NAME}_$$_fifo_err
 }
 
-Title() {
+BatchEcho() {
 	echo "## `date +"%T"` ## $1 ##"
 }
 
