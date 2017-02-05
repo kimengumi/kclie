@@ -70,7 +70,7 @@ BatchStart() {
         exec >> ${DEFAULT_LOG_DIR}/${SCRIPT_NAME}.log 2> ${SHMDIR}/${SCRIPT_NAME}_$$_fifo_err
         echo "============================================"
 	echo "## `date +"%T ## %F"` ## Début de ${SCRIPT_NAME} ##"
-	BackupSetDayFull 6 #samedi
+	BackupSetWeekDayFull 6 #samedi
 }
 
 BatchEnd() {
