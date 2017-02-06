@@ -117,12 +117,17 @@ NfsVerrouRemove() {
 	NFS_VERROU=""
 }
 
-NfsVzDumpAll() {
-        Title 'sauvegarde VMs'
-	# VZdump sort tout en sortie erreur. on passe donc par un fichier temporaire, puis un grep pour remonter uniquement les vrais erreurs.
-        vzdump -all 1 -compress lzo -maxfiles 1 -stdexcludes 1 -dumpdir ${DEFAULT_BACKUP_DIR}/vzdump/ >/tmp/vzdump.log 2>&1
-        cat /tmp/vzdump.log
-        grep -v 'INFO:' /tmp/vzdump.log >&2
+ProxmoxDumpAll() {
+  REP="$1"
+  if [ "x${REP}" = "x" ] ; then
+    REP="${DEFAULT_BACKUP_DIR}/"
+	fi
+  Title 'Backups off all Proxmox VMs & CTs'
+  export GZIP=-9
+  # VZdump sort tout en sortie erreur. on passe donc par un fichier temporaire, puis un grep pour remonter uniquement les vrais erreurs.
+  vzdump -all 1 -compress gzip -maxfiles 1 -stdexcludes 1 -dumpdir ${REP} >/tmp/vzdump.log 2>&1
+  cat /tmp/vzdump.log
+  grep -v 'INFO:' /tmp/vzdump.log >&2
 }
 
 BackupMysql() {
