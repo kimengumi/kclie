@@ -26,8 +26,8 @@ export IS_FULL_DAY=""
 export CURRENT_WEEK_DAY=`date +%u`
 export CURRENT_MONTH_DAY=`date +%d`
 export DEFAULT_BACKUP_DIR="/home/backup"
-export DEFAULT_LOG_DIR="/var/log/kimengumi"
-export DEFAULT_LIB_DIR="/var/lib/kimengumi"
+export DEFAULT_LOG_DIR="/var/log/kclie"
+export DEFAULT_LIB_DIR="/var/lib/kclie"
 
 BatchStart() {
         if [ "x$1" = "x" ] ; then
