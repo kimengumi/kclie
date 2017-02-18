@@ -155,14 +155,6 @@ BackupMysql() {
     HIST=".${CURRENT_MONTH_DAY}"
   fi
 
-  if [ "x${GZIP}" = "none" ] ; then
-    GZIP=""
-    GZIPSUFFIX=""
-  else
-    GZIP="| gzip -9f"
-    GZIPSUFFIX=".gz"
-  fi
-
 	if [ "x${REP}" = "x" ] ; then
     REP="${DEFAULT_BACKUP_DIR}/${HOSTNAME}/mysql"
 	fi
@@ -179,7 +171,11 @@ BackupMysql() {
 			else
 				EXTRAOPTIONS=""
 			fi
-      mysqldump ${USER} -f ${BASE} ${EXTRAOPTIONS} ${GZIP} > ${REP}/${BASE}${HIST}.sql${GZIPSUFFIX}
+      if [ "x${GZIP}" = "none" ] ; then
+        mysqldump ${USER} -f ${BASE} ${EXTRAOPTIONS} > ${REP}/${BASE}${HIST}.sql
+      else
+        mysqldump ${USER} -f ${BASE} ${EXTRAOPTIONS} | gzip -9f > ${REP}/${BASE}${HIST}.sql.gz
+      fi
     fi
 	done
 }
