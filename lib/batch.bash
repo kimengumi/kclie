@@ -131,35 +131,56 @@ ProxmoxDumpAll() {
 }
 
 BackupMysql() {
-	# backup & archivage sur 1 mois
-	# usage : BackupMysql [REP(optionel)] [nogzip(desactive gzip)]
+	# backup all databases, and keep (or not) one month (or week) of old dumps
+	# usage : BackupMysql [none/week/month (optional, default month)] [none/gzip (optional, default gzip)] [REP(optional)]
 
-	USER="--defaults-extra-file=/etc/mysql/debian.cnf"
-	DAY=`date +%d`
-	REP="$1"
-	GZIP="$2"
+  HIST="$1"
+  GZIP="$2"
+	REP="$3"
+
+  if [ -e /etc/mysql/debian.cnf ] ; then
+    USER="--defaults-extra-file=/etc/mysql/debian.cnf"
+  elif [ -e ${HOME}/.my.cnf ] ; then
+    USER="--defaults-extra-file=${HOME}/.my.cnf"
+  else
+    echo "No credentials found for mysql" >&2
+    exit 1
+  fi
+
+  if [ "x${HIST}" = "none" ] ; then
+    HIST=""
+  elif [ "x${HIST}" = "week" ] ; then
+    HIST=".${CURRENT_WEEK_DAY}"
+  else
+    HIST=".${CURRENT_MONTH_DAY}"
+  fi
+
+  if [ "x${GZIP}" = "none" ] ; then
+    GZIP=""
+    GZIPSUFFIX=""
+  else
+    GZIP="| gzip -9f"
+    GZIPSUFFIX=".gz"
+  fi
+
 	if [ "x${REP}" = "x" ] ; then
-		HOSTNAME=`hostname -s`
-	        REP="${DEFAULT_BACKUP_DIR}/${HOSTNAME}/mysql"
+    REP="${DEFAULT_BACKUP_DIR}/${HOSTNAME}/mysql"
 	fi
-	echo "sauvegarde des bases dans ${REP}"
+	echo "Dumping in ${REP}"
 	if [ ! -d ${REP} ] ; then
 	        mkdir -p ${REP} || return 4
 	fi
+
 	for BASE in $(mysql ${USER} -Bse 'show databases') ; do
-	        if [ "x${BASE}" != "xinformation_schema" ] && [ "x${BASE}" != "xperformance_schema" ] ; then
-	                BatchEcho "sauvegarde de la base ${BASE}"
-			if [ "x${BASE}" = "xmysql" ] ; then
+    if [ "x${BASE}" != "xinformation_schema" ] && [ "x${BASE}" != "xperformance_schema" ] ; then
+      BatchEcho "Dumping database ${BASE}"
+      if [ "x${BASE}" = "xmysql" ] ; then
 				EXTRAOPTIONS="--events"
 			else
 				EXTRAOPTIONS=""
 			fi
-	                if [ "x${GZIP}" != "x" ] ; then
-	                        mysqldump ${USER} -f ${BASE} ${EXTRAOPTIONS} > ${REP}/${BASE}.${DAY}.sql
-	                else
-	                        mysqldump ${USER} -f ${BASE} ${EXTRAOPTIONS} | gzip -f > ${REP}/${BASE}.${DAY}.sql.gz
-	                fi
-	        fi
+      mysqldump ${USER} -f ${BASE} ${EXTRAOPTIONS} ${GZIP} > ${REP}/${BASE}${HIST}.sql${GZIPSUFFIX}
+    fi
 	done
 }
 
