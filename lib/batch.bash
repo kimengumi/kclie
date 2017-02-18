@@ -83,19 +83,19 @@ BatchEcho() {
 }
 
 NfsMountBackup() {
-	Title "Montage de ${DEFAULT_BACKUP_DIR}"
+	BatchEcho "Montage de ${DEFAULT_BACKUP_DIR}"
 	umount ${DEFAULT_BACKUP_DIR} --force 2> /dev/null
 	mount  ${DEFAULT_BACKUP_DIR}
         if [ ! -d ${DEFAULT_BACKUP_DIR}/${HOSTNAME} ] ; then
                 echo "LE PARTAGE DE BACKUP NE SEMBLE PAS MONTE - ARRET DU SCRIPT" >&2
-		Fin
+		BatchEnd
 		exit 1
         fi
 
 }
 
 NfsUmountBackup() {
-	Title "Démontage de ${DEFAULT_BACKUP_DIR}"
+	BatchEcho "Démontage de ${DEFAULT_BACKUP_DIR}"
 	umount ${DEFAULT_BACKUP_DIR} --force || (echo "ERREUR AU DEMONTAGE DISQUE BACKUP" >&2 )
 }
 
@@ -122,7 +122,7 @@ ProxmoxDumpAll() {
   if [ "x${REP}" = "x" ] ; then
     REP="${DEFAULT_BACKUP_DIR}/"
 	fi
-  Title 'Backups off all Proxmox VMs & CTs'
+  BatchEcho 'Backups off all Proxmox VMs & CTs'
   export GZIP=-9
   # VZdump sort tout en sortie erreur. on passe donc par un fichier temporaire, puis un grep pour remonter uniquement les vrais erreurs.
   vzdump -all 1 -compress gzip -maxfiles 1 -stdexcludes 1 -dumpdir ${REP} >/tmp/vzdump.log 2>&1
@@ -148,7 +148,7 @@ BackupMysql() {
 	fi
 	for BASE in $(mysql ${USER} -Bse 'show databases') ; do
 	        if [ "x${BASE}" != "xinformation_schema" ] && [ "x${BASE}" != "xperformance_schema" ] ; then
-	                Title "sauvegarde de la base ${BASE}"
+	                BatchEcho "sauvegarde de la base ${BASE}"
 			if [ "x${BASE}" = "xmysql" ] ; then
 				EXTRAOPTIONS="--events"
 			else
@@ -227,7 +227,7 @@ BackupRep() {
 		fi
 	fi
 	cd ${REP} || return 2
-	Title "Sauvegarde de ${REP} dans ${TAREP} ..."
+	BatchEcho "Sauvegarde de ${REP} dans ${TAREP} ..."
 	if [ "x${GZIP}" != "x" ] && [ "x${GZIP}" != "xlzop" ] && [ "x${GZIP}" != "xgzip" ] ; then
 	        tar --listed-incremental=${SNAPSHOT} ${EXCLUDE} -cpf ${TAREP}/${NOM}.${CURRENT_MONTH_DAY}.tar .
 	elif [ "x${GZIP}" = "xlzop" ] ; then
@@ -245,7 +245,7 @@ RsyncRep() {
 	HOSTNAME=`hostname`
 	if ls ${DEFAULT_BACKUP_DIR}/${HOSTNAME}$1 > /dev/null
 	then
-	        Title "Rsync de $1"
+	        BatchEcho "Rsync de $1"
 	        nice -n19 rsync -rltgoD --del --ignore-errors --force --exclude="lost+found" --delete-excluded $1/ ${DEFAULT_BACKUP_DIR}/${HOSTNAME}$1
 	        # -r : parcours le dossier indiqué et tous ses sous-dossiers
 	        # -l : copie les liens symboliques comme liens symboliques
@@ -275,7 +275,7 @@ RotateLog() {
 }
 
 RotateApache() {
-	Title "Rotation des logs Apache"
+	BatchEcho "Rotation des logs Apache"
 	for FIC in /var/log/apache2/*log
 	do
         	RotateLog $FIC
@@ -293,12 +293,12 @@ SmartCheckDisk() {
         ERRORL=`/usr/sbin/smartctl -q errorsonly -l error $1`
         if [ "x${STATUS}" != "x" ] || [ "x${SLFTST}" != "x" ] || [ "x${ERRORL}" != "x" ]
         then
-                Title "Vérification Smart du disque $1 KO"  >&2
+                BatchEcho "Vérification Smart du disque $1 KO"  >&2
                 echo ${STATUS} >&2
                 echo ${ERRORL} >&2
                 echo ${SLFTST} >&2
 	else
-		Title "Vérification Smart du disque $1 OK"
+		BatchEcho "Vérification Smart du disque $1 OK"
         fi
 }
 
