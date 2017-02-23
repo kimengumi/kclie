@@ -136,7 +136,7 @@ BackupMysql() {
 
   HIST="$1"
   GZIP="$2"
-	REP="$3"
+  REP="$3"
 
   if [ -e /etc/mysql/debian.cnf ] ; then
     USER="--defaults-extra-file=/etc/mysql/debian.cnf"
@@ -147,9 +147,9 @@ BackupMysql() {
     exit 1
   fi
 
-  if [ "x${HIST}" = "none" ] ; then
+  if [ "x${HIST}" = "xnone" ] ; then
     HIST=""
-  elif [ "x${HIST}" = "week" ] ; then
+  elif [ "x${HIST}" = "xweek" ] ; then
     HIST=".${CURRENT_WEEK_DAY}"
   else
     HIST=".${CURRENT_MONTH_DAY}"
