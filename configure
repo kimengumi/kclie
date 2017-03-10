@@ -143,8 +143,9 @@ if [ -w /etc/update-motd.d ] && [ ! -d /etc/update-motd.d.dist ] ; then
 	ln -s  ${KCLIE_PATH}/bin/motd /etc/update-motd.d/0000-kclie
 elif [ -w /etc/motd ] ; then
 	echo -e "#!/bin/bash
-${KCLIE_PATH}/bin/motd > /etc/motd 2>&1" > /etc/cron.hourly/kcliebanner
+  ${KCLIE_PATH}/bin/motd > /etc/motd 2>&1" > /etc/cron.hourly/kcliebanner
 	chmod 755 /etc/cron.hourly/kcliebanner
+  /etc/cron.hourly/kcliebanner
 fi
 
 
