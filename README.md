@@ -3,7 +3,9 @@ Kimengumi Command Line Interface Environnement
 
 Usefull command line environnement, tools & libraries.
 
-Designed for Linux Debian & Ubuntu, Mac OSX, Cygwin (including Babun packages), WSL (Windows Subsystem for Linux)
+Designed for Linux Debian / Ubuntu, WSL (Windows Subsystem for Linux)
+
+Also (partialy) compatible with Linux Red Hat / CentOS / Fedora, Mac OSX, Cygwin (including Babun set)
 
 Installation
 -------------
@@ -12,7 +14,7 @@ Installation
 
 `apt-get install htop git vim-nox zsh`
 
-### Install & configure the environement 
+### Install & configure the environement
 
 as root
 

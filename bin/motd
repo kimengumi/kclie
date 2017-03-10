@@ -90,6 +90,10 @@ elif [ -r /etc/debian_version ] ; then
 	echo "Debian `cat /etc/debian_version`"
 elif [ -r /etc/gentoo-release ] ; then
 	cat /etc/gentoo-release
+elif [ -r /etc/redhat-release ] ; then
+	cat /etc/redhat-release
+elif [ -r /etc/fedora-release ] ; then
+	cat /etc/fedora-release
 elif [ "${WNIX}" = 'osx' ] ; then #OSX
 	echo `/usr/bin/sw_vers -productName` `/usr/bin/sw_vers -productVersion` `/usr/bin/sw_vers -buildVersion`
 else
