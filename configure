@@ -105,31 +105,29 @@ echo "KCLIE directory is : ${KCLIE_PATH}"
 
 echo "Applying shells customizations ..."
 
-# BASH
-if [ -w /etc/bash.bashrc ] ; then
-	if ! grep -q "\. ${KCLIE_PATH}/etc/profile" /etc/bash.bashrc ; then
-		echo ". ${KCLIE_PATH}/etc/profile" >> /etc/bash.bashrc
-	fi
-elif [ -w /etc/bashrc ] ; then
-	if ! grep -q "\. ${KCLIE_PATH}/etc/profile" /etc/bashrc ; then
-		echo ". ${KCLIE_PATH}/etc/profile" >> /etc/bashrc
-	fi
-fi
+# PROFILE
+for RC_BASH in /etc/bash.bashrc /etc/bashrc /etc/zsh/zshrc /etc/zshrc ; do
+  if [ -w ${RC_BASH} ] ; then
+  	if ! grep -q "\. ${KCLIE_PATH}/etc/profile" ${RC_BASH} ; then
+      echo ""  >> ${RC_BASH}
+      echo "# Kimengumi Command Line Interface Environnement"  >> ${RC_BASH}
+      echo "set -a"  >> ${RC_BASH}
+      echo ". ${KCLIE_PATH}/env" >> ${RC_BASH}
+      echo "set +a"  >> ${RC_BASH}
+  		echo ". ${KCLIE_PATH}/etc/profile" >> ${RC_BASH}
+  	fi
+  fi
+done
 
-# ZSH
-if [ -w /etc/zsh/zshrc ] ; then
-	if ! grep -q "\. ${KCLIE_PATH}/etc/profile" /etc/zsh/zshrc ; then
-		echo ". ${KCLIE_PATH}/etc/profile" >> /etc/zsh/zshrc
-		echo ". ${KCLIE_PATH}/etc/zsh/zshrc" >> /etc/zsh/zshrc
-		echo ". ${KCLIE_PATH}/etc/zsh/zlogout" >> /etc/zsh/zlogout
-	fi
-elif [ -w /etc/zshrc ] ; then
-	if ! grep -q "\. ${KCLIE_PATH}/etc/profile" /etc/zshrc ; then
-		echo ". ${KCLIE_PATH}/etc/profile" >> /etc/zshrc
-		echo ". ${KCLIE_PATH}/etc/zsh/zshrc" >> /etc/zshrc
-		echo ". ${KCLIE_PATH}/etc/zsh/zlogout" >> /etc/zlogout
-	fi
-fi
+# ZSH SPECIFIC
+for ETC_ZSH_DIR in /etc/zsh/ /etc/ ; do
+  if [ -w ${ETC_ZSH_DIR}/zshrc ] ; then
+  	if ! grep -q "\. ${KCLIE_PATH}/etc/zsh/zshrc" ${ETC_ZSH_DIR}/zshrc ; then
+  		echo ". ${KCLIE_PATH}/etc/zsh/zshrc" >> ${ETC_ZSH_DIR}/zshrc
+  		echo ". ${KCLIE_PATH}/etc/zsh/zlogout" >> ${ETC_ZSH_DIR}/zlogout
+  	fi
+  fi
+done
 
 # Oh My ZSH
 #@TODO
