@@ -38,7 +38,7 @@ if [ "x${PASS}" = "x" ] ; then
 fi
 
 echo "
-Password : '${PASS}
+Password : ${PASS}
 "
 mysql -e "CREATE USER '${USER}'@'%' IDENTIFIED BY '${PASS}'" || exit 1
 mysql -e "GRANT USAGE ON * . * TO '${USER}'@'%' IDENTIFIED BY '${PASS}'" || exit 1

@@ -38,7 +38,7 @@ if [ "x${PASS}" = "x" ] ; then
 fi
 
 echo "
-Password : '${PASS}
+Password : ${PASS}
 "
 
 for LOCALHOST in "127.0.0.1" "::1" "localhost" ; do
