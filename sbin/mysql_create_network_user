@@ -1,27 +1,56 @@
 #!/bin/bash
+#
+# Kimengumi Command Line Interface Environnement
+#
+# Create a user for a mysql server with network access allowed and with
+# a wildcard database creation authorization based on username
+#
+# Copyright 2017 Antonio Rossetti (https://www.kimengumi.fr)
+#
+# Licensed under the EUPL, Version 1.1 or – as soon they will be approved by
+# the European Commission - subsequent versions of the EUPL (the "Licence");
+# You may not use this work except in compliance with the Licence.
+# You may obtain a copy of the Licence at:
+#
+# https://joinup.ec.europa.eu/software/page/eupl
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the Licence is distributed on an "AS IS" basis,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the Licence for the specific language governing permissions and
+# limitations under the Licence.
 
-if [ "x$1" != "x" ]
-then
+echo
+
+if [ "x$1" != "x" ] ; then
 	USER=$1
+	echo "User login : ${USER}"
 else
-	echo 'nom du compte à créer :'
+	echo -e "User login :"
 	read USER
 fi
 
-PASS=`/etc/kimengumi/scripts/genpass`
+PASS=`genpass`
 
-echo "creation du compte : ${USER}"
-echo 'mot de passe généré : '${PASS}
+if [ "x${PASS}" = "x" ] ; then
+	echo 'Can not generate a password'
+	exit 1
+fi
 
-mysql -e "CREATE USER '${USER}'@'%' IDENTIFIED BY '${PASS}'"
-mysql -e "GRANT USAGE ON * . * TO '${USER}'@'%' IDENTIFIED BY '${PASS}' WITH MAX_QUERIES_PER_HOUR 0 MAX_CONNECTIONS_PER_HOUR 0 MAX_UPDATES_PER_HOUR 0 MAX_USER_CONNECTIONS 0"
-mysql -e "GRANT ALL PRIVILEGES ON \`${USER}\_%\` . * TO '${USER}'@'%'"
+echo "
+Password : '${PASS}
+"
+mysql -e "CREATE USER '${USER}'@'%' IDENTIFIED BY '${PASS}'" || exit 1
+mysql -e "GRANT USAGE ON * . * TO '${USER}'@'%' IDENTIFIED BY '${PASS}'" || exit 1
+mysql -e "GRANT ALL PRIVILEGES ON \`${USER}\_%\` . * TO '${USER}'@'%'" || exit 1
 
-echo "### .my.cnf ### A deployer sur php.was ###"
+echo "Done
 
-echo "[client]
-user=\"${USER}\"
-password=\"${PASS}\"
-host=\"mysql.was\"" 
+If you whish to allow autologin from cli, you can copy/paste the ~/.my.cnf sample file bellow, and write it in the final user homedir.
 
-echo "Fin de création du compte"
+--------- ~/.my.cnf ---------
+[client]
+host     = `hostname`
+user     = ${USER}
+password = ${PASS}
+-----------------------------"
