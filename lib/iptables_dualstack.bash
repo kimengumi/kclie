@@ -41,26 +41,28 @@ export LOCIP6PREF="fd85:e1b1:e282:1::"  # Prefix used to write ipv6 rules
 fi
 
 # Check iptables
-if [ "$(id -u)" != "0" ]; then
-  echo 'You are not root : entering preview mode ...'
-  export preview=1
+export preview=false
+export ip4t=`which iptables`
+export ip6t=`which ip6tables`
+export sctl=`which sysctl`
+if [ ! -x ${ip4t} ] || [ ! -x ${ip6t} ] || [ ! -x ${sctl} ] ; then
+  echo 'No executable for iptables or ip6tables or sysctl found !'
+  exit 1
+fi
+
+# Try run iptables, if not start preview mode
+${ip4t} -L >/dev/null 2>&1
+if [ "x$?" != "x0" ] || [ "x$1" == "xpreview" ] ; then
+  echo 'Entering preview mode ...'
+  export preview=true
   export ip4t="echo IPv4"
   export ip6t="echo IPv6"
   export sctl="echo sysctl"
-else
-  export preview=0
-  export ip4t=`which iptables`
-  export ip6t=`which ip6tables`
-  export sctl=`which sysctl`
-  if [ ! -x ${ip4t} ] || [ ! -x ${ip6t} ] || [ ! -x ${sctl} ] ; then
-    echo 'No executable for iptables or ip6tables or sysctl found !'
-    exit 1
-  fi
 fi
 
 # Run args on both iptables & ip6tables
 Dual () {
-  if [ ${preview} ] ; then
+  if ${preview} ; then
     echo -e "\033[92mDual $@\033[0m"
   else
     ${ip4t} $@
@@ -70,7 +72,7 @@ Dual () {
 
 # Run args for iptables
 Ipv4 () {
-  if [ ${preview} ] ; then
+  if ${preview} ; then
     echo -e "\033[93mIPv4 $@\033[0m"
   else
     ${ip4t} $@
@@ -79,7 +81,7 @@ Ipv4 () {
 
 # Run args for ip6tables
 Ipv6 () {
-  if [ ${preview} ] ; then
+  if ${preview} ; then
     echo -e "\033[94mIPv6 $@\033[0m"
   else
     ${ip6t} $@
@@ -88,7 +90,7 @@ Ipv6 () {
 
 # Run args for ip6tables
 SysCtl () {
-  if [ ${preview} ] ; then
+  if ${preview} ; then
     echo -e "\033[95mSysCtl $@\033[0m"
   else
     ${sctl} $@
