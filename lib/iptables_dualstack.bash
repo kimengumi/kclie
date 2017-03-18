@@ -140,17 +140,19 @@ DualBasicRules () {
   # LOCAL NET
   Ipv4 -A INPUT -j ACCEPT -i ${LOCIF} -s ${LOCIP4NETW}
   Ipv6 -A INPUT -j ACCEPT -i ${LOCIF} -s ${LOCIP6NETW}
+
+  # LOCAL NET specific ipv6
+  Ipv6 -A INPUT -j ACCEPT -i ${LOCIF} -s fe80::/10 # Link Local addresses
+}
+
+DualMasquerade () {
+
+  # LOCAL NET
   Ipv4 -A FORWARD -j ACCEPT -i ${LOCIF} -s ${LOCIP4NETW}
   Ipv6 -A FORWARD -j ACCEPT -i ${LOCIF} -s ${LOCIP6NETW}
 
   # LOCAL NET specific ipv6
-  Ipv6 -A INPUT -j ACCEPT -i ${LOCIF} -s fe80::/10 # Link Local addresses
   Ipv6 -A FORWARD -j ACCEPT -i ${LOCIF} -s fe80::/10 # Link Local addresses
-
-
-}
-
-DualMasquerade () {
 
   # LOCAL NAT OUTPUT
   Ipv4 -A POSTROUTING -t nat -j ACCEPT -s ${LOCIP4NETW} -d ${LOCIP4NETW}
