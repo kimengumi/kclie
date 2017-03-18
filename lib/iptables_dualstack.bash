@@ -209,11 +209,14 @@ DualSshNat () {
   echo "Redirecting SSH ports ${DPREFIX}XXX FROM (ip-prefix)${FIRST_ENDIP} TO (ip-prefix)${LAST_ENDIP}"
 
   for ENDIP in `seq -w ${FIRST_ENDIP} ${LAST_ENDIP}` ; do
-          Ipv4 -A PREROUTING -t nat -j DNAT -i ${EXTIF} -p tcp --dport ${DPREFIX}${ENDIP} --to ${LOCIP4PREF}${ENDIP}:22
-          Ipv6 -A PREROUTING -t nat -j DNAT -i ${EXTIF} -p tcp --dport ${DPREFIX}${ENDIP} --to [${LOCIP6PREF}${ENDIP}]:22
+    Ipv4 -A PREROUTING -t nat -j DNAT -i ${EXTIF} -p tcp --dport ${DPREFIX}${ENDIP} --to ${LOCIP4PREF}${ENDIP}:22
   done
-  Ipv4 -A FORWARD -j ACCEPT -p tcp --dst-range ${LOCIP4PREF}${FIRST_ENDIP}-${LOCIP4PREF}${LAST_ENDIP} --dport 22
-  Ipv6 -A FORWARD -j ACCEPT -p tcp --dst-range ${LOCIP6PREF}${FIRST_ENDIP}-${LOCIP6PREF}${LAST_ENDIP} --dport 22
+  for ENDIP in `seq -w ${FIRST_ENDIP} ${LAST_ENDIP}` ; do
+    Ipv6 -A PREROUTING -t nat -j DNAT -i ${EXTIF} -p tcp --dport ${DPREFIX}${ENDIP} --to [${LOCIP6PREF}${ENDIP}]:22
+  done
+  
+  Ipv4 -A FORWARD -j ACCEPT -p tcp -m iprange --dst-range ${LOCIP4PREF}${FIRST_ENDIP}-${LOCIP4PREF}${LAST_ENDIP} --dport 22
+  Ipv6 -A FORWARD -j ACCEPT -p tcp -m iprange --dst-range ${LOCIP6PREF}${FIRST_ENDIP}-${LOCIP6PREF}${LAST_ENDIP} --dport 22
 
   DualActivateForward
 }
