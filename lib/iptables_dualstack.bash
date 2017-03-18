@@ -147,12 +147,18 @@ DualBasicRules () {
   Ipv6 -A INPUT -j ACCEPT -i ${LOCIF} -s fe80::/10 # Link Local addresses
   Ipv6 -A FORWARD -j ACCEPT -i ${LOCIF} -s fe80::/10 # Link Local addresses
 
+
+}
+
+DualMasquerade () {
+
   # LOCAL NAT OUTPUT
   Ipv4 -A POSTROUTING -t nat -j ACCEPT -s ${LOCIP4NETW} -d ${LOCIP4NETW}
   Ipv6 -A POSTROUTING -t nat -j ACCEPT -s ${LOCIP6NETW} -d ${LOCIP6NETW}
   Ipv4 -A POSTROUTING -t nat -j MASQUERADE -s ${LOCIP4NETW} -o ${EXTIF}
   Ipv6 -A POSTROUTING -t nat -j MASQUERADE -s ${LOCIP6NETW} -o ${EXTIF}
 
+  DualActivateForward
 }
 
 DualHttpNat () {
@@ -171,8 +177,6 @@ DualHttpNat () {
   Dual -A FORWARD -j DROP   -p tcp --dport 80 -m string --to 70 --algo bm --string 'GET /w00tw00t.at.ISC.SANS.'
   Dual -A FORWARD -j ACCEPT -p tcp -d ${LOCIP4PREF}${ENDIP} --dport 80
   Dual -A FORWARD -j ACCEPT -p tcp -d ${LOCIP4PREF}${ENDIP} --dport 443
-
-  DualActivateForward
 }
 
 DualCustomNat () {
@@ -192,8 +196,6 @@ DualCustomNat () {
   Ipv6 -A PREROUTING -t nat -j DNAT -i ${EXTIF} -p ${TYPE} --dport ${DPORT}  --to [${LOCIP6PREF}${ENDIP}]:${LPORT}
   Ipv4 -A FORWARD -j ACCEPT -p tcp -d ${LOCIP4PREF}${ENDIP} --dport ${LPORT}
   Ipv6 -A FORWARD -j ACCEPT -p tcp -d ${LOCIP6PREF}${ENDIP} --dport ${LPORT}
-
-  DualActivateForward
 }
 
 DualSshNat () {
@@ -214,11 +216,9 @@ DualSshNat () {
   for ENDIP in `seq -w ${FIRST_ENDIP} ${LAST_ENDIP}` ; do
     Ipv6 -A PREROUTING -t nat -j DNAT -i ${EXTIF} -p tcp --dport ${DPREFIX}${ENDIP} --to [${LOCIP6PREF}${ENDIP}]:22
   done
-  
+
   Ipv4 -A FORWARD -j ACCEPT -p tcp -m iprange --dst-range ${LOCIP4PREF}${FIRST_ENDIP}-${LOCIP4PREF}${LAST_ENDIP} --dport 22
   Ipv6 -A FORWARD -j ACCEPT -p tcp -m iprange --dst-range ${LOCIP6PREF}${FIRST_ENDIP}-${LOCIP6PREF}${LAST_ENDIP} --dport 22
-
-  DualActivateForward
 }
 
 OvhMonitoring () {
