@@ -71,6 +71,9 @@ elif [ -r /proc/$$/attr/current ] && (grep -qa 'lxc-container' /proc/$$/attr/cur
 elif [ -r /sys/class/dmi/id/sys_vendor ] && (grep -q "QEMU" /sys/class/dmi/id/sys_vendor 2>/dev/null) ;then
 	echo -e "QEMU/KVM Virtual Machine (${CORES} vCores)"
 
+elif [ -r /sys/class/dmi/id/product_name ] && (grep -q "OpenStack" /sys/class/dmi/id/sys_vendor 2>/dev/null) ;then
+	echo -e "`cat /sys/class/dmi/id/product_name` / `cat /sys/class/dmi/id/chassis_vendor` Virtual Machine (${CORES} vCores)"
+
 elif [ -r /sys/class/dmi/id/board_vendor ] ; then
 	cat /sys/class/dmi/id/board_vendor
 	if [ -r /proc/cpuinfo ] && [ "x${CORES}" != "x" ] ; then
@@ -143,7 +146,6 @@ fi
 
 # Uptime / load avg / mem
 echo
-uptime | sed -e 's/  / /g' | cut -d ' ' -f3,4,5,7-13
 if [ -e /proc/meminfo ] ; then
 	if grep -q "MemAvailable:" /proc/meminfo ; then
 		# kernel 3.14 and more
@@ -155,6 +157,7 @@ if [ -e /proc/meminfo ] ; then
 		printf "Mem Total: %.2fG, Used: %.2fG, Avail: %.2fG\n",total/1024/1024,(total-free-cache+shm)/1024/1024,(free+cache-shm)/1024/1024}' /proc/meminfo
 	fi
 fi
+uptime | sed -e 's/  / /g' | cut -d ' ' -f3,4,5,7-13
 echo
 
 # disk space
