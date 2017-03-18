@@ -172,6 +172,7 @@ DualHttpNat () {
   Dual -A FORWARD -j ACCEPT -p tcp -d ${LOCIP4PREF}${ENDIP} --dport 80
   Dual -A FORWARD -j ACCEPT -p tcp -d ${LOCIP4PREF}${ENDIP} --dport 443
 
+  DualActivateForward
 }
 
 DualCustomNat () {
@@ -210,9 +211,10 @@ DualSshNat () {
   for ENDIP in `seq -w ${FIRST_ENDIP} ${LAST_ENDIP}` ; do
           Ipv4 -A PREROUTING -t nat -j DNAT -i ${EXTIF} -p tcp --dport ${DPREFIX}${ENDIP} --to ${LOCIP4PREF}${ENDIP}:22
           Ipv6 -A PREROUTING -t nat -j DNAT -i ${EXTIF} -p tcp --dport ${DPREFIX}${ENDIP} --to [${LOCIP6PREF}${ENDIP}]:22
-          Ipv4 -A FORWARD -j ACCEPT -p tcp -d ${LOCIP4PREF}${ENDIP} --dport 22
-          Ipv6 -A FORWARD -j ACCEPT -p tcp -d ${LOCIP6PREF}${ENDIP} --dport 22
   done
+  Ipv4 -A FORWARD -j ACCEPT -p tcp --dst-range ${LOCIP4PREF}${FIRST_ENDIP}-${LOCIP4PREF}${LAST_ENDIP} --dport 22
+  Ipv6 -A FORWARD -j ACCEPT -p tcp --dst-range ${LOCIP6PREF}${FIRST_ENDIP}-${LOCIP6PREF}${LAST_ENDIP} --dport 22
+
   DualActivateForward
 }
 
