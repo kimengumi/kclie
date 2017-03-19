@@ -27,16 +27,29 @@ if [ "x${EXTIF}" = "x" ] || \
   [ "x${LOCIP6NETW}" = "x" ] || \
   [ "x${LOCIP6PREF}" = "x" ] ; then
 
-    echo 'Please initialise your script before loading the library.
-Sample configuration :
+    echo -e "\033[93m
+    Please initialise your script before loading the library.\033[0m"
+    echo '
+-------- Header placed and configured in your script --------
+#!/bin/bash
+#
+# My dual stack firewall script
+#
+# Usage of the script :
+# ./my-firewall-script [preview] [4/6]
+#
 
+# Configuration
 export EXTIF="eth1"                     # Interface with the public / external IP
 export LOCIF="eth0"                     # Interface with the local / internal IP
 export LOCIP4NETW="192.168.0.0/16"      # Local ipv4 Subnet (could be more than the connected subnet if necessary)
 export LOCIP4PREF="192.168.1."          # Prefix used to write ipv4 rules
 export LOCIP6NETW="fd85:e1b1:e282::/48" # Local ipv6 Subnet (could be more than the connected subnet if necessary)
 export LOCIP6PREF="fd85:e1b1:e282:1::"  # Prefix used to write ipv6 rules
-'
+
+# Load dual stack library'
+  echo "source ${KCLIE_PATH}/lib/iptables_dualstack.bash
+-------------------------------------------------------------"
   exit 1
 fi
 
@@ -55,9 +68,16 @@ ${ip4t} -L >/dev/null 2>&1
 if [ "x$?" != "x0" ] || [ "x$1" == "xpreview" ] ; then
   echo 'Entering preview mode ...'
   export preview=true
-  export ip4t="echo IPv4"
-  export ip6t="echo IPv6"
+  export ipview=${2}
   export sctl="echo sysctl"
+  export ip4t="false"
+  export ip6t="false"
+  if [ "x${ipview}" != "x6" ] ; then
+    export ip4t="echo IPv4"
+  fi
+  if [ "x${ipview}" != "x4" ] ; then
+    export ip6t="echo IPv6"
+  fi
 fi
 
 # Run args on both iptables & ip6tables
@@ -69,11 +89,13 @@ Dual () {
     ${ip6t} $@
   fi
 }
-
+echo "x$2QQQx6"
 # Run args for iptables
 Ipv4 () {
   if ${preview} ; then
-    echo -e "\033[93mIPv4 $@\033[0m"
+    if [ "x${ipview}" != "x6" ] ; then
+      echo -e "\033[93mIPv4 $@\033[0m"
+    fi
   else
     ${ip4t} $@
   fi
@@ -82,7 +104,9 @@ Ipv4 () {
 # Run args for ip6tables
 Ipv6 () {
   if ${preview} ; then
-    echo -e "\033[94mIPv6 $@\033[0m"
+    if [ "x${ipview}" != "x4" ] ; then
+      echo -e "\033[94mIPv6 $@\033[0m"
+    fi
   else
     ${ip6t} $@
   fi
