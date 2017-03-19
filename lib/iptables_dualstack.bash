@@ -128,10 +128,6 @@ DualBasicRules () {
   Ipv6 -A INPUT -j ACCEPT -p icmpv6 --icmpv6-type 135 # Neighbor Solicitation
   Ipv6 -A INPUT -j ACCEPT -p icmpv6 --icmpv6-type 136 # Neighbor Advertisement
 
-  # Limit ping
-  Ipv4 -A INPUT -j ACCEPT -p icmp   --icmp-type 8     -m limit --limit 5/sec --limit-burst 10
-  Ipv6 -A INPUT -j ACCEPT -p icmpv6 --icmpv6-type 128 -m limit --limit 5/sec --limit-burst 10
-
   echo "Applying ip4/6 local rules ..."
 
   # LOCAL HOST
@@ -233,22 +229,33 @@ OvhMonitoring () {
 
   echo "Allowing OVH Monitoring servers ..."
 
-  Ipv4 -A INPUT -j ACCEPT -p tcp  -s 213.186.50.100 --dport 22
-  Ipv4 -A INPUT -j ACCEPT -p icmp -s ${EXTERNAL_IP4_PREFIX}250 #spécifique au sous réseau du serveur
-  Ipv4 -A INPUT -j ACCEPT -p icmp -s ${EXTERNAL_IP4_PREFIX}251 #spécifique au sous réseau du serveur
-  Ipv4 -A INPUT -j ACCEPT -p icmp -s 167.114.37.0/24
-  Ipv4 -A INPUT -j ACCEPT -p icmp -s 213.186.33.13
-  Ipv4 -A INPUT -j ACCEPT -p icmp -s 213.186.33.62
-  Ipv4 -A INPUT -j ACCEPT -p icmp -s 213.186.45.4
-  Ipv4 -A INPUT -j ACCEPT -p icmp -s 213.186.50.100
-  Ipv4 -A INPUT -j ACCEPT -p icmp -s 213.186.50.98
-  Ipv4 -A INPUT -j ACCEPT -p icmp -s 213.251.184.9
-  Ipv4 -A INPUT -j ACCEPT -p icmp -s 37.187.231.251
-  Ipv4 -A INPUT -j ACCEPT -p icmp -s 37.59.0.235
-  Ipv4 -A INPUT -j ACCEPT -p icmp -s 8.33.137.2
-  Ipv4 -A INPUT -j ACCEPT -p icmp -s 92.222.184.0/24
-  Ipv4 -A INPUT -j ACCEPT -p icmp -s 92.222.185.0/24
-  Ipv4 -A INPUT -j ACCEPT -p icmp -s 92.222.186.0/24
+  # List from :
+  # https://docs.ovh.com/pages/releaseview.action?pageId=9928706
+  # https://docs.ovh.com/fr/fr/cloud/dedicated/monitoring-ip-ovh/
+  # http://docs.ovh.ca/fr/guides-network-firewall.html#ovh-monitoring
+  # http://guide.ovh.com/firewall
+
+  Ipv4 -A INPUT -j ACCEPT -p icmp -s 213.186.33.13   # ping.ovh.net
+  Ipv4 -A INPUT -j ACCEPT -p icmp -s 213.186.33.62   # a2.ovh.net
+  Ipv4 -A INPUT -j ACCEPT -p icmp -s 213.186.50.98   # proxy.ovh.net
+  Ipv4 -A INPUT -j ACCEPT -p icmp -s 213.186.50.100  # cache.ovh.net
+  Ipv4 -A INPUT -j ACCEPT -p icmp -s 213.186.45.4    # proxy.p19.ovh.net
+  Ipv4 -A INPUT -j ACCEPT -p icmp -s 213.251.184.9   # proxy.rbx.ovh.net
+  Ipv4 -A INPUT -j ACCEPT -p icmp -s 37.59.0.235     # proxy.sbg.ovh.net
+  Ipv4 -A INPUT -j ACCEPT -p icmp -s 8.33.137.2      # proxy.bhs.ovh.net
+  Ipv4 -A INPUT -j ACCEPT -p icmp -s 37.187.231.251  # rtm-collector.ovh.net
+  Ipv4 -A INPUT -j ACCEPT -p icmp -s 92.222.184.0/24 # netmon-X-rbx.ovh.net
+  Ipv4 -A INPUT -j ACCEPT -p icmp -s 92.222.185.0/24 # netmon-X-sbg.ovh.net
+  Ipv4 -A INPUT -j ACCEPT -p icmp -s 92.222.186.0/24 # netmon-X-gra.ovh.net
+  Ipv4 -A INPUT -j ACCEPT -p icmp -s 167.114.37.0/24 # netmon-X-bhs.ovh.ca
+  Ipv4 -A INPUT -j ACCEPT -p icmp -s 151.80.231.244  # mrtg-rbx-101
+  Ipv4 -A INPUT -j ACCEPT -p icmp -s 151.80.231.245  # mrtg-rbx-102
+  Ipv4 -A INPUT -j ACCEPT -p icmp -s 151.80.231.246  # mrtg-rbx-103
+  Ipv4 -A INPUT -j ACCEPT -p icmp -s 151.80.231.247  # mrtg-gra-101
+  Ipv4 -A INPUT -j ACCEPT -p icmp -s ${EXTERNAL_IP4_PREFIX}249 # specific to the server subnet
+  Ipv4 -A INPUT -j ACCEPT -p icmp -s ${EXTERNAL_IP4_PREFIX}250 # specific to the server subnet
+  Ipv4 -A INPUT -j ACCEPT -p icmp -s ${EXTERNAL_IP4_PREFIX}251 # specific to the server subnet
+  Ipv4 -A INPUT -j ACCEPT -p tcp  -s 213.186.50.100 --dport 22 # cache.ovh.net
 
 }
 
@@ -261,15 +268,26 @@ DualDefaultRules () {
   echo "Applying ip4/6 default end rules ..."
 
   for WAY in "INPUT" "FORWARD" ; do
+
+    # Allow but limit ping
+    Ipv4 -A ${WAY} -j ACCEPT -p icmp   --icmp-type 8     -m limit --limit 5/sec --limit-burst 10
+    Ipv6 -A ${WAY} -j ACCEPT -p icmpv6 --icmpv6-type 128 -m limit --limit 5/sec --limit-burst 10
+
+    # Allow established & related
     Ipv4 -A ${WAY} -j ACCEPT -p icmp   -m state --state ESTABLISHED,RELATED
     Ipv6 -A ${WAY} -j ACCEPT -p icmpv6 -m state --state ESTABLISHED,RELATED
     Dual -A ${WAY} -j ACCEPT -p tcp -m state --state ESTABLISHED,RELATED
     Dual -A ${WAY} -j ACCEPT -p udp -m state --state ESTABLISHED,RELATED
+
+    # Log
     if [ "x$1" = "xlog" ] ; then
       Ipv4 -A ${WAY} -j LOG --log-prefix="[IP4 ${WAY} DROP] "
       Ipv6 -A ${WAY} -j LOG --log-prefix="[IP6 ${WAY} DROP] "
     fi
+
+    # Default Drop
     Dual -P ${WAY} DROP
+
   done
 }
 
