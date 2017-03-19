@@ -227,6 +227,8 @@ DualSshNat () {
 
   if [ "x$1" = "x" ] || [ "x$2" = "x" ] || [ "x$3" = "x" ] ; then
     echo "Usage: DualSshNat [extrenal port prefix] [First End of local ip4/6] [Last End of local ip4/6]"
+    echo ""
+    echo "Note : Prefix can be from 1 to 65, the end part will always have 3 digits (with leading zero)"
     return 1
   fi
   DPREFIX=$1
@@ -236,10 +238,10 @@ DualSshNat () {
   echo "Redirecting SSH ports ${DPREFIX}XXX FROM (ip-prefix)${FIRST_ENDIP} TO (ip-prefix)${LAST_ENDIP}"
 
   for ENDIP in `seq -w ${FIRST_ENDIP} ${LAST_ENDIP}` ; do
-    Ipv4 -A PREROUTING -t nat -j DNAT -i ${EXTIF} -p tcp --dport ${DPREFIX}${ENDIP} --to ${LOCIP4PREF}${ENDIP}:22
+    Ipv4 -A PREROUTING -t nat -j DNAT -i ${EXTIF} -p tcp --dport ${DPREFIX}`printf "%.3d" ${ENDIP}` --to ${LOCIP4PREF}${ENDIP}:22
   done
   for ENDIP in `seq -w ${FIRST_ENDIP} ${LAST_ENDIP}` ; do
-    Ipv6 -A PREROUTING -t nat -j DNAT -i ${EXTIF} -p tcp --dport ${DPREFIX}${ENDIP} --to [${LOCIP6PREF}${ENDIP}]:22
+    Ipv6 -A PREROUTING -t nat -j DNAT -i ${EXTIF} -p tcp --dport ${DPREFIX}`printf "%.3d" ${ENDIP}` --to [${LOCIP6PREF}${ENDIP}]:22
   done
 
   Ipv4 -A FORWARD -j ACCEPT -p tcp -m iprange --dst-range ${LOCIP4PREF}${FIRST_ENDIP}-${LOCIP4PREF}${LAST_ENDIP} --dport 22
