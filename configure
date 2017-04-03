@@ -95,6 +95,12 @@ if [ "x${KCLIE_HOST_COLOR}" = "x" ] ; then
 	fi
 fi
 
+# Oh My Zsh
+if [ ! -e ${KCLIE_PATH}/vendor/oh-my-zsh/oh-my-zsh.sh ] ; then
+	echo
+	read -p "Do You want to install 'Oh My Zsh' ? [y/N] :" KCLIE_SETUP_OHMYZSH
+fi
+
 #
 # AUTOMATED PART
 #
@@ -104,7 +110,6 @@ echo "=== Setup / Upgrade ==="
 echo "KCLIE directory is : ${KCLIE_PATH}"
 
 echo "Applying shells customizations ..."
-
 # PROFILE
 for RC_BASH in /etc/bash.bashrc /etc/bashrc /etc/zsh/zshrc /etc/zshrc ; do
   if [ -w ${RC_BASH} ] ; then
@@ -118,7 +123,6 @@ for RC_BASH in /etc/bash.bashrc /etc/bashrc /etc/zsh/zshrc /etc/zshrc ; do
   	fi
   fi
 done
-
 # ZSH SPECIFIC
 for ETC_ZSH_DIR in /etc/zsh/ /etc/ ; do
   if [ -w ${ETC_ZSH_DIR}/zshrc ] ; then
@@ -128,10 +132,6 @@ for ETC_ZSH_DIR in /etc/zsh/ /etc/ ; do
   	fi
   fi
 done
-
-# Oh My ZSH
-#@TODO
-#git clone git://github.com/robbyrussell/oh-my-zsh.git ~/.oh-my-zsh
 
 echo "Installing welcome banner ..."
 # Motd
@@ -146,13 +146,21 @@ elif [ -w /etc/motd ] ; then
   /etc/cron.hourly/kcliebanner
 fi
 
-
 # Ubuntu LightDm config
 if [ -d '/usr/share/lightdm/lightdm.conf.d' ] ; then
 	echo "Applying LightDM customization ..."
 	echo '[SeatDefaults]
 greeter-hide-users=true
 greeter-show-manual-login=true' > /usr/share/lightdm/lightdm.conf.d/99-kclie.conf
+fi
+
+# Oh My ZSH
+if [ -e ${KCLIE_PATH}/vendor/oh-my-zsh/oh-my-zsh.sh ] ; then
+	echo "Updating Oh My Zsh ..."
+  (cd ${KCLIE_PATH}/vendor/oh-my-zsh/ && git pull)
+elif [ "x${KCLIE_SETUP_OHMYZSH}" = "xy" ] ; then
+  echo "Installing Oh My Zsh ..."
+  (cd ${KCLIE_PATH}/vendor/ && git clone https://github.com/robbyrussell/oh-my-zsh.git)
 fi
 
 echo done
