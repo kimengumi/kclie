@@ -68,6 +68,9 @@ while (($csvRow = fgetcsv($csvHandle, 0, $csvSeparator)) !== FALSE) {
   // user have unix account
   if(isset($r['uidNumber']) && isset($r['gidNumber']) && $r['uidNumber'] && $r['gidNumber']) {
     $oc[]='objectClass: posixAccount';
+    $oc[]='objectClass: shadowAccount';
+    $dt[]='gecos: '.iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE',$r['firstname'].' '.$r['lastname']);
+    $dt[]='shadowLastChange: '.(int)(time()/60/60/24);
     if(!isset($r['homeDirectory']) || !$r['homeDirectory'])
       $dt[]='homeDirectory: /home/'.$r['uid'];
     if(!isset($r['loginShell']) || !$r['loginShell'])
