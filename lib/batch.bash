@@ -208,8 +208,9 @@ BackupRep() {
 	# usage : BackupRep [REP] [none/week/month (optional, default month)] [none/lzop/gzip (optional, default gzip)] [DEST(optional)]
 
 	REP="$1"
-	GZIP="$2"
-	TAREP="$3"
+	HIST="$2"
+	GZIP="$3"
+	TAREP="$4"
 	if [ "x${REP}" = "x" ] || [ ! -d  "${REP}" ] ; then
 	        echo "BackupRep [REP] [none/week/month (optional, default month)] [none/lzop/gzip (optionnel, default gzip)] [DEST(optionnel)]" >&2
 	        return 1
