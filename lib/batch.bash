@@ -204,14 +204,14 @@ BackupSetMonthDayFull() {
 }
 
 BackupRep() {
-	# backup & archiv incrémentale sur 7 jours & archivage sur 30 jours
-	# usage : BackupRep [REP] [none/lzop/gzip (optionnel, default gzip)] [DEST(optionnel)]
+	# Incremental backup (one full each week) with history on one week/month. Can also do simple archive backups.
+	# usage : BackupRep [REP] [none/week/month (optional, default month)] [none/lzop/gzip (optional, default gzip)] [DEST(optional)]
 
 	REP="$1"
 	GZIP="$2"
 	TAREP="$3"
 	if [ "x${REP}" = "x" ] || [ ! -d  "${REP}" ] ; then
-	        echo "BackupRep [REP] [none/lzop/gzip (optionnel, default gzip)] [DEST(optionnel)]" >&2
+	        echo "BackupRep [REP] [none/week/month (optional, default month)] [none/lzop/gzip (optionnel, default gzip)] [DEST(optionnel)]" >&2
 	        return 1
 	fi
 	SNAPREP="${DEFAULT_LIB_DIR}/backuprep/"
@@ -232,9 +232,8 @@ BackupRep() {
 	if [ ! -d ${TAREP} ] ; then
 	        mkdir -p ${TAREP} || return 4
 	fi
-	SNAPSHOT="${SNAPREP}/${NOM}.snapshot"
-	if [ "x${IS_FULL_DAY}" = "x1" ] && [ -e ${SNAPSHOT} ]; then
-	        rm ${SNAPSHOT} || return 3
+	if [ "x${IS_FULL_DAY}" = "x1" ] && [ -e ${SNAPREP}/${NOM}.snapshot ]; then
+	        rm ${SNAPREP}/${NOM}.snapshot || return 3
 	fi
 	if [ -e  ${REP}/.backup-exclude ] ; then
 	        EXCLUDE="--exclude-from=${REP}/.backup-exclude"
@@ -243,14 +242,23 @@ BackupRep() {
 	        	EXCLUDE="--exclude-from=${TAREP}/.exclude"
 		fi
 	fi
+	SNAPSHOT="--listed-incremental=${SNAPREP}/${NOM}.snapshot"
+	if [ "x${HIST}" = "xnone" ] ; then
+		HIST=""
+		SNAPSHOT=""
+	elif [ "x${HIST}" = "xweek" ] ; then
+		HIST=".${CURRENT_WEEK_DAY}"
+	else
+		HIST=".${CURRENT_MONTH_DAY}"
+	fi
 	cd ${REP} || return 2
 	BatchEcho "Sauvegarde de ${REP} dans ${TAREP} ..."
 	if [ "x${GZIP}" != "x" ] && [ "x${GZIP}" != "xlzop" ] && [ "x${GZIP}" != "xgzip" ] ; then
-	        tar --listed-incremental=${SNAPSHOT} ${EXCLUDE} -cpf ${TAREP}/${NOM}.${CURRENT_MONTH_DAY}.tar .
+	        tar ${SNAPSHOT} ${EXCLUDE} -cpf ${TAREP}/${NOM}${HIST}.tar .
 	elif [ "x${GZIP}" = "xlzop" ] ; then
-	        tar --listed-incremental=${SNAPSHOT} ${EXCLUDE} --lzop -cpf ${TAREP}/${NOM}.${CURRENT_MONTH_DAY}.tar.lzo .
+	        tar ${SNAPSHOT} ${EXCLUDE} --lzop -cpf ${TAREP}/${NOM}${HIST}.tar.lzo .
 	else
-		tar --listed-incremental=${SNAPSHOT} ${EXCLUDE} -zcpf ${TAREP}/${NOM}.${CURRENT_MONTH_DAY}.tar.gz .
+		tar ${SNAPSHOT} ${EXCLUDE} -zcpf ${TAREP}/${NOM}${HIST}.tar.gz .
 	fi
 }
 
