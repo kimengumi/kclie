@@ -25,26 +25,10 @@ if [ "$(id -u)" != "0" ] && [ "x${CYGWIN_VERSION}" = "x" ] ; then
    exit 1
 fi
 
-#
-# Environnement positioning & update
-#
-export KCLIE_SETUP_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-if [ -e ${KCLIE_SETUP_DIR}/env ] ; then
-		source ${KCLIE_SETUP_DIR}/env
-else
-	  echo '#
-# Kimengumi Command Line Interface Environnement
-#
-# Host configuration file
-#
-# This file must only contain KEY=VALUE lines.
-# Please do not use advanced shell script constructs!
-#
-' > ${KCLIE_SETUP_DIR}/env
-fi
-if [ "x${KCLIE_SETUP_DIR}" != "x${KCLIE_PATH}" ] ; then
-	echo "KCLIE_PATH=\"${KCLIE_SETUP_DIR}\"" >> ${KCLIE_SETUP_DIR}/env
-	KCLIE_PATH=${KCLIE_SETUP_DIR}
+# Init setup env & load pre-existing KCLIE env
+export SETUP_PATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+if [ -e ${SETUP_PATH}/env ] ; then
+		source ${SETUP_PATH}/env
 fi
 
 #
@@ -54,10 +38,7 @@ fi
 # Team Name
 if [ "x${KCLIE_TEAM_NAME}" = "x" ] ; then
 	echo
-	read -p 'Name of the management team : ' KCLIE_TEAM_NAME
-	if [ "x${KCLIE_TEAM_NAME}" != "x" ] ; then
-		echo "KCLIE_TEAM_NAME='${KCLIE_TEAM_NAME}'" >> ${KCLIE_PATH}/env
-	fi
+	read -p 'Name of the management team : ' SETUP_TEAM_NAME
 fi
 
 # Color picker
@@ -78,27 +59,19 @@ fi
 # Team Color
 if [ "x${KCLIE_TEAM_COLOR}" = "x" ]  ; then
 	echo
-	read -p "Color code for Team : " INPUT_COLOR
-	KCLIE_TEAM_COLOR="\033[`echo ${INPUT_COLOR} | cut -c 1-2`;`echo ${INPUT_COLOR} | cut -c 3-5`m"
-	if [ "x${KCLIE_TEAM_COLOR}" != "x" ] ; then
-		echo "KCLIE_TEAM_COLOR='${KCLIE_TEAM_COLOR}'" >> ${KCLIE_PATH}/env
-	fi
+	read -p "Color code for Team : " SETUP_TEAM_COLOR
 fi
 
-# Host Color picker
+# Host Color
 if [ "x${KCLIE_HOST_COLOR}" = "x" ] ; then
 	echo
-	read -p "Color code for Host : " INPUT_COLOR
-	KCLIE_HOST_COLOR="\033[`echo ${INPUT_COLOR} | cut -c 1-2`;`echo ${INPUT_COLOR} | cut -c 3-5`m"
-	if [ "x${KCLIE_HOST_COLOR}" != "x" ] ; then
-		echo "KCLIE_HOST_COLOR='${KCLIE_HOST_COLOR}'" >> ${KCLIE_PATH}/env
-	fi
+	read -p "Color code for Host : " SETUP_HOST_COLOR
 fi
 
 # Oh My Zsh
-if [ ! -e ${KCLIE_PATH}/vendor/oh-my-zsh/oh-my-zsh.sh ] ; then
+if [ ! -e ${SETUP_PATH}/vendor/oh-my-zsh/oh-my-zsh.sh ] ; then
 	echo
-	read -p "Do You want to install 'Oh My Zsh' ? [y/N] :" KCLIE_SETUP_OHMYZSH
+	read -p "Do You want to install 'Oh My Zsh' ? [y/N] : " SETUP_OHMYZSH
 fi
 
 #
@@ -107,28 +80,56 @@ fi
 
 echo
 echo "=== Setup / Upgrade ==="
-echo "KCLIE directory is : ${KCLIE_PATH}"
+echo "KCLIE directory is : ${SETUP_PATH}"
+
+echo "Configuring KCLIE ..."
+# Init env file
+if [ ! -e ${SETUP_PATH}/env ] ; then
+	  echo '#
+# Kimengumi Command Line Interface Environnement
+#
+# Host configuration file
+#
+# This file must only contain KEY=VALUE lines.
+# Please do not use advanced shell script constructs!
+#
+' > ${SETUP_PATH}/env
+# Update path if moved
+fi
+if [ "x${SETUP_PATH}" != "x${KCLIE_PATH}" ] ; then
+	echo "KCLIE_PATH=\"${SETUP_PATH}\"" >> ${SETUP_PATH}/env
+fi
+if [ "x${SETUP_TEAM_NAME}" != "x" ] ; then
+  echo "KCLIE_TEAM_NAME='${SETUP_TEAM_NAME}'" >> ${SETUP_PATH}/env
+fi
+if [ "x${SETUP_TEAM_COLOR}" != "x" ] ; then
+  echo "KCLIE_TEAM_COLOR='\033[`echo ${SETUP_TEAM_COLOR} | cut -c 1-2`;`echo ${SETUP_TEAM_COLOR} | cut -c 3-5`m'" >> ${SETUP_PATH}/env
+fi
+if [ "x${SETUP_HOST_COLOR}" != "x" ] ; then
+  echo "KCLIE_HOST_COLOR='\033[`echo ${SETUP_HOST_COLOR} | cut -c 1-2`;`echo ${SETUP_HOST_COLOR} | cut -c 3-5`m'" >> ${SETUP_PATH}/env
+fi
+source ${SETUP_PATH}/env
 
 echo "Applying shells customizations ..."
 # PROFILE
 for RC_BASH in /etc/bash.bashrc /etc/bashrc /etc/zsh/zshrc /etc/zshrc ; do
   if [ -w ${RC_BASH} ] ; then
-  	if ! grep -q "\. ${KCLIE_PATH}/etc/profile" ${RC_BASH} ; then
+  	if ! grep -q "\. ${SETUP_PATH}/etc/profile" ${RC_BASH} ; then
       echo ""  >> ${RC_BASH}
       echo "# Kimengumi Command Line Interface Environnement"  >> ${RC_BASH}
       echo "set -a"  >> ${RC_BASH}
-      echo ". ${KCLIE_PATH}/env" >> ${RC_BASH}
+      echo ". ${SETUP_PATH}/env" >> ${RC_BASH}
       echo "set +a"  >> ${RC_BASH}
-  		echo ". ${KCLIE_PATH}/etc/profile" >> ${RC_BASH}
+  		echo ". ${SETUP_PATH}/etc/profile" >> ${RC_BASH}
   	fi
   fi
 done
 # ZSH SPECIFIC
 for ETC_ZSH_DIR in /etc/zsh/ /etc/ ; do
   if [ -w ${ETC_ZSH_DIR}/zshrc ] ; then
-  	if ! grep -q "\. ${KCLIE_PATH}/etc/zsh/zshrc" ${ETC_ZSH_DIR}/zshrc ; then
-  		echo ". ${KCLIE_PATH}/etc/zsh/zshrc" >> ${ETC_ZSH_DIR}/zshrc
-  		echo ". ${KCLIE_PATH}/etc/zsh/zlogout" >> ${ETC_ZSH_DIR}/zlogout
+  	if ! grep -q "\. ${SETUP_PATH}/etc/zsh/zshrc" ${ETC_ZSH_DIR}/zshrc ; then
+  		echo ". ${SETUP_PATH}/etc/zsh/zshrc" >> ${ETC_ZSH_DIR}/zshrc
+  		echo ". ${SETUP_PATH}/etc/zsh/zlogout" >> ${ETC_ZSH_DIR}/zlogout
   	fi
   fi
 done
@@ -136,12 +137,14 @@ done
 echo "Installing welcome banner ..."
 # Motd
 if [ -w /etc/update-motd.d ] && [ ! -d /etc/update-motd.d.dist ] ; then
+  # Ubuntu
 	mv /etc/update-motd.d /etc/update-motd.d.dist
 	mkdir /etc/update-motd.d
-	ln -s  ${KCLIE_PATH}/bin/motd /etc/update-motd.d/0000-kclie
+	ln -s  ${SETUP_PATH}/bin/motd /etc/update-motd.d/0000-kclie
 elif [ -w /etc/motd ] ; then
+  # Other
 	echo -e "#!/bin/bash
-  ${KCLIE_PATH}/bin/motd > /etc/motd 2>&1" > /etc/cron.hourly/kcliebanner
+  ${SETUP_PATH}/bin/motd > /etc/motd 2>&1" > /etc/cron.hourly/kcliebanner
 	chmod 755 /etc/cron.hourly/kcliebanner
   /etc/cron.hourly/kcliebanner
 fi
@@ -155,12 +158,12 @@ greeter-show-manual-login=true' > /usr/share/lightdm/lightdm.conf.d/99-kclie.con
 fi
 
 # Oh My ZSH
-if [ -e ${KCLIE_PATH}/vendor/oh-my-zsh/oh-my-zsh.sh ] ; then
+if [ -e ${SETUP_PATH}/vendor/oh-my-zsh/oh-my-zsh.sh ] ; then
 	echo "Updating Oh My Zsh ..."
-  (cd ${KCLIE_PATH}/vendor/oh-my-zsh/ && git pull)
-elif [ "x${KCLIE_SETUP_OHMYZSH}" = "xy" ] ; then
+  (cd ${SETUP_PATH}/vendor/oh-my-zsh/ && git pull)
+elif [ "x${SETUP_OHMYZSH}" = "xy" ] ; then
   echo "Installing Oh My Zsh ..."
-  (cd ${KCLIE_PATH}/vendor/ && git clone https://github.com/robbyrussell/oh-my-zsh.git)
+  (cd ${SETUP_PATH}/vendor/ && git clone https://github.com/robbyrussell/oh-my-zsh.git)
 fi
 
 echo done
