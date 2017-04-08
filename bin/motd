@@ -19,7 +19,6 @@
 # See the Licence for the specific language governing permissions and
 # limitations under the Licence.
 
-
 # Check KCLIE env and load if necessary
 if [ "x${KCLIE_PATH}" = "x" ] ; then
 	source `dirname $0`/../env
@@ -42,46 +41,45 @@ if [ "x${KCLIE_TEAM_NAME}" != "x" ] ; then
 	echo -e "   \033[1m${KCLIE_TEAM_COLOR}${KCLIE_TEAM_NAME}\033[0m"
 fi
 echo -e "   \033[1m${KCLIE_HOST_COLOR}`uname -n`\033[0m"
-echo
 
 # hosting
 if [ -r /root/.mdg ] ; then # OVH server
+	echo
 	echo -e "OVH server n°`cat /root/.mdg`"
 fi
 
 # hardware / virtual
+echo
+VCPU=""
 if [ "${WNIX}" = 'osx' ] ; then
 	sysctl -n hw.model
 	echo "`sysctl -n machdep.cpu.brand_string` (`sysctl -n machdep.cpu.core_count` Cores)"
-else
-	CORES=`LANG=C lscpu 2>/dev/null | awk -F ":" '/Core/ { c=$2; }; /Socket/ { print c*$2 }'`
-fi
-if [ "${WNIX}" = 'wsl' ] ; then
-	echo "Windows Subsystem for Linux (WSL) (${CORES} vCores)"
-
+elif [ "${WNIX}" = 'wsl' ] ; then
+	echo "Windows Subsystem for Linux (WSL)"
+	VCPU="v"
 elif [ -r /.dockerenv  ] ; then
-	echo -e "Docker container `cat /proc/$$/cgroup | cut -d \/ -f 3 | sort | tail -n 1` (${CORES} vCores)"
-
+	echo -e "Docker container `cat /proc/$$/cgroup | cut -d \/ -f 3 | sort | tail -n 1`"
+	VCPU="v"
 elif [ -r /proc/vz/veinfo ] ; then
-	echo -e "OpenVZ container n°`awk '{print $1}' /proc/vz/veinfo` (${CORES} vCores)"
-
+	echo -e "OpenVZ container n°`awk '{print $1}' /proc/vz/veinfo`"
+	VCPU="v"
 elif [ -r /proc/$$/attr/current ] && (grep -qa 'lxc-container' /proc/$$/attr/current 2>/dev/null) ; then
-	echo -e "LXC container (${CORES} vCores)"
-
+	echo -e "LXC container"
+	VCPU="v"
 elif [ -r /sys/class/dmi/id/sys_vendor ] && (grep -q "QEMU" /sys/class/dmi/id/sys_vendor 2>/dev/null) ;then
-	echo -e "QEMU/KVM Virtual Machine (${CORES} vCores)"
-
+	echo -e "QEMU/KVM Virtual Machine"
+	VCPU="v"
 elif [ -r /sys/class/dmi/id/product_name ] && (grep -q "OpenStack" /sys/class/dmi/id/sys_vendor 2>/dev/null) ;then
-	echo -e "`cat /sys/class/dmi/id/product_name` / `cat /sys/class/dmi/id/chassis_vendor` Virtual Machine (${CORES} vCores)"
-
+	echo -e "`cat /sys/class/dmi/id/product_name` / `cat /sys/class/dmi/id/chassis_vendor` Virtual Machine"
+	VCPU="v"
 elif [ -r /sys/class/dmi/id/board_vendor ] ; then
 	cat /sys/class/dmi/id/board_vendor
-	if [ -r /proc/cpuinfo ] && [ "x${CORES}" != "x" ] ; then
-		echo "`grep "model name" /proc/cpuinfo | cut -d \:  -f 2 | sort | uniq` (${CORES} Cores)" | \
-			sed -e "s/ \+/ /g" -e "s/\t//g" -e "s/^ //g"
-	fi
-elif [ -r /proc/cpuinfo ] ; then
-	grep "model name" /proc/cpuinfo | cut -d \:  -f 2 | sort | uniq | sed -e "s/ \+/ /g" -e "s/\t//g" -e "s/^ //g"
+fi
+if [ -r /proc/cpuinfo ] ; then
+	read THREADS CORES SOCKETS CPUINFO <<< $(LANG=C;awk -F ": " '
+		/^processor/ {t++}; /cpu cores/ {c=$2}; /^physical id/ {s=$2};
+		/^model name/ {i=$2}; END{ print t,c*(s+1),s+1,i}' /proc/cpuinfo)
+	echo "${SOCKETS} x ${CPUINFO} (${THREADS} ${VCPU}Threads / ${CORES} ${VCPU}Cores)"
 fi
 
 # OS version
@@ -105,7 +103,7 @@ fi
 if [ "${WNIX}" = 'wsl' ] ; then
 	echo "Kernel `cat /proc/version | cut -d \( -f1` `uname -m`"
 else
-	echo "kernel `uname -srm`"
+	echo "Kernel `uname -srm`"
 fi
 echo
 
@@ -116,15 +114,8 @@ elif [ "${WNIX}" = 'linux' ] && [ -e /bin/ip ] ; then
 	for IPV in '4' '6'; do
 		IPS=""
 		for IP in `ip -${IPV} addr show | grep "global" | egrep "eth|enp|inet6|ppp|vmbr|wlp|wlan" | sed -e 's/  / /g' | cut -d ' ' -f4`; do
-			if [ "x${IPS}" == "x" ] ; then
-				IPS="${IP}";
-			else
-				IPS="${IPS} | ${IP}";
-			fi
+			echo "ipv${IPV} ${IP}";
 		done
-		if [ "x${IPS}" != "x" ] ; then
-			echo "ipv${IPV} ${IPS}";
-		fi
 	done
 elif [ "${WNIX}" = 'cygwin' ] ; then
 	IPS=""
@@ -133,11 +124,7 @@ elif [ "${WNIX}" = 'cygwin' ] ; then
 			fe80\:\:*) ;; # ipv6 local
 			2001\:0\:*) ;; # Teredo Tunneling Pseudo-Interface
 			* )
-				if [ "x${IPS}" == "x" ] ; then
-					IPS="${IP}";
-				else
-					IPS="${IPS} | ${IP}";
-				fi
+			  echo "ipv${IPV} ${IP}";
 			;;
 		esac
 	done
@@ -157,27 +144,32 @@ if [ -e /proc/meminfo ] ; then
 		printf "Mem Total: %.2fG, Used: %.2fG, Avail: %.2fG\n",total/1024/1024,(total-free-cache+shm)/1024/1024,(free+cache-shm)/1024/1024}' /proc/meminfo
 	fi
 fi
-uptime | sed -e 's/  / /g' | cut -d ' ' -f3,4,5,7-13
-echo
+if [ -x /usr/bin/uptime ] ; then
+	/usr/bin/uptime | sed -e 's/  / /g' | cut -d ' ' -f3,4,5,7-13
+fi
 
 # disk space
-if [ "${WNIX}" = 'osx' ] ; then
-	df -hl
-elif [ "${WNIX}" = 'linux' ] || [ "${WNIX}" = 'cygwin' ] ; then
-	df -hT -x tmpfs -x rootfs -x iso9660 -x debugfs -x fuse.mhddfs -x devtmpfs | grep " " | awk 'NR<3{print $0;next}{print $0| "sort -k7"}'
-elif [ "${WNIX}" = 'wsl' ] ; then
-	df -hT  -x tmpfs
+if [ -x /bin/df ] ; then
+	echo
+	if [ "${WNIX}" = 'osx' ] ; then
+		/bin/df -hl 2>/dev/null
+	elif [ "${WNIX}" = 'linux' ] || [ "${WNIX}" = 'cygwin' ] ; then
+		/bin/df -hT -x tmpfs -x rootfs -x iso9660 -x debugfs -x fuse.mhddfs -x devtmpfs 2>/dev/null | grep " " | awk 'NR<3{print $0;next}{print $0| "sort -k7"}'
+	elif [ "${WNIX}" = 'wsl' ] ; then
+		/bin/df -hT  -x tmpfs 2>/dev/null
+	fi
 fi
 
 # temperatures (if available)
-if [ -e /usr/bin/sensors ] ; then
+if [ -x /usr/bin/sensors ] ; then
 	echo
-	/usr/bin/sensors | cut -d\( -f1 | grep C | grep \+ --color=never
+	/usr/bin/sensors | cut -d\( -f1 | grep \+ |  sed -e "s/ //g" | sort | column -ts ":"
 fi
 
 # Harddrive tempreatures (if available)
 if [ -x /usr/sbin/hddtemp ] ; then
-	/usr/sbin/hddtemp `fdisk -l 2>/dev/null | egrep "Disk|Disque" | cut -d' ' -f2 | egrep -v "0|1|2|3|4|5|6|7|8|9|identifier|-" | cut -d":" -f1` 2>/dev/null
+	echo
+	LANG=C; /usr/sbin/hddtemp `lsblk -anpSo NAME` 2>/dev/null | grep -v 'not available' | column -ts ":"
 fi
 
 # OpenVZ contriners list (if available)
@@ -207,12 +199,12 @@ if [ -x /usr/bin/mailq ] ; then
 fi
 echo
 
-# OS Update notifier (if available)
-if [ "x${UID}" = "x0" ] ; then
-	for info in `ls /usr/lib/update-notifier/update-motd-* 2>/dev/null`
-	do
-		$info
+# OS Update notifier (if available
+if [ -d /usr/lib/update-notifier ] ; then
+	for info in `ls /usr/lib/update-notifier/update-motd-* 2>/dev/null` ; do
+		$info 2>/dev/null
 	done
+	echo
 fi
 
 exit 0
