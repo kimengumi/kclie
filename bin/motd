@@ -76,10 +76,22 @@ elif [ -r /sys/class/dmi/id/board_vendor ] ; then
 	cat /sys/class/dmi/id/board_vendor
 fi
 if [ -r /proc/cpuinfo ] ; then
-	read THREADS CORES SOCKETS CPUINFO <<< $(LANG=C;awk -F ": " '
+	read NBTHREADS NBCORES NBSOCKETS CPUINFO <<< $(LANG=C;awk -F ": " '
 		/^processor/ {t++}; /cpu cores/ {c=$2}; /^physical id/ {s=$2};
 		/^model name/ {i=$2}; END{ print t,c*(s+1),s+1,i}' /proc/cpuinfo)
-	echo "${SOCKETS} x ${CPUINFO} (${THREADS} ${VCPU}Threads / ${CORES} ${VCPU}Cores)"
+	SOCKETS=""
+	CORES="${NBCORES} ${VCPU}Cores)"
+	THREADS="("
+	if [ "${NBSOCKETS}" -gt "1" ] && [ "x${VCPU}" != "xv" ] ; then
+		SOCKETS="${NBSOCKETS} x "
+	fi
+	if [ "${NBCORES}" -eq "1" ] ; then
+		CORES="${NBCORES} ${VCPU} Core)"
+	fi
+	if [ "${NBTHREADS}" -ne "${NBCORES}" ] ; then
+		THREADS="(${NBTHREADS} ${VCPU}Threads / "
+	fi
+	echo "${SOCKETS}${CPUINFO} ${THREADS}${CORES}"
 fi
 
 # OS version
