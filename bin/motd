@@ -76,22 +76,25 @@ elif [ -r /sys/class/dmi/id/board_vendor ] ; then
 	cat /sys/class/dmi/id/board_vendor
 fi
 if [ -r /proc/cpuinfo ] ; then
-	read NBTHREADS NBCORES NBSOCKETS CPUINFO <<< $(LANG=C;awk -F ": " '
-		/^processor/ {t++}; /cpu cores/ {c=$2}; /^physical id/ {s=$2};
-		/^model name/ {i=$2}; END{ print t,c*(s+1),s+1,i}' /proc/cpuinfo)
-	SOCKETS=""
-	CORES="${NBCORES} ${VCPU}Cores)"
-	THREADS="("
-	if [ "${NBSOCKETS}" -gt "1" ] && [ "x${VCPU}" != "xv" ] ; then
-		SOCKETS="${NBSOCKETS} x "
+	read NBTHREADS NBCORES NBSOCKETS CPUINFO <<< $(LANG=C; awk -F ": " '
+		/^processor/ {t++};
+		/^cpu cores/ {c=$2};
+		/^physical id/ {s=$2};
+		/^model name/ {i=$2};
+		END { print t,c*(s+1),s+1,i }' /proc/cpuinfo)
+	SOCKETS="${NBSOCKETS} x "
+	THREADS="${NBTHREADS} ${VCPU}Threads / "
+	CORES="${NBCORES} ${VCPU}Cores"
+	if [ "${NBSOCKETS}" -eq "1" ] || [ "x${VCPU}" != "xv" ] ; then
+		SOCKETS=""
 	fi
 	if [ "${NBCORES}" -eq "1" ] ; then
 		CORES="${NBCORES} ${VCPU} Core)"
 	fi
-	if [ "${NBTHREADS}" -ne "${NBCORES}" ] ; then
-		THREADS="(${NBTHREADS} ${VCPU}Threads / "
+	if [ "${NBTHREADS}" -eq "${NBCORES}" ] ; then
+		THREADS=""
 	fi
-	echo "${SOCKETS}${CPUINFO} ${THREADS}${CORES}"
+	echo "${SOCKETS}${CPUINFO} (${THREADS}${CORES})"
 fi
 
 # OS version
@@ -136,11 +139,10 @@ elif [ "${WNIX}" = 'cygwin' ] ; then
 			fe80\:\:*) ;; # ipv6 local
 			2001\:0\:*) ;; # Teredo Tunneling Pseudo-Interface
 			* )
-			  echo "ipv${IPV} ${IP}";
+			  echo "ip ${IP}";
 			;;
 		esac
 	done
-	echo "ip ${IPS}"
 fi
 
 # Uptime / load avg / mem
