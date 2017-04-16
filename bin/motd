@@ -83,18 +83,24 @@ if [ -r /proc/cpuinfo ] ; then
 		/^model name/ {i=$2};
 		END { print t,c*(s+1),s+1,i }' /proc/cpuinfo)
 	SOCKETS="${NBSOCKETS} x "
-	THREADS="${NBTHREADS} ${VCPU}Threads / "
+	THREADS="${NBTHREADS} ${VCPU}Threads"
 	CORES="${NBCORES} ${VCPU}Cores"
 	if [ "${NBSOCKETS}" -eq "1" ] || [ "x${VCPU}" != "xv" ] ; then
 		SOCKETS=""
 	fi
 	if [ "${NBCORES}" -eq "1" ] ; then
-		CORES="${NBCORES} ${VCPU} Core)"
+		CORES="${NBCORES} ${VCPU}Core"
+	elif [ "${NBCORES}" -eq "0" ] ; then
+		CORES=""
 	fi
 	if [ "${NBTHREADS}" -eq "${NBCORES}" ] ; then
 		THREADS=""
 	fi
-	echo "${SOCKETS}${CPUINFO} (${THREADS}${CORES})"
+	if [ "x${THREADS}" != "x" ] && [ "x${CORES}" != "x" ] ; then
+		echo "${SOCKETS}${CPUINFO} (${THREADS} / ${CORES})"
+	else
+		echo "${SOCKETS}${CPUINFO} (${THREADS}${CORES})"
+	fi
 fi
 
 # OS version
