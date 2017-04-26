@@ -90,7 +90,7 @@ if [ -r /proc/cpuinfo ] ; then
 	fi
 	if [ "${NBCORES}" -eq "1" ] ; then
 		CORES="${NBCORES} ${VCPU}Core"
-	elif [ "${NBCORES}" -eq "0" ] ; then
+	elif [ "${NBCORES}" -eq "0" ] || [ "${NBCORES}" -gt "${NBTHREADS}" ] ; then
 		CORES=""
 	fi
 	if [ "${NBTHREADS}" -eq "${NBCORES}" ] ; then
