@@ -1,10 +1,10 @@
-BoldAsFont=-1
+BoldAsFont=no
 Font=Liberation Mono
 FontHeight=11
 Transparency=low
 OpaqueWhenFocused=yes
 CursorType=block
-Locale=C
+Locale=fr_FR
 ClicksPlaceCursor=yes
 CopyAsRTF=no
 ClipShortcuts=no
@@ -33,3 +33,4 @@ BoldBlue=96,96,255
 BoldMagenta=255,64,255 
 BoldCyan=64,255,255 
 BoldWhite=255,255,255
+RightClickAction=menu
