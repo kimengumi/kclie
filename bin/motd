@@ -69,6 +69,9 @@ elif [ -r /proc/$$/attr/current ] && (grep -qa 'lxc-container' /proc/$$/attr/cur
 elif [ -r /sys/class/dmi/id/sys_vendor ] && (grep -q "QEMU" /sys/class/dmi/id/sys_vendor 2>/dev/null) ;then
 	echo -e "QEMU/KVM Virtual Machine"
 	VCPU="v"
+elif [ -r /sys/class/dmi/id/sys_vendor ] && (grep -q "VMware" /sys/class/dmi/id/sys_vendor 2>/dev/null) ;then
+	echo -e "VMware Virtual Machine"
+	VCPU="v"
 elif [ -r /sys/class/dmi/id/product_name ] && (grep -q "OpenStack" /sys/class/dmi/id/sys_vendor 2>/dev/null) ;then
 	echo -e "`cat /sys/class/dmi/id/product_name` / `cat /sys/class/dmi/id/chassis_vendor` Virtual Machine"
 	VCPU="v"
@@ -189,7 +192,7 @@ fi
 # Harddrive tempreatures (if available)
 if [ -x /usr/sbin/hddtemp ] ; then
 	echo
-	LANG=C; /usr/sbin/hddtemp `lsblk -anpSo NAME` 2>/dev/null | grep -v 'not available' | column -ts ":"
+	LANG=C; /usr/sbin/hddtemp `lsblk -anpSo NAME 2>/dev/null` 2>/dev/null | grep -v 'not available' | column -ts ":"
 fi
 
 # OpenVZ contriners list (if available)
