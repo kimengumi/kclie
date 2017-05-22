@@ -68,7 +68,11 @@ if [ -e /usr/bin/vim.nox ] ; then
 fi
 export PATH=${KCLIE_PATH}/bin:${PATH}
 if [ -e "`which dircolors`" ] ; then
-	eval `dircolors -b`
+	if [ -r "${HOME}/.dircolors" ] ; then
+		eval `dircolors -b ${HOME}/.dircolors`
+	else
+		eval `dircolors -b ${KCLIE_PATH}/etc/skel/.dircolors`
+	fi
 	LSCOLOR='--color'
 else
 	LSCOLOR=''
