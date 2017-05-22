@@ -22,6 +22,4 @@ as root
 
 `git clone https://github.com/kimengumi/kclie.git`
 
-`cd kclie`
-
-`./configure`
+`kclie/configure`
