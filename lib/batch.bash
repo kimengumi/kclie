@@ -72,6 +72,9 @@ BatchStart() {
         echo "============================================"
 	echo "## `date +"%T ## %F"` ## Début de ${SCRIPT_NAME} ##"
 	BackupSetWeekDayFull 6 #samedi
+
+	# Deal with filesnames with spaces
+	export IFS=$(echo -en "\n\b")
 }
 
 BatchEnd() {
@@ -220,28 +223,28 @@ BackupRep() {
 		mkdir -p ${SNAPREP} || return 4
 	fi
 	if [ "x${REP}" = "x/etc" ] && [ -f /usr/bin/dpkg ]; then
-	        /usr/bin/dpkg --get-selections > /etc/apt/`hostname -s`.paquets
+	        /usr/bin/dpkg --get-selections > /etc/apt/`hostname -s`.dpkg-get-selections
 	fi
 	if [ "x${REP}" = "x/" ] ; then
 	        NOM="root"
 	else
-	        NOM=`echo ${REP} | sed -e 's/\///' -e 's/\//-/g'`
+	        NOM=`echo ${REP} | sed -e 's/\///' -e 's/\//-/g' -e 's/\ /_/g'`
 	fi
 	if [ "x${TAREP}" = "x" ] ; then
 	        TAREP="${DEFAULT_BACKUP_DIR}/`hostname -s`/${NOM}"
 	fi
 	if [ ! -d ${TAREP} ] ; then
-	        mkdir -p ${TAREP} || return 4
+	        mkdir -p "${TAREP}" || return 4
 	fi
-	if [ "x${IS_FULL_DAY}" = "x1" ] && [ -e ${SNAPREP}/${NOM}.snapshot ]; then
+	if [ "x${IS_FULL_DAY}" = "x1" ] && [ -e "${SNAPREP}/${NOM}.snapshot" ]; then
 	        rm ${SNAPREP}/${NOM}.snapshot || return 3
 	fi
-	if [ -e  ${REP}/.backup-exclude ] ; then
-	        EXCLUDE="--exclude-from=${REP}/.backup-exclude"
-	else
-		if [ -e  ${TAREP}/.exclude ] ; then
-	        	EXCLUDE="--exclude-from=${TAREP}/.exclude"
-		fi
+	cd ${REP} || return 2
+	EXCLUDE=""
+	if [ -e  ./.backup-exclude ] ; then
+	        EXCLUDE="--exclude-from=./.backup-exclude"
+	elif [ -e  ${TAREP}/.exclude ] ; then
+	       	EXCLUDE="--exclude-from=${TAREP}/.exclude"
 	fi
 	SNAPSHOT="--listed-incremental=${SNAPREP}/${NOM}.snapshot"
 	if [ "x${HIST}" = "xnone" ] ; then
@@ -252,7 +255,6 @@ BackupRep() {
 	else
 		HIST=".${CURRENT_MONTH_DAY}"
 	fi
-	cd ${REP} || return 2
 	BatchEcho "Sauvegarde de ${REP} dans ${TAREP} ..."
 	if [ "x${COMPRESS}" != "x" ] && [ "x${COMPRESS}" != "xlzop" ] && [ "x${COMPRESS}" != "xgzip" ] ; then
 	        tar ${SNAPSHOT} ${EXCLUDE} -cpf ${TAREP}/${NOM}${HIST}.tar .
