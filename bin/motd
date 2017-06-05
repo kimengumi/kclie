@@ -177,7 +177,7 @@ if [ -x /bin/df ] ; then
 	if [ "${WNIX}" = 'osx' ] ; then
 		/bin/df -hl 2>/dev/null
 	elif [ "${WNIX}" = 'linux' ] || [ "${WNIX}" = 'cygwin' ] ; then
-		/bin/df -hT -x tmpfs -x rootfs -x iso9660 -x debugfs -x fuse.mhddfs -x devtmpfs 2>/dev/null | grep " " | awk 'NR<3{print $0;next}{print $0| "sort -k7"}'
+		/bin/df -hT -x tmpfs -x rootfs -x iso9660 -x debugfs -x fuse.mhddfs -x devtmpfs -x aufs 2>/dev/null | grep " " | awk 'NR<3{print $0;next}{print $0| "sort -k7"}'
 	elif [ "${WNIX}" = 'wsl' ] ; then
 		/bin/df -hT  -x tmpfs 2>/dev/null
 	fi
