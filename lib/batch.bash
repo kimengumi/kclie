@@ -28,6 +28,7 @@ export CURRENT_MONTH_DAY=`date +%d`
 export DEFAULT_BACKUP_DIR="/home/backup"
 export DEFAULT_LOG_DIR="/var/log/kclie"
 export DEFAULT_LIB_DIR="/var/lib/kclie"
+export GZIP=-9
 
 BatchStart() {
         if [ "x$1" = "x" ] ; then
@@ -123,11 +124,10 @@ ProxmoxDumpAll() {
     REP="${DEFAULT_BACKUP_DIR}/"
 	fi
   BatchEcho 'Backups off all Proxmox VMs & CTs'
-  export GZIP=-9
   # VZdump sort tout en sortie erreur. on passe donc par un fichier temporaire, puis un grep pour remonter uniquement les vrais erreurs.
   vzdump -all 1 -compress gzip -maxfiles 1 -stdexcludes 1 -dumpdir ${REP} >/tmp/vzdump.log 2>&1
   cat /tmp/vzdump.log
-  grep -v 'INFO:' /tmp/vzdump.log >&2
+  egrep -v "INFO:| created.| successfully " /tmp/vzdump.log >&2
 }
 
 BackupMysql() {
@@ -135,7 +135,7 @@ BackupMysql() {
 	# usage : BackupMysql [none/week/month (optional, default month)] [none/gzip (optional, default gzip)] [REP(optional)]
 
   HIST="$1"
-  GZIP="$2"
+  COMPRESS="$2"
   REP="$3"
 
   if [ -e /etc/mysql/debian.cnf ] ; then
@@ -171,7 +171,7 @@ BackupMysql() {
 			else
 				EXTRAOPTIONS=""
 			fi
-      if [ "x${GZIP}" = "none" ] ; then
+      if [ "x${COMPRESS}" = "none" ] ; then
         mysqldump ${USER} -f ${BASE} ${EXTRAOPTIONS} > ${REP}/${BASE}${HIST}.sql
       else
         mysqldump ${USER} -f ${BASE} ${EXTRAOPTIONS} | gzip -9f > ${REP}/${BASE}${HIST}.sql.gz
@@ -209,7 +209,7 @@ BackupRep() {
 
 	REP="$1"
 	HIST="$2"
-	GZIP="$3"
+	COMPRESS="$3"
 	TAREP="$4"
 	if [ "x${REP}" = "x" ] || [ ! -d  "${REP}" ] ; then
 	        echo "BackupRep [REP] [none/week/month (optional, default month)] [none/lzop/gzip (optionnel, default gzip)] [DEST(optionnel)]" >&2
@@ -254,9 +254,9 @@ BackupRep() {
 	fi
 	cd ${REP} || return 2
 	BatchEcho "Sauvegarde de ${REP} dans ${TAREP} ..."
-	if [ "x${GZIP}" != "x" ] && [ "x${GZIP}" != "xlzop" ] && [ "x${GZIP}" != "xgzip" ] ; then
+	if [ "x${COMPRESS}" != "x" ] && [ "x${COMPRESS}" != "xlzop" ] && [ "x${COMPRESS}" != "xgzip" ] ; then
 	        tar ${SNAPSHOT} ${EXCLUDE} -cpf ${TAREP}/${NOM}${HIST}.tar .
-	elif [ "x${GZIP}" = "xlzop" ] ; then
+	elif [ "x${COMPRESS}" = "xlzop" ] ; then
 	        tar ${SNAPSHOT} ${EXCLUDE} --lzop -cpf ${TAREP}/${NOM}${HIST}.tar.lzo .
 	else
 		tar ${SNAPSHOT} ${EXCLUDE} -zcpf ${TAREP}/${NOM}${HIST}.tar.gz .
