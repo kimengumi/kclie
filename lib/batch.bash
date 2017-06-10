@@ -76,7 +76,7 @@ BatchStart() {
 	BackupSetWeekDayFull 6 #samedi
 
 	# Deal with filesnames with spaces
-	export IFS=${IFS_LIB}
+	export IFS="${IFS_LIB}"
 }
 
 BatchEnd() {
@@ -130,10 +130,11 @@ ProxmoxDumpAll() {
     REP="${DEFAULT_BACKUP_DIR}/"
 	fi
   BatchEcho 'Backups off all Proxmox VMs & CTs'
+  #can not define IFS with perl scripts in Taint mode
+  unset IFS
   # VZdump sort tout en sortie erreur. on passe donc par un fichier temporaire, puis un grep pour remonter uniquement les vrais erreurs.
-  export IFS=${IFS_STD}
   vzdump -all 1 -compress gzip -maxfiles 1 -stdexcludes 1 -dumpdir ${REP} >/tmp/vzdump.log 2>&1
-  export IFS=${IFS_LIB}
+  export IFS="${IFS_LIB}"
   cat /tmp/vzdump.log
   egrep -v "INFO:| created.| successfully " /tmp/vzdump.log >&2
 }
