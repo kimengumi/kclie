@@ -29,6 +29,7 @@ export DEFAULT_BACKUP_DIR="/home/backup"
 export DEFAULT_LOG_DIR="/var/log/kclie"
 export DEFAULT_LIB_DIR="/var/lib/kclie"
 export GZIP=-9
+export STD_IFS=${IFS}
 
 BatchStart() {
         if [ "x$1" = "x" ] ; then
@@ -128,7 +129,7 @@ ProxmoxDumpAll() {
 	fi
   BatchEcho 'Backups off all Proxmox VMs & CTs'
   # VZdump sort tout en sortie erreur. on passe donc par un fichier temporaire, puis un grep pour remonter uniquement les vrais erreurs.
-  vzdump -all 1 -compress gzip -maxfiles 1 -stdexcludes 1 -dumpdir ${REP} >/tmp/vzdump.log 2>&1
+  (IFS=${STD_IFS} ; vzdump -all 1 -compress gzip -maxfiles 1 -stdexcludes 1 -dumpdir ${REP} >/tmp/vzdump.log 2>&1)
   cat /tmp/vzdump.log
   egrep -v "INFO:| created.| successfully " /tmp/vzdump.log >&2
 }
