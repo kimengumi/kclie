@@ -29,7 +29,7 @@ export DEFAULT_BACKUP_DIR="/home/backup"
 export DEFAULT_LOG_DIR="/var/log/kclie"
 export DEFAULT_LIB_DIR="/var/lib/kclie"
 export GZIP=-9
-export IFS_STD=${IFS}
+export IFS_STD="${IFS}"
 export IFS_LIB=$(echo -en "\n\b")
 
 BatchStart() {
@@ -82,6 +82,7 @@ BatchStart() {
 BatchEnd() {
         echo "## `date +"%T ## %F"` ## Fin de ${SCRIPT_NAME} ##"
         rm ${SHMDIR}/${SCRIPT_NAME}_$$_fifo_err
+	export IFS=${IFS_STD}
 }
 
 BatchEcho() {
