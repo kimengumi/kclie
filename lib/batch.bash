@@ -226,6 +226,7 @@ BackupRep() {
 	fi
 	if [ ! -d  "${REP}" ] ; then
 		echo "BackupRep: Skip ${REP} which is no a directory"
+		return 1
 	fi
 	SNAPREP="${DEFAULT_LIB_DIR}/backuprep/"
 	if [ ! -d ${SNAPREP} ] ; then
