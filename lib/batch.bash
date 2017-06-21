@@ -220,9 +220,12 @@ BackupRep() {
 	HIST="$2"
 	COMPRESS="$3"
 	TAREP="$4"
-	if [ "x${REP}" = "x" ] || [ ! -d  "${REP}" ] ; then
+	if [ "x${REP}" = "x" ] || [ ! -e  "${REP}" ] ; then
 	        echo "BackupRep [REP] [none/week/month (optional, default month)] [none/lzop/gzip (optionnel, default gzip)] [DEST(optionnel)]" >&2
 	        return 1
+	fi
+	if [ ! -d  "${REP}" ] ; then
+		echo "BackupRep: Skip ${REP} which is no a directory"
 	fi
 	SNAPREP="${DEFAULT_LIB_DIR}/backuprep/"
 	if [ ! -d ${SNAPREP} ] ; then
