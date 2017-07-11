@@ -47,13 +47,25 @@ for LOCALHOST in "127.0.0.1" "::1" "localhost" ; do
 	mysql -e "GRANT ALL PRIVILEGES ON \`${USER}\_%\` . * TO '${USER}'@'${LOCALHOST}'" || exit 1
 done
 
-echo "Done
+echo "Account created
 
-If you whish to allow autologin from cli, you can copy/paste the ~/.my.cnf sample file bellow, and write it in the final user homedir.
+";
+read -p "Do You want to create /home/${USER}/.my.cnf ? [y/N] : " MYCNF
 
---------- ~/.my.cnf ---------
+if [ "x${MYCNF}" = "xy" ] ; then
+        echo "[client]
+host     = localhost
+user     = ${USER}
+password = ${PASS}" >/home/${USER}/.my.cnf
+        echo "Done" 
+else
+        echo "
+If you whish to allow autologin from cli, you can copy/paste the .my.cnf sample file bellow, and write it in the final user homedir.
+
+--------- .my.cnf ---------
 [client]
 host     = localhost
 user     = ${USER}
 password = ${PASS}
 -----------------------------"
+fi
