@@ -30,16 +30,20 @@ else
 	read USER
 fi
 
-PASS=`genpass`
-
-if [ "x${PASS}" = "x" ] ; then
-	echo 'Can not generate a password'
-	exit 1
+read -p "Do You want to generate a password ? [Y/n] : " GENPASS
+if [ "x${MYCNF}" = "xn" ] ; then
+        echo -e "User password :"
+        read PASS
+else
+        PASS=`genpass`
+        if [ "x${PASS}" = "x" ] ; then
+                echo 'Can not generate a password'
+                exit 1
+        fi
+        echo "
+        Password : ${PASS}
+        "
 fi
-
-echo "
-Password : ${PASS}
-"
 
 for LOCALHOST in "127.0.0.1" "::1" "localhost" ; do
 	mysql -e "CREATE USER '${USER}'@'${LOCALHOST}' IDENTIFIED BY '${PASS}'" || exit 1
@@ -48,7 +52,6 @@ for LOCALHOST in "127.0.0.1" "::1" "localhost" ; do
 done
 
 echo "Account created
-
 ";
 read -p "Do You want to create /home/${USER}/.my.cnf ? [y/N] : " MYCNF
 

@@ -30,22 +30,26 @@ else
 	read USER
 fi
 
-PASS=`genpass`
-
-if [ "x${PASS}" = "x" ] ; then
-	echo 'Can not generate a password'
-	exit 1
+read -p "Do You want to generate a password ? [Y/n] : " GENPASS
+if [ "x${MYCNF}" = "xn" ] ; then
+	echo -e "User password :"
+        read PASS
+else
+	PASS=`genpass`
+	if [ "x${PASS}" = "x" ] ; then
+		echo 'Can not generate a password'
+		exit 1
+	fi
+	echo "
+	Password : ${PASS}
+	"
 fi
 
-echo "
-Password : ${PASS}
-"
 mysql -e "CREATE USER '${USER}'@'%' IDENTIFIED BY '${PASS}'" || exit 1
 mysql -e "GRANT USAGE ON * . * TO '${USER}'@'%' IDENTIFIED BY '${PASS}'" || exit 1
 mysql -e "GRANT ALL PRIVILEGES ON \`${USER}\_%\` . * TO '${USER}'@'%'" || exit 1
 
 echo "Account created
-
 ";
 read -p "Do You want to create /home/${USER}/.my.cnf ? [y/N] : " MYCNF
 
