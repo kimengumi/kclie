@@ -31,7 +31,7 @@ else
 fi
 
 read -p "Do You want to generate a password ? [Y/n] : " GENPASS
-if [ "x${MYCNF}" = "xn" ] ; then
+if [ "x${GENPASS}" = "xn" ] ; then
         echo -e "User password :"
         read PASS
 else
