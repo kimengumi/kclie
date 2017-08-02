@@ -59,8 +59,8 @@ else
 	fi
 fi
 
-# umask par défaut pour que le groupe puisse ecrire
-umask 002
+# By default, any created files should be writable for group
+umask 0002
 
 # variables
 if [ -e /usr/bin/vim.nox ] ; then
