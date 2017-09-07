@@ -172,6 +172,9 @@ BackupMysql() {
         mkdir -p ${REP} || return 4
     fi
 
+    echo "Lock all tables of all databases"
+    mysql ${USER} -Bse "FLUSH TABLES WITH READ LOCK;"
+
     for BASE in $(mysql ${USER} -Bse 'show databases') ; do
         if [ "x${BASE}" != "xinformation_schema" ] && [ "x${BASE}" != "xperformance_schema" ] ; then
             BatchEcho "Dumping database ${BASE}"
@@ -181,12 +184,15 @@ BackupMysql() {
                 EXTRAOPTIONS=""
             fi
             if [ "x${COMPRESS}" = "none" ] ; then
-                mysqldump ${USER} -f ${BASE} ${EXTRAOPTIONS} > ${REP}/${BASE}${HIST}.sql
+                mysqldump ${USER} --skip-lock-tables -f ${BASE} ${EXTRAOPTIONS} > ${REP}/${BASE}${HIST}.sql
             else
-                mysqldump ${USER} -f ${BASE} ${EXTRAOPTIONS} | gzip -9f > ${REP}/${BASE}${HIST}.sql.gz
+                mysqldump ${USER} --skip-lock-tables -f ${BASE} ${EXTRAOPTIONS} | gzip -9f > ${REP}/${BASE}${HIST}.sql.gz
             fi
         fi
     done
+
+    echo "Unlock tables"
+    mysql ${USER} -Bse "UNLOCK TABLES;"
 }
 
 
