@@ -19,64 +19,68 @@
 # See the Licence for the specific language governing permissions and
 # limitations under the Licence.
 
-
-if [ "$(id -u)" != "0" ] && [ "x${CYGWIN_VERSION}" = "x" ] ; then
-   echo "This script must be run as root" 1>&2
-   exit 1
-fi
-
 # Init setup env & load pre-existing KCLIE env
 export SETUP_PATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 if [ -e ${SETUP_PATH}/env ] ; then
-		source ${SETUP_PATH}/env
+    source ${SETUP_PATH}/env
 fi
 
-#
+####
 # INTERACTIVE PART
-#
+####
 
 # Team Name
 if [ "x${KCLIE_TEAM_NAME}" = "x" ] ; then
-	echo
-	read -p 'Name of the management team : ' SETUP_TEAM_NAME
+    echo
+    read -p 'Name of the management team : ' SETUP_TEAM_NAME
 fi
 
 # Color picker
 if [ "x${KCLIE_TEAM_COLOR}" = "x" ] || [ "x${KCLIE_HOST_COLOR}" = "x" ] ; then
-	echo
-	echo "Color code picker :"
-	echo
-	BACKGS=(049 040 100 047 107 041 101 042 102 043 103 044 104 045 105 046 106)
-	FOREGS=( 30  90  37  97  39  31  91  32  92  33  93  34  94  35  95  36  96)
-	for FID in "${!FOREGS[@]}"; do
-		for BID in "${!BACKGS[@]}"; do
-			echo -en "\033[${BACKGS[$BID]};${FOREGS[$FID]}m${FOREGS[$FID]}${BACKGS[$BID]}\033[0m "
-		done
-		echo
-	done
+    echo
+    echo "Color code picker :"
+    echo
+    BACKGS=(049 040 100 047 107 041 101 042 102 043 103 044 104 045 105 046 106)
+    FOREGS=( 30  90  37  97  39  31  91  32  92  33  93  34  94  35  95  36  96)
+    for FID in "${!FOREGS[@]}"; do
+        for BID in "${!BACKGS[@]}"; do
+            echo -en "\033[${BACKGS[$BID]};${FOREGS[$FID]}m${FOREGS[$FID]}${BACKGS[$BID]}\033[0m "
+        done
+        echo
+    done
 fi
 
 # Team Color
 if [ "x${KCLIE_TEAM_COLOR}" = "x" ]  ; then
-	echo
-	read -p "Color code for Team : " SETUP_TEAM_COLOR
+    echo
+    read -p "Color code for Team : " SETUP_TEAM_COLOR
 fi
 
 # Host Color
 if [ "x${KCLIE_HOST_COLOR}" = "x" ] ; then
-	echo
-	read -p "Color code for Host : " SETUP_HOST_COLOR
+    echo
+    read -p "Color code for Host : " SETUP_HOST_COLOR
 fi
 
 # Oh My Zsh
-if [ ! -e ${SETUP_PATH}/vendor/oh-my-zsh/oh-my-zsh.sh ] ; then
-	echo
-	read -p "Do You want to install 'Oh My Zsh' ? [y/N] : " SETUP_OHMYZSH
+if [ -e /usr/bin/zsh ] && [ ! -e ${SETUP_PATH}/vendor/oh-my-zsh/oh-my-zsh.sh ] ; then
+    echo
+    read -p "Do You want to install 'Oh My Zsh' ? [y/N] : " SETUP_OHMYZSH
 fi
 
-#
+if [ "$(id -u)" != "0" ] ; then
+    echo
+    echo "The configuration script is not running as root."
+    read -p "Do you want to configure KCLIE for the running user only ? [y/N] : " SETUP_USERMODE
+    if [ "x${SETUP_USERMODE}" != "xy" ] ; then
+        echo "To install KCLIE globaly to your systemn, please run the configure script as root"
+        exit
+    fi
+fi
+
+####
 # AUTOMATED PART
-#
+####
 
 echo
 echo "=== Setup / Upgrade ==="
@@ -85,86 +89,119 @@ echo "KCLIE directory is : ${SETUP_PATH}"
 echo "Configuring KCLIE ..."
 # Init env file
 if [ ! -e ${SETUP_PATH}/env ] ; then
-	  echo '#
-# Kimengumi Command Line Interface Environnement
-#
-# Host configuration file
-#
-# This file must only contain KEY=VALUE lines.
-# Please do not use advanced shell script constructs!
-#
-' > ${SETUP_PATH}/env
-# Update path if moved
+    echo '#
+    # Kimengumi Command Line Interface Environnement
+    #
+    # Host configuration file
+    #
+    # This file must only contain KEY=VALUE lines.
+    # Please do not use advanced shell script constructs!
+    #
+    ' > ${SETUP_PATH}/env || (echo "ERROR : can't write env file" ; exit)
+    # Update path if moved
 fi
 if [ "x${SETUP_PATH}" != "x${KCLIE_PATH}" ] ; then
-	echo "KCLIE_PATH=\"${SETUP_PATH}\"" >> ${SETUP_PATH}/env
+    echo "KCLIE_PATH=\"${SETUP_PATH}\"" >> ${SETUP_PATH}/env
 fi
 if [ "x${SETUP_TEAM_NAME}" != "x" ] ; then
-  echo "KCLIE_TEAM_NAME='${SETUP_TEAM_NAME}'" >> ${SETUP_PATH}/env
+    echo "KCLIE_TEAM_NAME='${SETUP_TEAM_NAME}'" >> ${SETUP_PATH}/env
 fi
 if [ "x${SETUP_TEAM_COLOR}" != "x" ] ; then
-  echo "KCLIE_TEAM_COLOR='\033[`echo ${SETUP_TEAM_COLOR} | cut -c 1-2`;`echo ${SETUP_TEAM_COLOR} | cut -c 3-5`m'" >> ${SETUP_PATH}/env
+    echo "KCLIE_TEAM_COLOR='\033[`echo ${SETUP_TEAM_COLOR} | cut -c 1-2`;`echo ${SETUP_TEAM_COLOR} | cut -c 3-5`m'" >> ${SETUP_PATH}/env
 fi
 if [ "x${SETUP_HOST_COLOR}" != "x" ] ; then
-  echo "KCLIE_HOST_COLOR='\033[`echo ${SETUP_HOST_COLOR} | cut -c 1-2`;`echo ${SETUP_HOST_COLOR} | cut -c 3-5`m'" >> ${SETUP_PATH}/env
+    echo "KCLIE_HOST_COLOR='\033[`echo ${SETUP_HOST_COLOR} | cut -c 1-2`;`echo ${SETUP_HOST_COLOR} | cut -c 3-5`m'" >> ${SETUP_PATH}/env
 fi
 source ${SETUP_PATH}/env
 
-echo "Applying shells customizations ..."
+# Oh My ZSH
+if [ -e ${SETUP_PATH}/vendor/oh-my-zsh/.git ] ; then
+    echo "Updating Oh My Zsh ..."
+    (cd ${SETUP_PATH}/vendor/oh-my-zsh && git pull)
+elif [ "x${SETUP_OHMYZSH}" = "xy" ] ; then
+    echo "Installing Oh My Zsh ..."
+    (mkdir -p ${SETUP_PATH}/vendor/oh-my-zsh && cd ${SETUP_PATH}/vendor/oh-my-zsh && git clone https://github.com/robbyrussell/oh-my-zsh.git .)
+fi
+
+#
+# SETUP IN USER MODE
+#
+if [ "x${SETUP_USERMODE}" = "xy" ] ; then
+
+    echo "Applying user shells customizations ...".
+    # PROFILE
+    for RC_BASH in ~/.profile ~/.bashrc ~/.zshrc ; do
+        if [ -w ${RC_BASH} ] && ! grep -q "\. ${SETUP_PATH}/etc/profile" ${RC_BASH} ; then
+            echo ""  >> ${RC_BASH}
+            echo "# Kimengumi Command Line Interface Environnement"  >> ${RC_BASH}
+            echo "set -a"  >> ${RC_BASH}
+            echo ". ${SETUP_PATH}/env" >> ${RC_BASH}
+            echo "set +a"  >> ${RC_BASH}
+            echo ". ${SETUP_PATH}/etc/profile" >> ${RC_BASH}
+            echo "${SETUP_PATH}/bin/motd" >> ${RC_BASH}
+        fi
+    done
+    # ZSH SPECIFIC
+    if [ -w ~/.zshrc ] && ! grep -q "\. ${SETUP_PATH}/etc/zsh/zshrc" ~/.zshrc ; then
+        echo ". ${SETUP_PATH}/etc/zsh/zshrc" >> ~/.zshrc
+        echo ". ${SETUP_PATH}/etc/zsh/zlogout" >> ~/.zshrc
+    fi
+    # TERMINAL CONF
+    for RC_SKEL in .minttyrc .dircolors ; do
+        if [ ! -e ~/${RC_SKEL} ] ; then
+            cp ${SETUP_PATH}/etc/skel/${RC_SKEL}  ~/${RC_SKEL}
+        fi
+    done
+
+    echo done ; exit
+fi
+
+#
+# SETUP IN GLOBAL MODE
+#
+
+echo "Applying shells customizations ...".
 # PROFILE
 for RC_BASH in /etc/bash.bashrc /etc/bashrc /etc/zsh/zshrc /etc/zshrc ; do
-  if [ -w ${RC_BASH} ] ; then
-  	if ! grep -q "\. ${SETUP_PATH}/etc/profile" ${RC_BASH} ; then
-      echo ""  >> ${RC_BASH}
-      echo "# Kimengumi Command Line Interface Environnement"  >> ${RC_BASH}
-      echo "set -a"  >> ${RC_BASH}
-      echo ". ${SETUP_PATH}/env" >> ${RC_BASH}
-      echo "set +a"  >> ${RC_BASH}
-  		echo ". ${SETUP_PATH}/etc/profile" >> ${RC_BASH}
-  	fi
-  fi
+    if [ -w ${RC_BASH} ] && ! grep -q "\. ${SETUP_PATH}/etc/profile" ${RC_BASH} ; then
+        echo ""  >> ${RC_BASH}
+        echo "# Kimengumi Command Line Interface Environnement"  >> ${RC_BASH}
+        echo "set -a"  >> ${RC_BASH}
+        echo ". ${SETUP_PATH}/env" >> ${RC_BASH}
+        echo "set +a"  >> ${RC_BASH}
+        echo ". ${SETUP_PATH}/etc/profile" >> ${RC_BASH}
+    fi
 done
 # ZSH SPECIFIC
 for ETC_ZSH_DIR in /etc/zsh/ /etc/ ; do
-  if [ -w ${ETC_ZSH_DIR}/zshrc ] ; then
-  	if ! grep -q "\. ${SETUP_PATH}/etc/zsh/zshrc" ${ETC_ZSH_DIR}/zshrc ; then
-  		echo ". ${SETUP_PATH}/etc/zsh/zshrc" >> ${ETC_ZSH_DIR}/zshrc
-  		echo ". ${SETUP_PATH}/etc/zsh/zlogout" >> ${ETC_ZSH_DIR}/zlogout
-  	fi
-  fi
+    if [ -w ${ETC_ZSH_DIR}/zshrc ] && ! grep -q "\. ${SETUP_PATH}/etc/zsh/zshrc" ${ETC_ZSH_DIR}/zshrc ; then
+        echo ". ${SETUP_PATH}/etc/zsh/zshrc" >> ${ETC_ZSH_DIR}/zshrc
+        echo ". ${SETUP_PATH}/etc/zsh/zlogout" >> ${ETC_ZSH_DIR}/zlogout
+    fi
+
 done
 
 echo "Installing welcome banner ..."
 # Motd
 if [ -w /etc/update-motd.d ] && [ ! -d /etc/update-motd.d.dist ] ; then
-  # Ubuntu
-	mv /etc/update-motd.d /etc/update-motd.d.dist
-	mkdir /etc/update-motd.d
-	ln -s  ${SETUP_PATH}/bin/motd /etc/update-motd.d/0000-kclie
+    # Ubuntu
+    mv /etc/update-motd.d /etc/update-motd.d.dist
+    mkdir /etc/update-motd.d
+    ln -s  ${SETUP_PATH}/bin/motd /etc/update-motd.d/0000-kclie
 elif [ -w /etc/motd ] ; then
-  # Other
-	echo -e "#!/bin/bash
-  ${SETUP_PATH}/bin/motd > /etc/motd 2>&1" > /etc/cron.hourly/kcliebanner
-	chmod 755 /etc/cron.hourly/kcliebanner
-  /etc/cron.hourly/kcliebanner
+    # Other
+    echo -e "#!/bin/bash
+    ${SETUP_PATH}/bin/motd > /etc/motd 2>&1" > /etc/cron.hourly/kcliebanner
+    chmod 755 /etc/cron.hourly/kcliebanner
+    /etc/cron.hourly/kcliebanner
 fi
 
 # Ubuntu LightDm config
-if [ -d '/usr/share/lightdm/lightdm.conf.d' ] ; then
-	echo "Applying LightDM customization ..."
-	echo '[SeatDefaults]
-greeter-hide-users=true
-greeter-show-manual-login=true' > /usr/share/lightdm/lightdm.conf.d/99-kclie.conf
-fi
-
-# Oh My ZSH
-if [ -e ${SETUP_PATH}/vendor/oh-my-zsh/oh-my-zsh.sh ] ; then
-	echo "Updating Oh My Zsh ..."
-  (cd ${SETUP_PATH}/vendor/oh-my-zsh/ && git pull)
-elif [ "x${SETUP_OHMYZSH}" = "xy" ] ; then
-  echo "Installing Oh My Zsh ..."
-  (cd ${SETUP_PATH}/vendor/ && git clone https://github.com/robbyrussell/oh-my-zsh.git)
+if [ -w '/usr/share/lightdm/lightdm.conf.d' ] ; then
+    echo "Applying LightDM customization ..."
+    echo '[SeatDefaults]
+    greeter-hide-users=true
+    greeter-show-manual-login=true' > /usr/share/lightdm/lightdm.conf.d/99-kclie.conf
 fi
 
 echo done
-echo
