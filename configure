@@ -131,25 +131,25 @@ if [ "x${SETUP_USERMODE}" = "xy" ] ; then
     echo "Applying user shells customizations ...".
     # PROFILE
     for RC_BASH in ~/.profile ~/.bashrc ~/.zshrc ; do
-        if [ -w ${RC_BASH} ] && ! grep -q "\. ${SETUP_PATH}/etc/profile" ${RC_BASH} ; then
+        if [ -w ${RC_BASH} ] && ! grep -q "\. ${SETUP_PATH}/env" ${RC_BASH} ; then
             echo ""  >> ${RC_BASH}
             echo "# Kimengumi Command Line Interface Environnement"  >> ${RC_BASH}
             echo "set -a"  >> ${RC_BASH}
             echo ". ${SETUP_PATH}/env" >> ${RC_BASH}
             echo "set +a"  >> ${RC_BASH}
-            echo ". ${SETUP_PATH}/etc/profile" >> ${RC_BASH}
-            echo "${SETUP_PATH}/bin/motd" >> ${RC_BASH}
+            echo '. ${KCLIE_PATH}/etc/profile' >> ${RC_BASH}
+            echo '${KCLIE_PATH}/bin/motd' >> ${RC_BASH}
         fi
     done
     # ZSH SPECIFIC
-    if [ -w ~/.zshrc ] && ! grep -q "\. ${SETUP_PATH}/etc/zsh/zshrc" ~/.zshrc ; then
-        echo ". ${SETUP_PATH}/etc/zsh/zshrc" >> ~/.zshrc
-        echo ". ${SETUP_PATH}/etc/zsh/zlogout" >> ~/.zshrc
+    if [ -w ~/.zshrc ] && ! grep -q '${KCLIE_PATH}/etc/zsh/zshrc' ~/.zshrc ; then
+        echo '. ${KCLIE_PATH}/etc/zsh/zshrc' >> ~/.zshrc
+        echo '. ${KCLIE_PATH}/etc/zsh/zlogout' >> ~/.zshrc
     fi
     # TERMINAL CONF
     for RC_SKEL in .minttyrc .dircolors ; do
         if [ ! -e ~/${RC_SKEL} ] ; then
-            cp ${SETUP_PATH}/etc/skel/${RC_SKEL}  ~/${RC_SKEL}
+            cat ${SETUP_PATH}/etc/skel/${RC_SKEL} > ~/${RC_SKEL}
         fi
     done
 
