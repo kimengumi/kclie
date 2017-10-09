@@ -137,7 +137,7 @@ if [ "${WNIX}" = 'osx' ] ; then
 elif [ "${WNIX}" = 'linux' ] && [ -e /bin/ip ] ; then
 	for IPV in '4' '6'; do
 		IPS=""
-		for IP in `ip -${IPV} addr show | grep "global" | egrep "eth|enp|inet6|ppp|vmbr|wlp|wlan" | sed -e 's/  / /g' | cut -d ' ' -f4`; do
+		for IP in `ip -${IPV} addr show 2>/dev/null | grep "global" | egrep "eth|enp|inet6|ppp|vmbr|wlp|wlan" | sed -e 's/  / /g' | cut -d ' ' -f4`; do
 			echo "ipv${IPV} ${IP}";
 		done
 	done
@@ -186,7 +186,7 @@ fi
 # temperatures (if available)
 if [ -x /usr/bin/sensors ] ; then
 	echo
-	/usr/bin/sensors | cut -d\( -f1 | grep \+ |  sed -e "s/ //g" | sort | column -ts ":"
+	/usr/bin/sensors 2>/dev/null | cut -d\( -f1 | grep \+ |  sed -e "s/ //g" | sort | column -ts ":"
 fi
 
 # Harddrive tempreatures (if available)
