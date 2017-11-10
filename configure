@@ -32,7 +32,7 @@ fi
 # Team Name
 if [ "x${KCLIE_TEAM_NAME}" = "x" ] ; then
     echo
-    read -p 'Name of the management team : ' SETUP_TEAM_NAME
+    read -p 'Name of the hosting team : ' SETUP_TEAM_NAME
 fi
 
 # Color picker
