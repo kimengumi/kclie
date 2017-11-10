@@ -40,7 +40,7 @@ echo
 if [ "x${KCLIE_TEAM_NAME}" != "x" ] ; then
 	echo -e "   \033[1m${KCLIE_TEAM_COLOR}${KCLIE_TEAM_NAME}\033[0m"
 fi
-echo -e "   \033[1m${KCLIE_HOST_COLOR}`uname -n`\033[0m"
+echo -e "   \033[1m${KCLIE_HOST_COLOR}`hostname -f`\033[0m"
 
 # hosting
 if [ -r /root/.mdg ] ; then # OVH server
