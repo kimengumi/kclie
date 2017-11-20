@@ -168,7 +168,7 @@ BackupMysql() {
     fi
 
     if [ "x${REP}" = "x" ] ; then
-        REP="${DEFAULT_BACKUP_DIR}/${HOSTNAME}/mysql"
+        REP="${DEFAULT_BACKUP_DIR}/mysql"
     fi
     echo "Dumping in ${REP}"
     if [ ! -d ${REP} ] ; then
@@ -250,7 +250,7 @@ BackupRep() {
         NOM=`echo ${REP} | sed -e 's/\///' -e 's/\//-/g' -e 's/\ /_/g'`
     fi
     if [ "x${TAREP}" = "x" ] ; then
-        TAREP="${DEFAULT_BACKUP_DIR}/${HOSTNAME}/${NOM}"
+        TAREP="${DEFAULT_BACKUP_DIR}"
     fi
     if [ ! -d ${TAREP} ] ; then
         mkdir -p "${TAREP}" || return 4
