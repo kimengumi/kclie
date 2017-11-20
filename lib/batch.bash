@@ -25,6 +25,7 @@ export NFS_VERROU=""
 export IS_FULL_DAY=""
 export CURRENT_WEEK_DAY=`date +%u`
 export CURRENT_MONTH_DAY=`date +%d`
+export CURRENT_YEAR_DAY=`date +%j`
 export DEFAULT_BACKUP_DIR="/home/backup"
 export DEFAULT_LOG_DIR="/var/log/kclie"
 export DEFAULT_LIB_DIR="/var/lib/kclie"
@@ -141,7 +142,7 @@ ProxmoxDumpAll() {
 
 BackupMysql() {
     # backup all databases, and keep (or not) one month (or week) of old dumps
-    # usage : BackupMysql [none/week/month (optional, default month)] [none/gzip (optional, default gzip)] [REP(optional)]
+    # usage : BackupMysql [none/week/month/year (optional, default week)] [none/gzip (optional, default gzip)] [REP(optional)]
 
     HIST="$1"
     COMPRESS="$2"
@@ -158,10 +159,12 @@ BackupMysql() {
 
     if [ "x${HIST}" = "xnone" ] ; then
         HIST=""
-    elif [ "x${HIST}" = "xweek" ] ; then
-        HIST=".${CURRENT_WEEK_DAY}"
-    else
+    elif [ "x${HIST}" = "xyear" ] ; then
+        HIST=".${CURRENT_YEAR_DAY}"
+    elif [ "x${HIST}" = "xmonth" ] ; then
         HIST=".${CURRENT_MONTH_DAY}"
+    else
+        HIST=".${CURRENT_WEEK_DAY}"
     fi
 
     if [ "x${REP}" = "x" ] ; then
@@ -220,14 +223,14 @@ BackupSetMonthDayFull() {
 
 BackupRep() {
     # Incremental backup (one full each week) with history on one week/month. Can also do simple archive backups.
-    # usage : BackupRep [REP] [none/week/month (optional, default month)] [none/lzop/gzip (optional, default gzip)] [DEST(optional)]
+    # usage : BackupRep [REP] [none/week/month/year (optional, default week)] [none/lzop/gzip (optional, default gzip)] [DEST(optional)]
 
     REP="$1"
     HIST="$2"
     COMPRESS="$3"
     TAREP="$4"
     if [ "x${REP}" = "x" ] || [ ! -e  "${REP}" ] ; then
-        echo "BackupRep [REP] [none/week/month (optional, default month)] [none/lzop/gzip (optionnel, default gzip)] [DEST(optionnel)]" >&2
+        echo "BackupRep [REP] [none/week/month/year (optional, default week)] [none/lzop/gzip (optionnel, default gzip)] [DEST(optionnel)]" >&2
         return 1
     fi
     if [ ! -d  "${REP}" ] ; then
@@ -247,7 +250,7 @@ BackupRep() {
         NOM=`echo ${REP} | sed -e 's/\///' -e 's/\//-/g' -e 's/\ /_/g'`
     fi
     if [ "x${TAREP}" = "x" ] ; then
-        TAREP="${DEFAULT_BACKUP_DIR}/`hostname -s`/${NOM}"
+        TAREP="${DEFAULT_BACKUP_DIR}/${HOSTNAME}/${NOM}"
     fi
     if [ ! -d ${TAREP} ] ; then
         mkdir -p "${TAREP}" || return 4
@@ -266,10 +269,12 @@ BackupRep() {
     if [ "x${HIST}" = "xnone" ] ; then
         HIST=""
         SNAPSHOT=""
-    elif [ "x${HIST}" = "xweek" ] ; then
-        HIST=".${CURRENT_WEEK_DAY}"
-    else
+    elif [ "x${HIST}" = "xyear" ] ; then
+	HIST=".${CURRENT_YEAR_DAY}"
+    elif [ "x${HIST}" = "xmonth" ] ; then
         HIST=".${CURRENT_MONTH_DAY}"
+    else
+        HIST=".${CURRENT_WEEK_DAY}"
     fi
     BatchEcho "Sauvegarde de ${REP} dans ${TAREP} ..."
     if [ "x${COMPRESS}" != "x" ] && [ "x${COMPRESS}" != "xlzop" ] && [ "x${COMPRESS}" != "xgzip" ] ; then
