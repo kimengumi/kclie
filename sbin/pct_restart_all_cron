@@ -1,0 +1,42 @@
+#!/bin/bash
+#
+# Kimengumi Command Line Interface Environnement
+#
+# For some disapointing reasons cron don't start automaticaly on Proxmox.
+# LXC Container at startup. This is a quick an dirty script starting cron
+# service on all CT on the server. This is is intented to be added to
+# /etc/rc.local on the globale zone.
+#
+# Copyright 2017 Antonio Rossetti (https://www.kimengumi.fr)
+#
+# Licensed under the EUPL, Version 1.1 or – as soon they will be approved by
+# the European Commission - subsequent versions of the EUPL (the "Licence");
+# You may not use this work except in compliance with the Licence.
+# You may obtain a copy of the Licence at:
+#
+# https://joinup.ec.europa.eu/software/page/eupl
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the Licence is distributed on an "AS IS" basis,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the Licence for the specific language governing permissions and
+# limitations under the Licence.
+
+pctRestartAllCron() {
+    if [ "x$1" != "xnosleep" ] ; then
+        sleep 1800
+    fi
+    for i in `pct list | grep -v "VMID" | cut -d " " -f1`
+    do
+        pct exec $i service cron restart
+    done
+}
+
+if ! which pct >/dev/null; then
+    echo "pct not available"
+    exit 1
+fi
+
+pctRestartAllCron $1 &
+
+exit 0
