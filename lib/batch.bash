@@ -22,7 +22,7 @@
 export SCRIPT_NAME=""
 export HOSTNAME=`hostname`
 export NFS_VERROU=""
-export IS_FULL_DAY=""
+export IS_FULL_DAY=1
 export CURRENT_WEEK_DAY=`date +%u`
 export CURRENT_MONTH_DAY=`date +%d`
 export CURRENT_YEAR_DAY=`date +%j`
@@ -74,7 +74,7 @@ BatchStart() {
     exec >> ${DEFAULT_LOG_DIR}/${SCRIPT_NAME}.log 2> ${SHMDIR}/${SCRIPT_NAME}_$$_fifo_err
     echo "============================================"
     echo "## `date +"%T ## %F"` ## Début de ${SCRIPT_NAME} ##"
-    BackupSetWeekDayFull 6 #samedi
+    BackupSetWeekDayFull 6 #saturday
 
     # Deal with filesnames with spaces
     export IFS="${IFS_LIB}"
@@ -154,7 +154,7 @@ BackupMysql() {
         USER="--defaults-extra-file=${HOME}/.my.cnf"
     else
         echo "No credentials found for mysql" >&2
-        exit 1
+        return 5
     fi
 
     if [ "x${HIST}" = "xnone" ] ; then
@@ -175,7 +175,7 @@ BackupMysql() {
         mkdir -p ${REP} || return 4
     fi
 
-    echo "Lock all tables of all databases"
+    BatchEcho "Lock all tables of all databases"
     mysql ${USER} -Bse "FLUSH TABLES WITH READ LOCK;"
 
     for BASE in $(mysql ${USER} -Bse 'show databases') ; do
@@ -194,30 +194,29 @@ BackupMysql() {
         fi
     done
 
-    echo "Unlock tables"
+    BatchEcho "Unlock tables"
     mysql ${USER} -Bse "UNLOCK TABLES;"
 }
 
 
 BackupSetWeekDayFull() {
     if [ "x${CURRENT_WEEK_DAY}" = "x$1" ] ; then
-        ISFULL="1";
+        IS_FULL_DAY=1;
     else
-        ISFULL="";
+        IS_FULL_DAY="";
     fi
 }
 
 BackupSetMonthDayFull() {
-    # La première occurrence du jour de la semaine dans le mois.
-
+    # The first occurrence for the day of the week in the month.
     if [ "x${CURRENT_WEEK_DAY}" = "x$1" ] ; then
         if [ "${CURRENT_MONTH_DAY}" -le "$1" ] ; then
-            ISFULL="1";
+            IS_FULL_DAY=1;
         else
-            ISFULL="";
+            IS_FULL_DAY="";
         fi
     else
-        ISFULL="";
+        IS_FULL_DAY="";
     fi
 }
 
