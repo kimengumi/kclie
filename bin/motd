@@ -138,12 +138,12 @@ echo
 if [ "${WNIX}" = 'osx' ] ; then
 	for IP in `ifconfig | grep inet | egrep -v "127.0.0.1|fe80::|6 ::1" | cut -d " " -f 2 | sort | uniq` ; do
 		echo "ip ${IP}"
-	done
+	done | sort | uniq
 elif [ "${WNIX}" = 'linux' ] && [ -e /bin/ip ] ; then
 	for IPV in '4' '6'; do
-		for IP in `ip -${IPV} addr show 2>/dev/null | grep "global" | egrep "eth|enp|inet6|ppp|vmbr|wlp|wlan" | sed -e 's/  / /g' | cut -d ' ' -f4`; do
+		for IP in `ip -${IPV} addr show 2>/dev/null | grep "global" | egrep "eth|enp|ens|inet6|ppp|vmbr|wlp|wlan" | sed -e 's/  / /g' | cut -d ' ' -f4`; do
 			echo "ipv${IPV} ${IP}";
-		done
+		done | sort | uniq
 	done
 elif [ -x /bin/hostname ]; then
 	for IP in `hostname -I` ; do
