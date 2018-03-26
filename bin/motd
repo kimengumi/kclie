@@ -141,7 +141,7 @@ if [ "${WNIX}" = 'osx' ] ; then
 	done | sort | uniq
 elif [ "${WNIX}" = 'linux' ] && [ -e /bin/ip ] ; then
 	for IPV in '4' '6'; do
-		for IP in `ip -${IPV} addr show 2>/dev/null | grep "global" | egrep "eth|enp|ens|inet6|ppp|vmbr|wlp|wlan" | sed -e 's/  / /g' | cut -d ' ' -f4`; do
+		for IP in `ip -${IPV} addr show 2>/dev/null | grep "global" | egrep "en|wl|ww|eth|ppp|vmbr|inet6" | sed -e 's/  / /g' | cut -d ' ' -f4`; do
 			echo "ipv${IPV} ${IP}";
 		done | sort | uniq
 	done
