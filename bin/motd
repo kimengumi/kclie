@@ -182,7 +182,7 @@ if [ -x /bin/df ] ; then
 	if [ "${WNIX}" = 'osx' ] ; then
 		/bin/df -hl 2>/dev/null
 	elif [ "${WNIX}" = 'linux' ] || [ "${WNIX}" = 'cygwin' ] ; then
-		/bin/df -hT -x tmpfs -x rootfs -x iso9660 -x debugfs -x fuse.mhddfs -x devtmpfs -x aufs 2>/dev/null | grep " " | awk 'NR<3{print $0;next}{print $0| "sort -k7"}'
+		/bin/df -hT -x tmpfs -x rootfs -x iso9660 -x debugfs -x fuse.mhddfs -x devtmpfs -x aufs -x squashfs 2>/dev/null | grep " " | awk 'NR<3{print $0;next}{print $0| "sort -k7"}'
 	elif [ "${WNIX}" = 'wsl' ] ; then
 		/bin/df -hT -x tmpfs -x lxfs 2>/dev/null
 	fi
@@ -191,7 +191,7 @@ fi
 # temperatures (if available)
 if [ -x /usr/bin/sensors ] ; then
 	echo
-	/usr/bin/sensors 2>/dev/null | cut -d\( -f1 | grep \+ |  sed -e "s/ //g" | sort | column -ts ":"
+	/usr/bin/sensors 2>/dev/null | cut -d\( -f1 | egrep -i "\+|RPM" |  sed -e "s/ //g" | sort | column -ts ":"
 fi
 
 # Harddrive tempreatures (if available)
