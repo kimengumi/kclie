@@ -179,6 +179,7 @@ fi
 # disk space
 if [ -x /bin/df ] ; then
 	echo
+
 	if [ "${WNIX}" = 'osx' ] ; then
 		/bin/df -hl 2>/dev/null
 	elif [ "${WNIX}" = 'linux' ] || [ "${WNIX}" = 'cygwin' ] ; then
@@ -188,16 +189,25 @@ if [ -x /bin/df ] ; then
 	fi
 fi
 
-# temperatures (if available)
+# Sensors / Harddrive temperatures (if available)
+HDDTEMP=''
+if [ -x /usr/sbin/hddtemp ] ; then
+	HDDLIST=$(lsblk -anpSo NAME 2>/dev/null)
+	HDDTEMP=$(LANG=C; /usr/sbin/hddtemp ${HDDLIST} 2>/dev/null | grep -v 'not available' | awk -F ':'  '/:/ {print $1 $2":" $3; }' | column -ts ':')
+fi
 if [ -x /usr/bin/sensors ] ; then
 	echo
-	/usr/bin/sensors 2>/dev/null | cut -d\( -f1 | egrep -i "\+|RPM" |  sed -e "s/ //g" | sort | column -ts ":"
-fi
+	SENSORS=$(/usr/bin/sensors 2>/dev/null | grep ':' | grep '[0-9]' | cut -d\( -f1 | grep -v '0.0' | sed -e 's/ //g' -e 's/sensor=[a-z]*//g' | sort | column -ts ':')
+	paste -d "|"  \
+		<(echo "${SENSORS}" | egrep -i "°C|°F") \
+		<(echo "${HDDTEMP}") \
+		<(echo "${SENSORS}" | grep 'V') \
+		<(echo "${SENSORS}" | grep 'RPM' | grep -v ':0RPM') \
+	| sed -e 's/|/ |/g' | column -ts '|'
 
-# Harddrive tempreatures (if available)
-if [ -x /usr/sbin/hddtemp ] ; then
+elif [ -x /usr/sbin/hddtemp ] ; then
 	echo
-	LANG=C; /usr/sbin/hddtemp `lsblk -anpSo NAME 2>/dev/null` 2>/dev/null | grep -v 'not available' | column -ts ":"
+	echo $HDDTEMP
 fi
 
 # OpenVZ contriners list (if available)
