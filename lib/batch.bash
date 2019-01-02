@@ -311,24 +311,29 @@ RsyncRep() {
     fi
 }
 
-RotateLog() {
-    FICTAILLE=$(stat -c%s "$1")
-    if [ "x$FICTAILLE" = "x0" ] ; then
-        rm -f $1
-        # fichier vide rien à archiver, on fait le ménage
-    elif [ "$FICTAILLE" -gt "10485760" ] ; then
-        gzip -f9S .`date +%j`.gz $1
-        # format fichier compressé: [nom_fichier].[num_jour_semaine].gz
+RotateOneLog() {
+    if [ "x$1" = "x" ] ; then
+        echo "Please specify a filename"
+        return 1
+    fi
+    FICSIZE=$(stat -c%s "$1" || stat -f%z  "$1" || echo 0) 2>/dev/null
+    if [ "$FICSIZE" -gt "1048576" ] ; then # rotate log start from 1Mb
+        gzip -f9S .${CURRENT_WEEK_DAY}.gz $1
+        # rotated log name :[filename].[week-day-num].gz
     fi
 }
 
-RotateApache() {
-    BatchEcho "Rotation des logs Apache"
-    for FIC in /var/log/apache2/*log
+RotateLogs() {
+    if [ "x$1" = "x" ] ; then
+        echo "Please specify a log directorys"
+        return 1
+    fi
+    BatchEcho "Rotation of log files from $1"
+    for FIC in `find $1 -type f -name "*log"`
     do
-        RotateLog $FIC
+	echo $FIC
+    	RotateOneLog $FIC
     done
-    /etc/init.d/apache2 reload
 }
 
 SmartCheckDisk() {
