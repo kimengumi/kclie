@@ -37,14 +37,24 @@ fi
 
 # Header
 echo
-if [ "x${KCLIE_TEAM_NAME}" != "x" ] ; then
-	echo -e "   \033[1m${KCLIE_TEAM_COLOR}${KCLIE_TEAM_NAME}\033[0m"
-fi
 if [ "${WNIX}" = 'wsl' ] ; then
-	echo -e "   \033[1m${KCLIE_HOST_COLOR}`hostname`\033[0m"
+	echo -e "\t\033[1m${KCLIE_HOST_COLOR}`hostname`\033[0m"
 else
-	echo -e "   \033[1m${KCLIE_HOST_COLOR}`hostname -f`\033[0m"
+	echo -e "\t\033[1m${KCLIE_HOST_COLOR}`hostname -f`\033[0m"
 fi
+if [ "x${KCLIE_TENANT_NAME}" != "x" ] ; then
+	echo -ne "\n\t\033[1m${KCLIE_TENANT_COLOR}${KCLIE_TENANT_NAME}\033[0m"
+fi
+if [ "x${KCLIE_TEAM_APP_NAME}" != "x" ] ; then
+	echo -ne "\n\t\033[1m${KCLIE_TEAM_APP_COLOR}${KCLIE_TEAM_APP_NAME}\033[0m"
+fi
+if [ "x${KCLIE_TEAM_ADMIN_NAME}" != "x" ] ; then
+	echo -ne "\n\t\033[1m${KCLIE_TEAM_ADMIN_COLOR}${KCLIE_TEAM_ADMIN_NAME}\033[0m"
+fi
+if [ "x${KCLIE_TEAM_HOSTING_NAME}" != "x" ] ; then
+	echo -ne "\n\t\033[1m${KCLIE_TEAM_HOSTING_COLOR}${KCLIE_TEAM_HOSTING_NAME}\033[0m"
+fi
+
 # hosting
 if [ -r /root/.mdg ] ; then # OVH server
 	echo
