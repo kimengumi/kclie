@@ -267,7 +267,7 @@ if [ -w /etc/update-motd.d ] ; then
   elif [ -L /etc/update-motd.d/0000-kclie ] ; then
     rm /etc/update-motd.d/0000-kclie
   fi
-  echo "${SETUP_PATH}/bin/motd" > /etc/update-motd.d/0000-kclie
+  echo -e "#!/bin/bash\n${SETUP_PATH}/bin/motd" > /etc/update-motd.d/0000-kclie
   chmod 755 /etc/update-motd.d/0000-kclie
 elif [ -w /etc/cron.hourly ]; then
   # Other
