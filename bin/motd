@@ -38,7 +38,7 @@ fi
 # Header
 echo
 if [ "x${KCLIE_TEAM_OWNER_NAME}" != "x" ] ; then
-	echo -e "   Owner/Sponsor : ${KCLIE_TEAM_OWNER_COLOR}${KCLIE_TEAM_OWNER_NAME}\033[0m\n"
+	echo -e "   Owner/Sponsor : ${KCLIE_TEAM_OWNER_COLOR}${KCLIE_TEAM_OWNER_NAME}\033[0m"
 fi
 if [ "${WNIX}" = 'wsl' ] ; then
 	echo -e "        Hostname : ${KCLIE_HOSTNAME_COLOR}`hostname`\033[0m\n"
@@ -54,7 +54,6 @@ fi
 if [ "x${KCLIE_TEAM_HOSTING_NAME}" != "x" ] && [ "x${KCLIE_TEAM_HOSTING_NAME}" != "x${KCLIE_TEAM_ADMIN_NAME}" ]; then
 	echo -e "Hardware Hosting : ${KCLIE_TEAM_HOSTING_COLOR}${KCLIE_TEAM_HOSTING_NAME}\033[0m"
 fi
-
 
 # hosting
 if [ -r /root/.mdg ] ; then # OVH server
