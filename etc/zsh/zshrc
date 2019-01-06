@@ -24,7 +24,7 @@ fi
 
 # ssh-agent (multiple ssh keys)
 # Check if an agent is already running for the current user
-export SSH_AGENT_PID="`pgrep -u ${USERNAME} ssh-agent | head -n1`"
+export SSH_AGENT_PID="`pgrep -u ${USERNAME} ssh-agent | tail -n1`"
 if [ "x${SSH_AGENT_PID}" != "x" ] ; then
 	# Retrive socket from PID
 	# Linux
@@ -34,11 +34,11 @@ if [ "x${SSH_AGENT_PID}" != "x" ] ; then
 		done
 	fi
 	# MacOs
-        if [ `(ls /var/folders/*/*/*/ssh-*/agent.*.${SSH_AGENT_PID}) >/dev/null 2>&1` ] ; then
-                for SOCK in `ls --color=never /var/folders/*/*/*/ssh-*/agent.*.${SSH_AGENT_PID}` ; do
-                        export SSH_AUTH_SOCK="`cat ${SOCK}`"
-                done
-        fi
+	if [ `(ls /var/folders/*/*/*/ssh-*/agent.*.${SSH_AGENT_PID}) >/dev/null 2>&1` ] ; then
+		for SOCK in `ls --color=never /var/folders/*/*/*/ssh-*/agent.*.${SSH_AGENT_PID}` ; do
+			export SSH_AUTH_SOCK="`cat ${SOCK}`"
+		done
+	fi
 else
 	# start ssh-agent
 	eval `ssh-agent` >/dev/null
@@ -60,7 +60,7 @@ if [ -e $HOME/.oh-my-zsh/oh-my-zsh.sh ] ; then
 	# No default configuration in this case.
 	# All have to be done in the local user ~/.zshrc
 
-# Else, if a shared installation is detected, we use it
+	# Else, if a shared installation is detected, we use it
 elif [ -e ${KCLIE_PATH}/vendor/oh-my-zsh/oh-my-zsh.sh ] ; then
 
 	#Basic Oh My Zsh configuration for shared installation
@@ -75,7 +75,7 @@ elif [ -e ${KCLIE_PATH}/vendor/oh-my-zsh/oh-my-zsh.sh ] ; then
 	plugins=(git)
 	source ${ZSH}/oh-my-zsh.sh
 
-# If not, configuration of standard zsh prompt
+	# If not, configuration of standard zsh prompt
 else
 	autoload -U compinit
 	compinit
