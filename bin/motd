@@ -45,7 +45,11 @@ if [ "${WNIX}" = 'wsl' ] ; then
 else
 	echo -e "        Hostname : ${KCLIE_HOSTNAME_COLOR}`hostname -f`\033[0m\n"
 fi
+<<<<<<< HEAD
 if [ "x${KCLIE_TEAM_APP_NAME}" != "x" ] && [ "x${KCLIE_TEAM_APP_NAME}" != "x${KCLIE_TEAM_OWNER_NAME}" ] ; then
+=======
+if [ "x${KCLIE_TEAM_APP_NAME}" != "x" ] && [ "x${KCLIE_TEAM_APP_NAME}" != "x${KCLIE_TENANT_NAME}" ] ; then
+>>>>>>> c16c5804baf299faebb910e39874c38e564fb5d4
 	echo -e "   3rd-party App : ${KCLIE_TEAM_APP_COLOR}${KCLIE_TEAM_APP_NAME}\033[0m"
 fi
 if [ "x${KCLIE_TEAM_ADMIN_NAME}" != "x" ] && [ "x${KCLIE_TEAM_ADMIN_NAME}" != "x${KCLIE_TEAM_APP_NAME}" ]; then

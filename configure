@@ -75,7 +75,11 @@ fi
 if [ "x${KCLIE_TEAM_APP_NAME}" = "x" ] || [ "x${KCLIE_TEAM_APP_COLOR}" = "x" ] ; then
   echo -e "\n${WHITE}3rd-party Application Team\033[0m"
   read -p 'Name : ' SETUP_TEAM_APP_NAME
+<<<<<<< HEAD
   if [ "x${SETUP_TEAM_APP_NAME}" != "x" ] && [ "x${SETUP_TEAM_APP_NAME}" != "x${SETUP_TEAM_OWNER_NAME}" ] ; then
+=======
+  if [ "x${SETUP_TEAM_APP_NAME}" != "x" ] ; then
+>>>>>>> c16c5804baf299faebb910e39874c38e564fb5d4
     read -p $'Color/Format code \033[3m(use picker above)\033[0m: ' SETUP_TEAM_APP_COLOR
   fi
 fi
@@ -84,7 +88,11 @@ fi
 if [ "x${KCLIE_TEAM_ADMIN_NAME}" = "x" ] || [ "x${KCLIE_TEAM_ADMIN_COLOR}" = "x" ] ; then
   echo -e "\n${WHITE}System Administrators \033[0m (hosting management team)"
   read -p 'Name : ' SETUP_TEAM_ADMIN_NAME
+<<<<<<< HEAD
   if [ "x${SETUP_TEAM_ADMIN_NAME}" != "x" ] && [ "x${SETUP_TEAM_ADMIN_NAME}" != "x${SETUP_TEAM_APP_NAME}" ] ; then
+=======
+  if [ "x${SETUP_TEAM_ADMIN_NAME}" != "x" ] ; then
+>>>>>>> c16c5804baf299faebb910e39874c38e564fb5d4
     read -p $'Color/Format code \033[3m(use picker above)\033[0m: ' SETUP_TEAM_ADMIN_COLOR
   fi
 fi
@@ -93,8 +101,16 @@ fi
 if [ "x${KCLIE_TEAM_HOSTING_NAME}" = "x" ] || [ "x${KCLIE_TEAM_HOSTING_COLOR}" = "x" ] ; then
   echo -e "\n${WHITE}Hardware Hosting Team\033[0m (physical)"
   read -p 'Name : ' SETUP_TEAM_HOSTING_NAME
+<<<<<<< HEAD
   if [ "x${SETUP_TEAM_HOSTING_NAME}" != "x" ] && [ "x${SETUP_TEAM_HOSTING_NAME}" != "x${SETUP_TEAM_ADMIN_NAME}" ] ; then
     read -p $'Color/Format code \033[3m(use picker above)\033[0m: ' SETUP_TEAM_HOSTING_COLOR
+=======
+  if [ "x${SETUP_TEAM_HOSTING_NAME}" != "x" ] ; then
+    read -p $'Color/Format code \033[3m(use picker above)\033[0m: ' SETUP_TEAM_HOSTING_COLOR
+  fi
+  if [ "x${SETUP_TEAM_HOSTING_REFERER}" != "x" ] ; then
+    read -p $'Is the hardware hosting done for the OWNER or the ADMINSYS: ' SETUP_TEAM_HOSTING_REFERER
+>>>>>>> c16c5804baf299faebb910e39874c38e564fb5d4
   fi
 fi
 
