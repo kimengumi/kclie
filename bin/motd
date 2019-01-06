@@ -37,23 +37,24 @@ fi
 
 # Header
 echo
+if [ "x${KCLIE_TEAM_OWNER_NAME}" != "x" ] ; then
+	echo -e "   Owner/Sponsor : ${KCLIE_TEAM_OWNER_COLOR}${KCLIE_TEAM_OWNER_NAME}\033[0m\n"
+fi
 if [ "${WNIX}" = 'wsl' ] ; then
-	echo -e "\t${KCLIE_HOSTNAME_COLOR}`hostname`\033[0m\n"
+	echo -e "        Hostname : ${KCLIE_HOSTNAME_COLOR}`hostname`\033[0m\n"
 else
-	echo -e "\t${KCLIE_HOSTNAME_COLOR}`hostname -f`\033[0m\n"
+	echo -e "        Hostname : ${KCLIE_HOSTNAME_COLOR}`hostname -f`\033[0m\n"
 fi
-if [ "x${KCLIE_TENANT_NAME}" != "x" ] ; then
-	echo -e "       Tenant : ${KCLIE_TENANT_COLOR}${KCLIE_TENANT_NAME}\033[0m"
-fi
-if [ "x${KCLIE_TEAM_APP_NAME}" != "x" ] && [ "x${KCLIE_TEAM_APP_NAME}" != "x${KCLIE_TENANT_NAME}" ] ; then
-	echo -e "3rd-party App : ${KCLIE_TEAM_APP_COLOR}${KCLIE_TEAM_APP_NAME}\033[0m"
+if [ "x${KCLIE_TEAM_APP_NAME}" != "x" ] && [ "x${KCLIE_TEAM_APP_NAME}" != "x${KCLIE_TEAM_OWNER_NAME}" ] ; then
+	echo -e "   3rd-party App : ${KCLIE_TEAM_APP_COLOR}${KCLIE_TEAM_APP_NAME}\033[0m"
 fi
 if [ "x${KCLIE_TEAM_ADMIN_NAME}" != "x" ] && [ "x${KCLIE_TEAM_ADMIN_NAME}" != "x${KCLIE_TEAM_APP_NAME}" ]; then
-	echo -e "    Sys admin : ${KCLIE_TEAM_ADMIN_COLOR}${KCLIE_TEAM_ADMIN_NAME}\033[0m"
+	echo -e "SysAdmim Hosting : ${KCLIE_TEAM_ADMIN_COLOR}${KCLIE_TEAM_ADMIN_NAME}\033[0m"
 fi
 if [ "x${KCLIE_TEAM_HOSTING_NAME}" != "x" ] && [ "x${KCLIE_TEAM_HOSTING_NAME}" != "x${KCLIE_TEAM_ADMIN_NAME}" ]; then
-	echo -e "      Hosting : ${KCLIE_TEAM_HOSTING_COLOR}${KCLIE_TEAM_HOSTING_NAME}\033[0m"
+	echo -e "Hardware Hosting : ${KCLIE_TEAM_HOSTING_COLOR}${KCLIE_TEAM_HOSTING_NAME}\033[0m"
 fi
+
 
 # hosting
 if [ -r /root/.mdg ] ; then # OVH server
