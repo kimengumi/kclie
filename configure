@@ -39,10 +39,9 @@ if [ "x${KCLIE_TENANT_COLOR}" = "x" ] || \
 [ "x${KCLIE_TEAM_HOSTING_COLOR}" = "x" ]|| \
 [ "x${KCLIE_HOSTNAME_COLOR}" = "x" ] ; then
 
-  echo "The following information asked bellow will be display in the KCLIE motd banner."
-  echo "All informations are optional\n"
-
-  echo -e "\t\tColor/Format Picker"
+  echo "The following information asked bellow will be displayed"
+  echo "in the KCLIE motd banner. All informations are optional"
+  echo -e "\n\t\tColor/Format Picker"
 
   #Best Of
   for PFOR in `seq 30 37` ; do
@@ -68,40 +67,43 @@ fi
 
 # Tenant
 if [ "x${KCLIE_TENANT_NAME}" = "x" ] || [ "x${KCLIE_TENANT_COLOR}" = "x" ] ; then
-  echo
-  echo -e "${WHITE}Tenant\033[0m (final customer / payer)"
+  echo -e "\n${WHITE}Tenant\033[0m (final customer / payer)"
   read -p 'Name : ' SETUP_TENANT_NAME
-  read -p 'Color/Format code (use picker above): ' SETUP_TENANT_COLOR
+  if [ "x${SETUP_TENANT_NAME}" = "x" ] ; then
+    read -p 'Color/Format code (use picker above): ' SETUP_TENANT_COLOR
+  fi
 fi
 
-# Development team
+# 3rd-party Application Management Team
 if [ "x${KCLIE_TEAM_APP_NAME}" = "x" ] || [ "x${KCLIE_TEAM_APP_COLOR}" = "x" ] ; then
-  echo
-  echo -e "${WHITE}3rd Application Management Team\033[0m"
+  echo -e "n${WHITE}3rd-party Application Management Team\033[0m"
   read -p 'Name : ' SETUP_TEAM_APP_NAME
-  read -p 'Color/Format code (use picker above) : ' SETUP_TEAM_APP_COLOR
+  if [ "x${SETUP_TEAM_APP_NAME}" = "x" ] ; then
+    read -p 'Color/Format code (use picker above) : ' SETUP_TEAM_APP_COLOR
+  fi
 fi
 
 # Hosting management team
 if [ "x${KCLIE_TEAM_ADMIN_NAME}" = "x" ] || [ "x${KCLIE_TEAM_ADMIN_COLOR}" = "x" ] ; then
-  echo
-  echo -e "${WHITE}System/Network Administrators \033[0m (hosting management team)"
+  echo -e "\n${WHITE}System/Network Administrators \033[0m (hosting management team)"
   read -p 'Name : ' SETUP_TEAM_ADMIN_NAME
-  read -p 'Color/Format code (use picker above) : ' SETUP_TEAM_ADMIN_COLOR
+  if [ "x${SETUP_TEAM_ADMIN_NAME}" = "x" ] ; then
+    read -p 'Color/Format code (use picker above) : ' SETUP_TEAM_ADMIN_COLOR
+  fi
 fi
 
 # Physical hosting team
 if [ "x${KCLIE_TEAM_HOSTING_NAME}" = "x" ] || [ "x${KCLIE_TEAM_HOSTING_COLOR}" = "x" ] ; then
-  echo
-  echo -e "${WHITE}Hosting Team\033[0m (hardware/physical)"
+  echo -e "\n${WHITE}Hosting Team\033[0m (hardware/physical)"
   read -p 'Name : ' SETUP_TEAM_HOSTING_NAME
-  read -p 'Color/Format code (use picker above) : ' SETUP_TEAM_HOSTING_COLOR
+  if [ "x${SETUP_TEAM_HOSTING_NAME}" = "x" ] ; then
+    read -p 'Color/Format code (use picker above) : ' SETUP_TEAM_HOSTING_COLOR
+  fi
 fi
 
 # Host Color
 if [ "x${KCLIE_HOSTNAME_COLOR}" = "x" ] ; then
-  echo
-  echo -e "${WHITE}Hostname\033[0m"
+  echo -e "\n${WHITE}Hostname\033[0m"
   read -p "Color/Format code (use picker above) : " SETUP_HOSTNAME_COLOR
 fi
 
