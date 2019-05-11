@@ -310,8 +310,8 @@ DualDefaultRules () {
 
     # Log
     if [ "x$1" = "xlog" ] ; then
-      Ipv4 -A ${WAY} -j LOG --log-prefix="[IP4 ${WAY} DROP] "
-      Ipv6 -A ${WAY} -j LOG --log-prefix="[IP6 ${WAY} DROP] "
+      Ipv4 -A ${WAY} -j LOG --log-prefix="[IP4-${WAY}-DROP] "
+      Ipv6 -A ${WAY} -j LOG --log-prefix="[IP6-${WAY}-DROP] "
     fi
 
     # Default Drop
