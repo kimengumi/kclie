@@ -89,7 +89,7 @@ Dual () {
     ${ip6t} $@
   fi
 }
-echo "x$2QQQx6"
+
 # Run args for iptables
 Ipv4 () {
   if ${preview} ; then
@@ -112,7 +112,7 @@ Ipv6 () {
   fi
 }
 
-# Run args for ip6tables
+# Run args for sysctl
 SysCtl () {
   if ${preview} ; then
     echo -e "\033[95mSysCtl $@\033[0m"
@@ -121,7 +121,7 @@ SysCtl () {
   fi
 }
 
-# Reset tables and allow ssh to host
+# Reset tables, default ipv6 rules, default local rules, allow failsafe ssh to host
 DualBasicRules () {
 
   if [ "x$1" = "x" ] ; then
@@ -144,13 +144,15 @@ DualBasicRules () {
 
   echo "Applying ip4/6 safe rules ..."
 
-  # SSH autorisé dans tout les cas, de partout
+  # Failsafe SSH on specific port authorized from everywhere
   Dual -A INPUT -j ACCEPT -p tcp --dport ${HOST_SSH_PORT}
 
-  # specific ipv6
+  # specific for ipv6 routing
   Ipv6 -A INPUT -j ACCEPT -d ff00::/8 # ipv6 Multicast
-  Ipv6 -A INPUT -j ACCEPT -p icmpv6 --icmpv6-type 135 # Neighbor Solicitation
-  Ipv6 -A INPUT -j ACCEPT -p icmpv6 --icmpv6-type 136 # Neighbor Advertisement
+  Ipv6 -A INPUT -j ACCEPT -p icmpv6 --icmpv6-type 133 -m limit --limit 5/sec --limit-burst 10 # Router Solicitation
+  Ipv6 -A INPUT -j ACCEPT -p icmpv6 --icmpv6-type 134 -m limit --limit 5/sec --limit-burst 10 # Router Advertisement
+  Ipv6 -A INPUT -j ACCEPT -p icmpv6 --icmpv6-type 135 -m limit --limit 5/sec --limit-burst 10 # Neighbour Solicitation
+  Ipv6 -A INPUT -j ACCEPT -p icmpv6 --icmpv6-type 136 -m limit --limit 5/sec --limit-burst 10 # Neighbour Advertisement
 
   echo "Applying ip4/6 local rules ..."
 
