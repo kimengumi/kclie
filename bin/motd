@@ -60,48 +60,50 @@ if [ "x${KCLIE_TEAM_HOSTING_NAME}" != "x" ] && ( \
 fi
 
 # hosting
-if [ -r /root/.mdg ] ; then # OVH server
-	echo
-	echo -e "OVH server n°`cat /root/.mdg`"
+echo
+if [ -r /root/.mdg ] ; then
+	echo -n "OVH server n°`cat /root/.mdg` / "
+elif [ -r /root/.ovhrc ] ; then
+	echo -n "OVH / "
 elif [ "${WNIX}" = 'linux' ] && (grep -qa 'pve' /proc/version 2>/dev/null) ; then
-	echo
-	echo -e "Proxmox Virtual Environment"
+	echo -n "Proxmox Virtual Environment / "
+elif [ -r /sys/hypervisor/uuid ] && (grep -qa 'ec2' /sys/hypervisor/uuid 2>/dev/null) ; then
+	echo -n "Amazon EC2 / "
 fi
 
 # hardware / virtual
-echo
 VCPU=""
 if [ "${WNIX}" = 'osx' ] ; then
 	sysctl -n hw.model
-	echo "`sysctl -n machdep.cpu.brand_string` (`sysctl -n machdep.cpu.core_count` Cores)"
+	echo -n "`sysctl -n machdep.cpu.brand_string` (`sysctl -n machdep.cpu.core_count` Cores)"
 elif [ "${WNIX}" = 'wsl' ] ; then
-	echo "Windows Subsystem for Linux (WSL)"
+	echo -n "Windows Subsystem for Linux (WSL)"
 	VCPU="v"
 elif [ -r /.dockerenv  ] ; then
-	echo -e "Docker container `cat /proc/$$/cgroup | cut -d \/ -f 3 | sort | tail -n 1`"
+	echo -n "Docker container `cat /proc/$$/cgroup | cut -d \/ -f 3 | sort | tail -n 1`"
 	VCPU="v"
 elif [ -r /proc/vz/veinfo ] ; then
-	echo -e "OpenVZ container n°`awk '{print $1}' /proc/vz/veinfo`"
+	echo -n "OpenVZ container n°`awk '{print $1}' /proc/vz/veinfo`"
 	VCPU="v"
 elif [ -r /proc/$$/attr/current ] && (grep -qa 'lxc-container' /proc/$$/attr/current 2>/dev/null) ; then
-	echo -e "LXC Linux Container"
+	echo -n "LXC Linux Container"
 	VCPU="v"
 elif [ -r /proc/$$/task/$$/mounts ] && (grep -qa 'lxcfs' /proc/$$/task/$$/mounts 2>/dev/null) ; then
-	echo -e "LXC Linux Container"
+	echo -n "LXC Linux Container"
 	VCPU="v"
 elif [ -r /sys/class/dmi/id/sys_vendor ] && (grep -q "QEMU" /sys/class/dmi/id/sys_vendor 2>/dev/null) ;then
-	echo -e "QEMU/KVM Virtual Machine"
+	echo -n "QEMU/KVM Virtual Machine"
 	VCPU="v"
 elif [ -r /sys/class/dmi/id/sys_vendor ] && (grep -q "VMware" /sys/class/dmi/id/sys_vendor 2>/dev/null) ;then
-	echo -e "VMware Virtual Machine"
+	echo -n "VMware Virtual Machine"
 	VCPU="v"
 elif [ -r /sys/class/dmi/id/product_name ] && (grep -q "OpenStack" /sys/class/dmi/id/sys_vendor 2>/dev/null) ;then
-	echo -e "`cat /sys/class/dmi/id/product_name` / `cat /sys/class/dmi/id/chassis_vendor` Virtual Machine"
+	echo -n "`cat /sys/class/dmi/id/product_name` / `cat /sys/class/dmi/id/chassis_vendor` Virtual Machine"
 	VCPU="v"
 elif [ -r /sys/class/dmi/id/board_vendor ] ; then
-	cat /sys/class/dmi/id/board_vendor
+	echo -n "`cat /sys/class/dmi/id/board_vendor` / `cat /sys/class/dmi/id/product_name`"
 fi
-
+echo
 if [ -r /proc/cpuinfo ] ; then
 	read NBTHREADS NBCORES NBSOCKETS CPUINFO <<< $(LANG=C; awk -F ": " '
 		/^processor/ {t++};
