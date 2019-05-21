@@ -63,6 +63,9 @@ fi
 if [ -r /root/.mdg ] ; then # OVH server
 	echo
 	echo -e "OVH server n°`cat /root/.mdg`"
+elif [ "${WNIX}" = 'linux' ] && (grep -qa 'pve' /proc/version 2>/dev/null) ; then
+	echo
+	echo -e "Proxmox Virtual Environment"
 fi
 
 # hardware / virtual
@@ -81,10 +84,10 @@ elif [ -r /proc/vz/veinfo ] ; then
 	echo -e "OpenVZ container n°`awk '{print $1}' /proc/vz/veinfo`"
 	VCPU="v"
 elif [ -r /proc/$$/attr/current ] && (grep -qa 'lxc-container' /proc/$$/attr/current 2>/dev/null) ; then
-	echo -e "LXC container"
+	echo -e "LXC Linux Container"
 	VCPU="v"
 elif [ -r /proc/$$/task/$$/mounts ] && (grep -qa 'lxcfs' /proc/$$/task/$$/mounts 2>/dev/null) ; then
-	echo -e "LXC container"
+	echo -e "LXC Linux Container"
 	VCPU="v"
 elif [ -r /sys/class/dmi/id/sys_vendor ] && (grep -q "QEMU" /sys/class/dmi/id/sys_vendor 2>/dev/null) ;then
 	echo -e "QEMU/KVM Virtual Machine"
@@ -98,6 +101,7 @@ elif [ -r /sys/class/dmi/id/product_name ] && (grep -q "OpenStack" /sys/class/dm
 elif [ -r /sys/class/dmi/id/board_vendor ] ; then
 	cat /sys/class/dmi/id/board_vendor
 fi
+
 if [ -r /proc/cpuinfo ] ; then
 	read NBTHREADS NBCORES NBSOCKETS CPUINFO <<< $(LANG=C; awk -F ": " '
 		/^processor/ {t++};
