@@ -29,7 +29,6 @@ export CURRENT_YEAR_DAY=`date +%j`
 export DEFAULT_BACKUP_DIR="/home/backup"
 export DEFAULT_LOG_DIR="/var/log/kclie"
 export DEFAULT_LIB_DIR="/var/lib/kclie"
-export GZIP=-9
 export IFS_STD="${IFS}"
 export IFS_LIB=$(echo -en "\n\b")
 
