@@ -26,9 +26,9 @@ export IS_FULL_DAY=1
 export CURRENT_WEEK_DAY=`date +%u`
 export CURRENT_MONTH_DAY=`date +%d`
 export CURRENT_YEAR_DAY=`date +%j`
-export DEFAULT_BACKUP_DIR="/home/backup"
-export DEFAULT_LOG_DIR="/var/log/kclie"
-export DEFAULT_LIB_DIR="/var/lib/kclie"
+export DEFAULT_BACKUP_DIR="/home/backup/"
+export DEFAULT_LOG_DIR="/var/log/kclie/"
+export DEFAULT_LIB_DIR="/var/lib/kclie/"
 export IFS_STD="${IFS}"
 export IFS_LIB=$(echo -en "\n\b")
 
