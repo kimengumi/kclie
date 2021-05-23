@@ -31,15 +31,20 @@ export DEFAULT_LOG_DIR="/var/log/kclie/"
 export DEFAULT_LIB_DIR="/var/lib/kclie/"
 export IFS_STD="${IFS}"
 export IFS_LIB=$(echo -en "\n\b")
+export NICE=19
+export QUIET_TIMELOG=""
+export SINGLE_QUIET_DELAY=15
 
 BatchStart() {
     if [ "x$1" = "x" ] ; then
-        echo 'Init : pas de nom';
+        echo 'Name is mandatory';
         exit 1
     fi
     SCRIPT_NAME=$1
 
-    # SHM selon système
+    renice -n ${NICE} $$ >/dev/null
+
+    # available SHM depending of OS
     if [ -d /run/shm ] ; then
         SHMDIR="/run/shm"
     elif [ -d /dev/shm ] ; then
@@ -48,16 +53,18 @@ BatchStart() {
         SHMDIR="/tmp"
     fi
 
-    # blocage du lancement concurrent
-    EXISTINGPROC=`ps -eaf | grep "$0" | egrep -v "$$|$PPID|grep" 2>/dev/null`
-    EXISTINGFIFO=`ls --color=never -d ${SHMDIR}/${SCRIPT_NAME}_*_fifo_err 2>/dev/null`
-    if [ "x${EXISTINGFIFO}" != "x" ] ; then
-        if [ "x${EXISTINGPROC}" != "x" ] ; then
-            echo "Une autre instance de \"${SCRIPT_NAME}\" est deja en cours d'execution !" >&2
-            echo "Annulation de l'execution" >&2
-            echo "---" >&2
-            ps -eaf | head -n 1 >&2
-            echo "${EXISTINGPROC}" >&2
+    # batch are started on a singleton basis
+    EXIST_PROC=`ps -eaf | grep "$0" | egrep -v "$$|$PPID|grep" 2>/dev/null`
+    EXIST_FIFO=`ls --color=never -d ${SHMDIR}/${SCRIPT_NAME}_*_fifo_err 2>/dev/null`
+    OLDER_FIFO=`find ${SHMDIR}/${SCRIPT_NAME}_*_fifo_err -cmin +${SINGLE_QUIET_DELAY} 2>/dev/null`
+    if [ "x${EXIST_FIFO}" != "x" ] ; then
+        if [ "x${EXIST_PROC}" != "x" ] ; then
+            if [ "x${OLDER_FIFO}" != "x" ] ; then
+                echo "Another instance of \"${SCRIPT_NAME}\" is in progress, aborting execution." >&2
+                echo "---------------------" >&2
+                ps -eaf | head -n 1 >&2
+                echo "${EXIST_PROC}" >&2
+            fi
             exit 2
         else
             rm ${SHMDIR}/${SCRIPT_NAME}_*_fifo_err
@@ -71,8 +78,10 @@ BatchStart() {
     mkdir -p ${DEFAULT_LOG_DIR}
     tee -a ${DEFAULT_LOG_DIR}/${SCRIPT_NAME}.log < ${SHMDIR}/${SCRIPT_NAME}_$$_fifo_err &
     exec >> ${DEFAULT_LOG_DIR}/${SCRIPT_NAME}.log 2> ${SHMDIR}/${SCRIPT_NAME}_$$_fifo_err
-    echo "============================================"
-    echo "## `date +"%T ## %F"` ## Début de ${SCRIPT_NAME} ##"
+    if [ "x${QUIET_TIMELOG}" = "x" ] ; then
+        echo "============================================"
+        echo "## `date +"%T ## %F"` ## Start of ${SCRIPT_NAME} ##"
+    fi
     BackupSetWeekDayFull 6 #saturday
 
     # Deal with filesnames with spaces
@@ -80,13 +89,19 @@ BatchStart() {
 }
 
 BatchEnd() {
-    echo "## `date +"%T ## %F"` ## Fin de ${SCRIPT_NAME} ##"
+    if [ "x${QUIET_TIMELOG}" = "x" ] ; then
+        echo "## `date +"%T ## %F"` ## End of ${SCRIPT_NAME} ##"
+    fi
     rm ${SHMDIR}/${SCRIPT_NAME}_$$_fifo_err
     export IFS=${IFS_STD}
 }
 
 BatchEcho() {
-    echo "## `date +"%T"` ## $1 ##"
+    if [ "x${QUIET_TIMELOG}" = "x" ] ; then
+        echo "## `date +"%T"` ## $1 ##"
+    else
+        echo $1
+    fi
 }
 
 NfsMountBackup() {
