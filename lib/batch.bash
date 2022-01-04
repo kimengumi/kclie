@@ -304,11 +304,11 @@ RsyncRep() {
         echo "Please specify a directory (without the final /)"
         return 1
     fi
-    if [ ! -d ${DEFAULT_BACKUP_DIR}/${HOSTNAME}/$1 ] ; then
-        mkdir -p "${DEFAULT_BACKUP_DIR}/${HOSTNAME}/$1" || return 4
+    if [ ! -d ${DEFAULT_BACKUP_DIR}/$1 ] ; then
+        mkdir -p "${DEFAULT_BACKUP_DIR}/$1" || return 4
     fi
-    BatchEcho "Rsync $1 into ${DEFAULT_BACKUP_DIR}/${HOSTNAME}/"
-    nice -n19 rsync -rltgoD --del --ignore-errors --force --exclude="lost+found" --delete-excluded $1/ ${DEFAULT_BACKUP_DIR}/${HOSTNAME}/$1
+    BatchEcho "Rsync $1 into ${DEFAULT_BACKUP_DIR}/"
+    nice -n19 rsync -rltgoD --del --ignore-errors --force --exclude="lost+found" --delete-excluded $1/ ${DEFAULT_BACKUP_DIR}/$1
     # -r : parcours le dossier indiqué et tous ses sous-dossiers
     # -l : copie les liens symboliques comme liens symboliques
     # -t : préserve les dates
