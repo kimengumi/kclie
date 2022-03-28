@@ -56,16 +56,16 @@ setopt extendedglob
 
 # If a local Oh My Zsh is detected, we use it
 if [ -e $HOME/.oh-my-zsh/oh-my-zsh.sh ] ; then
+elif [ -e $HOME/.ohmyzsh/oh-my-zsh.sh ] ; then
 
-	# No default configuration in this case.
-	# All have to be done in the local user ~/.zshrc
+	# No default configuration in these case.
 
 	# Else, if a shared installation is detected, we use it
-elif [ -e ${KCLIE_PATH}/vendor/oh-my-zsh/oh-my-zsh.sh ] ; then
+elif [ -e ${KCLIE_PATH}/vendor/ohmyzsh/oh-my-zsh.sh ] ; then
 
 	#Basic Oh My Zsh configuration for shared installation
-	export ZSH=${KCLIE_PATH}/vendor/oh-my-zsh/
-	export ZSH_CACHE_DIR=${HOME}/.oh-my-zsh/cache
+	export ZSH=${KCLIE_PATH}/vendor/ohmyzsh/
+	export ZSH_CACHE_DIR=${HOME}/.ohmyzsh/cache
 	if [ ! -w ${ZSH_CACHE_DIR} ] ; then
 		mkdir -p ${ZSH_CACHE_DIR}
 	fi
@@ -75,7 +75,7 @@ elif [ -e ${KCLIE_PATH}/vendor/oh-my-zsh/oh-my-zsh.sh ] ; then
 	plugins=(git)
 	source ${ZSH}/oh-my-zsh.sh
 
-	# If not, configuration of standard zsh prompt
+	# If no Oh My Zsh,configuration of standard zsh prompt
 else
 	autoload -U compinit
 	compinit

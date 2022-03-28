@@ -1,3 +1,4 @@
 /.idea
 /env
-/vendor/oh-my-zsh
+/vendor/*
+!/vendor/.gitkeep

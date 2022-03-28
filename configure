@@ -117,12 +117,6 @@ if [ "x${KCLIE_HOSTNAME_COLOR}" = "x" ] ; then
   read -p $'Color/Format code \033[3m(use picker above, default \033[0m\033[1;97;49m197049\033[0m\033[3m)\033[0m: ' SETUP_HOSTNAME_COLOR
 fi
 
-# Oh My Zsh
-if [ -e /usr/bin/zsh ] && [ ! -e ${SETUP_PATH}/vendor/oh-my-zsh/oh-my-zsh.sh ] ; then
-  echo
-  read -p "Do You want to install 'Oh My Zsh' ? [y/N] : " SETUP_OHMYZSH
-fi
-
 if [ "$(id -u)" != "0" ] ; then
   echo
   echo "The configuration script is not running as root."
@@ -187,15 +181,26 @@ elif [ "x${KCLIE_HOSTNAME_COLOR}" = "x" ] ; then
 fi
 source ${SETUP_PATH}/env
 
-# Oh My ZSH
+# Vendor : Oh My ZSH
 if [ -e ${SETUP_PATH}/vendor/oh-my-zsh/.git ] ; then
+  echo -e "${WHITE}Remove OLD Oh My Zsh ...\033[0m"
+  rm -rf ${SETUP_PATH}/vendor/oh-my-zsh
+fi
+if [ -e ${SETUP_PATH}/vendor/ohmyzsh/.git ] ; then
   echo -e "${WHITE}Updating Oh My Zsh ...\033[0m"
-  echo ""
-  (cd ${SETUP_PATH}/vendor/oh-my-zsh && git pull && chmod -R og-w .)
-elif [ "x${SETUP_OHMYZSH}" = "xy" ] ; then
-  echo -e "${WHITE}Updating Oh My Zsh ...\033[0m"
-  echo "Installing Oh My Zsh ..."
-  (mkdir -p ${SETUP_PATH}/vendor/oh-my-zsh && cd ${SETUP_PATH}/vendor/oh-my-zsh && git clone https://github.com/robbyrussell/oh-my-zsh.git . && chmod -R og-w .)
+  (cd ${SETUP_PATH}/vendor/ohmyzsh && git pull && chmod -R og-w .)
+elif [ -e /usr/bin/zsh ] ; then
+  echo -e "${WHITE}Installing Oh My Zsh ...\033[0m"
+  (cd ${SETUP_PATH}/vendor && git clone https://github.com/ohmyzsh/ohmyzsh.git --depth 1 && chmod -R og-w ohmyzsh)
+fi
+
+# Vendor : ps_mem
+if [ -e ${SETUP_PATH}/vendor/ps_mem/.git ] ; then
+  echo -e "${WHITE}Updating ps_mem ...\033[0m"
+  (cd ${SETUP_PATH}/vendor/ps_mem && git pull)
+else
+  echo -e "${WHITE}Installing ps_mem ...\033[0m"
+  (cd ${SETUP_PATH}/vendor && git clone https://github.com/pixelb/ps_mem.git --depth 1)
 fi
 
 #
