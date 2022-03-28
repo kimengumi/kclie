@@ -301,28 +301,30 @@ BackupRep() {
 
 RsyncRep() {
     if [ "x$1" = "x" ] ; then
-        echo "veuillez spécificer un répertoire (sans le / final)"
+        echo "Please specify a directory (without the final /)"
         return 1
     fi
-    HOSTNAME=`hostname`
-    if ls ${DEFAULT_BACKUP_DIR}/${HOSTNAME}$1 > /dev/null
-    then
-        BatchEcho "Rsync de $1"
-        nice -n19 rsync -rltgoD --del --ignore-errors --force --exclude="lost+found" --delete-excluded $1/ ${DEFAULT_BACKUP_DIR}/${HOSTNAME}$1
-        # -r : parcours le dossier indiqué et tous ses sous-dossiers
-        # -l : copie les liens symboliques comme liens symboliques
-        # -t : préserve les dates
-        # -g : préserve le groupe
-        # -o : mettre le propriétaire du fichier de destination identique à  celui du fichier source
-        # -D : préserve les périphériques
-        # ###-q : moins loquace
-        # --del : permet de supprimer les fichiers sur "destination" qui n'existent plus sur "source"
-        # --ignore-errors : efface même s'il y a eu des erreurs E/S
-        # --force : force la suppression de répertoires même non-vides
-        # --delete-excluded : efface également les fichiers exclus côté réception
+    if [ "x$1" = "x/" ] ; then
+        NAME="root"
     else
-        echo -e "\n!!! $1: repertoire de backup ${DEFAULT_BACKUP_DIR}/${HOSTNAME}$1 inacessible !!!"
+        NAME=`echo $1 | sed -e 's/\///' -e 's/\//-/g' -e 's/\ /_/g'`
     fi
+    if [ ! -d ${DEFAULT_BACKUP_DIR}/${NAME} ] ; then
+        mkdir -p "${DEFAULT_BACKUP_DIR}/${NAME}" || return 4
+    fi
+    BatchEcho "Rsync $1 into ${DEFAULT_BACKUP_DIR}/"
+    nice -n19 rsync -rltgoD --del --ignore-errors --force --exclude="lost+found" --delete-excluded $1/ ${DEFAULT_BACKUP_DIR}/${NAME}
+    # -r : parcours le dossier indiqué et tous ses sous-dossiers
+    # -l : copie les liens symboliques comme liens symboliques
+    # -t : préserve les dates
+    # -g : préserve le groupe
+    # -o : mettre le propriétaire du fichier de destination identique à  celui du fichier source
+    # -D : préserve les périphériques
+    # ###-q : moins loquace
+    # --del : permet de supprimer les fichiers sur "destination" qui n'existent plus sur "source"
+    # --ignore-errors : efface même s'il y a eu des erreurs E/S
+    # --force : force la suppression de répertoires même non-vides
+    # --delete-excluded : efface également les fichiers exclus côté réception
 }
 
 RotateOneLog() {
