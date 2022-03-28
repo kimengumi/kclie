@@ -23,5 +23,6 @@
 for PY in `which python3 python2 python` ; do
   if [ -x ${PY} ] ; then
     ${PY} ${KCLIE_PATH}/vendor/ps_mem/ps_mem.py "$@"
+    exit 0
   fi
 done
