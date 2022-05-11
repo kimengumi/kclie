@@ -38,29 +38,30 @@ fi
 # Header
 echo
 if [ "x${KCLIE_TEAM_OWNER_NAME}" != "x" ] ; then
-	echo -e "   Owner/Sponsor : ${KCLIE_TEAM_OWNER_COLOR}${KCLIE_TEAM_OWNER_NAME}\033[0m"
+	echo -e " Owner / Sponsor : ${KCLIE_TEAM_OWNER_COLOR}${KCLIE_TEAM_OWNER_NAME}\033[0m"
 fi
-if [ "${WNIX}" = 'wsl' ] ; then
-	echo -e "        Hostname : ${KCLIE_HOSTNAME_COLOR}`hostname`\033[0m\n"
-else
-	echo -e "        Hostname : ${KCLIE_HOSTNAME_COLOR}`hostname -f`\033[0m\n"
-fi
+
 if [ "x${KCLIE_TEAM_APP_NAME}" != "x" ] && [ "x${KCLIE_TEAM_APP_NAME}" != "x${KCLIE_TEAM_OWNER_NAME}" ] ; then
-	echo -e "   3rd-party App : ${KCLIE_TEAM_APP_COLOR}${KCLIE_TEAM_APP_NAME}\033[0m"
+	echo -e " App Maintenance : ${KCLIE_TEAM_APP_COLOR}${KCLIE_TEAM_APP_NAME}\033[0m"
 fi
 if [ "x${KCLIE_TEAM_ADMIN_NAME}" != "x" ] && ( \
 	[ "x${KCLIE_TEAM_ADMIN_NAME}" != "x${KCLIE_TEAM_OWNER_NAME}" ] || \
 	[ "x${KCLIE_TEAM_ADMIN_NAME}" != "x${KCLIE_TEAM_HOSTING_NAME}" ] ); then
-	echo -e "SysAdmim Hosting : ${KCLIE_TEAM_ADMIN_COLOR}${KCLIE_TEAM_ADMIN_NAME}\033[0m"
+	echo -e "   System Admins : ${KCLIE_TEAM_ADMIN_COLOR}${KCLIE_TEAM_ADMIN_NAME}\033[0m"
 fi
 if [ "x${KCLIE_TEAM_HOSTING_NAME}" != "x" ] && ( \
 	[ "x${KCLIE_TEAM_HOSTING_NAME}" != "x${KCLIE_TEAM_OWNER_NAME}" ] || \
 	[ "x${KCLIE_TEAM_HOSTING_NAME}" != "x${KCLIE_TEAM_ADMIN_NAME}" ] ); then
 	echo -e "Hardware Hosting : ${KCLIE_TEAM_HOSTING_COLOR}${KCLIE_TEAM_HOSTING_NAME}\033[0m"
 fi
+if [ "${WNIX}" = 'wsl' ] ; then
+	echo -e "\n\t${KCLIE_HOSTNAME_COLOR}`hostname`\033[0m\n"
+else
+	echo -e "\n\t${KCLIE_HOSTNAME_COLOR}`hostname -f`\033[0m\n"
+fi
+
 
 # hosting
-echo
 if [ -r /root/.mdg ] ; then
 	echo -n "OVH server n°`cat /root/.mdg` / "
 elif [ -r /root/.ovhrc ] ; then
@@ -70,7 +71,6 @@ elif [ "${WNIX}" = 'linux' ] && (grep -qa 'pve' /proc/version 2>/dev/null) ; the
 elif [ -r /sys/hypervisor/uuid ] && (grep -qa 'ec2' /sys/hypervisor/uuid 2>/dev/null) ; then
 	echo -n "Amazon EC2 / "
 fi
-
 # hardware / virtual
 VCPU=""
 if [ "${WNIX}" = 'osx' ] ; then
@@ -85,10 +85,10 @@ elif [ -r /.dockerenv  ] ; then
 elif [ -r /proc/vz/veinfo ] ; then
 	echo -n "OpenVZ container n°`awk '{print $1}' /proc/vz/veinfo`"
 	VCPU="v"
-elif [ -r /proc/$$/attr/current ] && (grep -qa 'lxc-container' /proc/$$/attr/current 2>/dev/null) ; then
+elif [ -r /proc/$$/attr/current ] && [ ! -d /var/lib/lxcfs ] && (grep -qa 'lxc-container' /proc/$$/attr/current 2>/dev/null) ; then
 	echo -n "LXC Linux Container"
 	VCPU="v"
-elif [ -r /proc/$$/task/$$/mounts ] && (grep -qa 'lxcfs' /proc/$$/task/$$/mounts 2>/dev/null) ; then
+elif [ -r /proc/$$/task/$$/mounts ] && [ ! -d /var/lib/lxcfs ] && (grep -qa 'lxcfs' /proc/$$/task/$$/mounts 2>/dev/null) ; then
 	echo -n "LXC Linux Container"
 	VCPU="v"
 elif [ -r /sys/class/dmi/id/sys_vendor ] && (grep -q "QEMU" /sys/class/dmi/id/sys_vendor 2>/dev/null) ;then
@@ -104,6 +104,9 @@ elif [ -r /sys/class/dmi/id/board_vendor ] ; then
 	echo -n "`cat /sys/class/dmi/id/board_vendor` / `cat /sys/class/dmi/id/product_name`"
 fi
 echo
+echo
+
+# CPU info
 if [ -r /proc/cpuinfo ] ; then
 	read NBTHREADS NBCORES NBSOCKETS CPUINFO <<< $(LANG=C; awk -F ": " '
 		/^processor/ {t++};
@@ -131,9 +134,13 @@ if [ -r /proc/cpuinfo ] ; then
 		echo "${SOCKETS}${CPUINFO} (${THREADS}${CORES})"
 	fi
 fi
-
+# Kernel version
+if [ "${WNIX}" = 'wsl' ] ; then
+	echo "Kernel `cat /proc/version | cut -d \( -f1` `uname -m`"
+else
+	echo "Kernel `uname -srm`"
+fi
 # OS version
-echo
 if [ -r /etc/redhat-release ] ; then
 	cat /etc/redhat-release
 elif [ -e /etc/lsb-release ] ; then
@@ -150,40 +157,9 @@ elif [ "${WNIX}" = 'osx' ] ; then #OSX
 else
 	uname -s
 fi
-if [ "${WNIX}" = 'wsl' ] ; then
-	echo "Kernel `cat /proc/version | cut -d \( -f1` `uname -m`"
-else
-	echo "Kernel `uname -srm`"
-fi
 echo
-
-# Ip info
-if [ "${WNIX}" = 'osx' ] ; then
-	for IP in `ifconfig | grep inet | egrep -v "127.0.0.1|fe80::|6 ::1" | cut -d " " -f 2 | sort | uniq` ; do
-		echo "ip ${IP}"
-	done | sort | uniq
-elif [ "${WNIX}" = 'linux' ] && [ -e /bin/ip ] ; then
-	for IPV in '4' '6'; do
-		for IP in `ip -${IPV} addr show 2>/dev/null | grep "global" | egrep "en|wl|ww|eth|ppp|vmbr|inet6" | sed -e 's/  / /g' | cut -d ' ' -f4`; do
-			echo "ipv${IPV} ${IP}";
-		done | sort | uniq
-	done
-elif [ -x /bin/hostname ]; then
-	for IP in `hostname -I` ; do
-		case "${IP}" in
-			fe80\:\:*) ;; # ipv6 local
-			2001\:0\:*) ;; # Teredo Tunneling Pseudo-Interface
-			169\.254\.*) ;; # Automatic Private Internet Protocol Addressing
-			0\.0\.0\.0*) ;; # ;)
-			* )
-              echo "ip ${IP}"
-			;;
-		esac
-	done | sort | uniq
-fi
 
 # Uptime / load avg / mem
-echo
 if [ -e /proc/meminfo ] ; then
 	if grep -q "MemAvailable:" /proc/meminfo ; then
 		# kernel 3.14 and more
@@ -212,6 +188,32 @@ if [ -x /bin/df ] ; then
 	fi
 fi
 
+# Ip info
+echo
+if [ "${WNIX}" = 'osx' ] ; then
+	for IP in `ifconfig | grep inet | egrep -v "127.0.0.1|fe80::|6 ::1" | cut -d " " -f 2 | sort | uniq` ; do
+		echo "ip ${IP}"
+	done | sort | uniq
+elif [ "${WNIX}" = 'linux' ] && [ -e /bin/ip ] ; then
+	for IPV in '4' '6'; do
+		for IP in `ip -${IPV} addr show 2>/dev/null | grep "global" | egrep "en|wl|ww|eth|ppp|vmbr|inet6" | sed -e 's/  / /g' | cut -d ' ' -f4`; do
+			echo "ipv${IPV} ${IP}";
+		done | sort | uniq
+	done
+elif [ -x /bin/hostname ]; then
+	for IP in `hostname -I` ; do
+		case "${IP}" in
+			fe80\:\:*) ;; # ipv6 local
+			2001\:0\:*) ;; # Teredo Tunneling Pseudo-Interface
+			169\.254\.*) ;; # Automatic Private Internet Protocol Addressing
+			0\.0\.0\.0*) ;; # ;)
+			* )
+              echo "ip ${IP}"
+			;;
+		esac
+	done | sort | uniq
+fi
+
 # Sensors / Harddrive temperatures (if available)
 HDDTEMP=''
 if [ -x /usr/sbin/hddtemp ] ; then
@@ -233,7 +235,13 @@ elif [ -x /usr/sbin/hddtemp ] ; then
 	echo $HDDTEMP
 fi
 
-# OpenVZ contriners list (if available)
+# Proxmox VE version
+if [ -e /usr/bin/pveversion ] ; then
+	echo
+	echo "Proxmox VE `pveversion`"
+fi
+
+# OpenVZ containers list (if available)
 if [ -x /usr/sbin/vzlist ] ; then
 	echo
 	/usr/sbin/vzlist -a -o ctid,hostname,status,numproc,laverage
@@ -245,7 +253,7 @@ if [ -x /usr/sbin/pct ] ; then
 	/usr/sbin/pct list
 fi
 
-# QEMU VN list (if available)
+# QEMU VM list (if available)
 if [ -x /usr/sbin/qm ] ; then
 	echo
 	/usr/sbin/qm list
