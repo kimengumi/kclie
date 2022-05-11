@@ -100,7 +100,7 @@ elif [ -r /sys/class/dmi/id/sys_vendor ] && (grep -q "VMware" /sys/class/dmi/id/
 elif [ -r /sys/class/dmi/id/product_name ] && (grep -q "OpenStack" /sys/class/dmi/id/sys_vendor 2>/dev/null) ;then
 	echo -n "`cat /sys/class/dmi/id/product_name` / `cat /sys/class/dmi/id/chassis_vendor` Virtual Machine"
 	VCPU="v"
-elif [ -x /usr/bin/ec2metadata ] ; then
+elif [ -r /sys/hypervisor/uuid ] && (grep -qa 'ec2' /sys/hypervisor/uuid 2>/dev/null) && [ -x /usr/bin/ec2metadata ] ; then
 	echo -n "`ec2metadata --availability-zone` / `ec2metadata --profile` / `ec2metadata --instance-type` / `ec2metadata --instance-id`"
 	VCPU="v"
 elif [ -r /sys/class/dmi/id/board_vendor ] ; then
@@ -216,7 +216,7 @@ elif [ -x /bin/hostname ]; then
 		esac
 	done | sort | uniq
 fi
-if [ -x /usr/bin/ec2metadata ] ; then
+if [ -r /sys/hypervisor/uuid ] && (grep -qa 'ec2' /sys/hypervisor/uuid 2>/dev/null) && [ -x /usr/bin/ec2metadata ] ; then
 	echo "pub4 `ec2metadata --public-ipv4`"
 fi
 
