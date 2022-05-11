@@ -100,6 +100,9 @@ elif [ -r /sys/class/dmi/id/sys_vendor ] && (grep -q "VMware" /sys/class/dmi/id/
 elif [ -r /sys/class/dmi/id/product_name ] && (grep -q "OpenStack" /sys/class/dmi/id/sys_vendor 2>/dev/null) ;then
 	echo -n "`cat /sys/class/dmi/id/product_name` / `cat /sys/class/dmi/id/chassis_vendor` Virtual Machine"
 	VCPU="v"
+elif [ -x /usr/bin/ec2metadata ] ; then
+	echo -n "`ec2metadata --availability-zone` / `ec2metadata --profile` / `ec2metadata --instance-type` / `ec2metadata --instance-id`"
+	VCPU="v"
 elif [ -r /sys/class/dmi/id/board_vendor ] ; then
 	echo -n "`cat /sys/class/dmi/id/board_vendor` / `cat /sys/class/dmi/id/product_name`"
 fi
@@ -213,6 +216,10 @@ elif [ -x /bin/hostname ]; then
 		esac
 	done | sort | uniq
 fi
+if [ -x /usr/bin/ec2metadata ] ; then
+	echo "pub4 `ec2metadata --public-ipv4`"
+fi
+
 
 # Sensors / Harddrive temperatures (if available)
 HDDTEMP=''
