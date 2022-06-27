@@ -260,7 +260,7 @@ BackupRep() {
     if [ "x${REP}" = "x/" ] ; then
         NOM="root"
     else
-        NOM=`echo ${REP} | sed -e 's/\///' -e 's/\//-/g' -e 's/\ /_/g'`
+        NOM=`echo ${REP} | sed -e 's/^\///' -e 's/\/$//' -e 's/\//-/g' -e 's/\ /_/g'`
     fi
     if [ "x${TAREP}" = "x" ] ; then
         TAREP="${DEFAULT_BACKUP_DIR}"
