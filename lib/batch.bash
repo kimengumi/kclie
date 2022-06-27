@@ -307,7 +307,7 @@ RsyncRep() {
     if [ "x$1" = "x/" ] ; then
         NAME="root"
     else
-        NAME=`echo $1 | sed -e 's/\///' -e 's/\//-/g' -e 's/\ /_/g'`
+        NAME=`echo $1 | sed -e 's/^\///' -e 's/\/$//' -e 's/\//-/g' -e 's/\ /_/g'`
     fi
     if [ ! -d ${DEFAULT_BACKUP_DIR}/${NAME} ] ; then
         mkdir -p "${DEFAULT_BACKUP_DIR}/${NAME}" || return 4
