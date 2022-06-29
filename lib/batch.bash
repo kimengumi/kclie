@@ -21,7 +21,8 @@
 
 export SCRIPT_NAME=""
 export HOSTNAME=`hostname`
-export NFS_VERROU=""
+export BACKUP_DIR_LOCK=""
+export BACKUP_DIR_MOUNT=""
 export IS_FULL_DAY=1
 export CURRENT_WEEK_DAY=`date +%u`
 export CURRENT_MONTH_DAY=`date +%d`
@@ -84,7 +85,7 @@ BatchStart() {
     fi
     BackupSetWeekDayFull 6 #saturday
 
-    # Deal with filesnames with spaces
+    # Deal with filenames with spaces
     export IFS="${IFS_LIB}"
 }
 
@@ -104,39 +105,60 @@ BatchEcho() {
     fi
 }
 
-NfsMountBackup() {
-    BatchEcho "Montage de ${DEFAULT_BACKUP_DIR}"
-    umount ${DEFAULT_BACKUP_DIR} --force 2> /dev/null
-    mount  ${DEFAULT_BACKUP_DIR}
-    if [ ! -d ${DEFAULT_BACKUP_DIR}/${HOSTNAME} ] ; then
-        echo "LE PARTAGE DE BACKUP NE SEMBLE PAS MONTE - ARRET DU SCRIPT" >&2
+BackupDirMount() {
+    if [ "x$1" != "x" ] ; then
+        export BACKUP_DIR_MOUNT=$1
+    else
+	export BACKUP_DIR_MOUNT=${DEFAULT_BACKUP_DIR}
+    fi	
+    BatchEcho "Mount ${BACKUP_DIR_MOUNT}"
+    # Forse umount/remount to ensure not having dead mounting points (ex. NFS)
+    umount ${BACKUP_DIR_MOUNT} --force 2> /dev/null 
+    mount  ${BACKUP_DIR_MOUNT}
+    if [ -d ${BACKUP_DIR_MOUNT}/${HOSTNAME} ] ; then
+	export DEFAULT_BACKUP_DIR=${BACKUP_DIR_MOUNT}/${HOSTNAME}
+    elif [ -e ${BACKUP_DIR_MOUNT}/${HOSTNAME} ] ; then
+	export DEFAULT_BACKUP_DIR=${BACKUP_DIR_MOUNT}
+    else
+        echo  "${BACKUP_DIR_MOUNT} doesn't seem to be mounted, aborting script!" >&2
+	echo  "A file or a dir having the hostname name is mandatory in the mounted space." >&2
         BatchEnd
         exit 1
     fi
-
 }
 
-NfsUmountBackup() {
-    BatchEcho "Démontage de ${DEFAULT_BACKUP_DIR}"
-    umount ${DEFAULT_BACKUP_DIR} --force || (echo "ERREUR AU DEMONTAGE DISQUE BACKUP" >&2 )
+BackupDirUmount() {
+    if [ "x${BACKUP_DIR_MOUNT}" != "x" ] ; then
+        BatchEcho "Unmount ${BACKUP_DIR_MOUNT}"
+        umount ${BACKUP_DIR_MOUNT} --force || (echo "Unable tu unmount ${BACKUP_DIR_MOUNT}" >&2 )
+    fi
 }
 
-NfsVerrou() {
-    if [ -e ${DEFAULT_BACKUP_DIR}/verrou_* ] ; then
-        echo -n "Un verrou NFS à été posé: Attente"
-        while ls ${DEFAULT_BACKUP_DIR}/verrou_* >/dev/null 2>&1 ; do
+BackupDirLock() {
+    if [ "x$1" != "x" ] ; then
+        export BACKUP_DIR_LOCK=$1
+    elif [ "x${BACKUP_DIR_MOUNT}" != "x" ] ; then
+	export BACKUP_DIR_LOCK=${BACKUP_DIR_MOUNT}
+    else
+	export BACKUP_DIR_LOCK=${BACKUP_DIR_MOUNT}
+    fi
+    if [ -e ${BACKUP_DIR_LOCK}/lock_* ] ; then
+        echo -n "${BACKUP_DIR_LOCK} is locked, waiting"
+        while ls ${BACKUP_DIR_LOCK}/lock_* >/dev/null 2>&1 ; do
             echo -n '.'
             sleep 300 # 5min
         done
         echo -n "\n"
     fi
-    touch ${DEFAULT_BACKUP_DIR}/verrou_${HOSTNAME}_${SCRIPT_NAME} || (echo "Impossible de poser le verrou NFS" >&2)
-    NFS_VERROU="1"
+    BatchEcho "Add lock in ${BACKUP_DIR_LOCK}"
+    touch ${BACKUP_DIR_LOCK}/lock_${HOSTNAME}_${SCRIPT_NAME} || (echo "Unable to lock ${BACKUP_DIR_LOCK}" >&2)
 }
 
-NfsVerrouRemove() {
-    rm ${DEFAULT_BACKUP_DIR}/verrou_${HOSTNAME}_${SCRIPT_NAME} || (echo "Impossible de supprimer le verrou NFS" >&2)
-    NFS_VERROU=""
+BackupDirUnlock() {
+    if [ "x${BACKUP_DIR_LOCK}" != "x" ] ; then
+        BatchEcho "Remove lock in ${BACKUP_DIR_LOCK}"
+        rm ${BACKUP_DIR_LOCK}/lock_${HOSTNAME}_${SCRIPT_NAME} || (echo "Unable to unlock ${BACKUP_DIR_LOCK}" >&2)
+    fi
 }
 
 ProxmoxDumpAll() {
@@ -289,7 +311,7 @@ BackupRep() {
     else
         HIST=".${CURRENT_WEEK_DAY}"
     fi
-    BatchEcho "Sauvegarde de ${REP} dans ${TAREP} ..."
+    BatchEcho "Archive ${REP} into ${TAREP} ..."
     if [ "x${COMPRESS}" != "x" ] && [ "x${COMPRESS}" != "xlzop" ] && [ "x${COMPRESS}" != "xgzip" ] ; then
         tar ${SNAPSHOT} ${EXCLUDE} -cpf ${TAREP}/${NOM}${HIST}.tar .
     elif [ "x${COMPRESS}" = "xlzop" ] ; then
