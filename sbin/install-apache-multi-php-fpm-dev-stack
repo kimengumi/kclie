@@ -29,7 +29,7 @@ if [ ! -x /usr/bin/add-apt-repository ] ; then
   exit 1
 fi
 
-if [ "${SUDO_USER}x" = 'x' ] ; then
+if [ "${SUDO_USER}x" = 'x' ] || [ "${SUDO_USER}x" = 'rootx' ] ; then
   echo 'This script is intented to be run in sudo from the dev user'
   exit 1
 fi
@@ -56,6 +56,7 @@ a2enconf kclie-dev-multi-fpm.conf
 a2ensite 0000-kclie-dev-default.conf
 
 sudo -u ${SUDO_USER} mkdir -p /home/${SUDO_USER}/web/
+echo '<?php phpinfo();' | sudo -u ${SUDO_USER} tee -a /home/${SUDO_USER}/web/phpinfo.php
 chown ${SUDO_USER}:www-data /etc/apache2/sites-enabled
 
 for VP in 5.6 7.0 7.1 7.2 7.3 7.4 8.0 8.1

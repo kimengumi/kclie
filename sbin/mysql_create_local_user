@@ -35,7 +35,7 @@ if [ "x${GENPASS}" = "xn" ] ; then
         echo -e "User password :"
         read PASS
 else
-        PASS=`genpass`
+	PASS=$($(dirname $0)/../bin/genpass)
         if [ "x${PASS}" = "x" ] ; then
                 echo 'Can not generate a password'
                 exit 1
