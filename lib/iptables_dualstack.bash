@@ -42,10 +42,12 @@ if [ "x${EXTIF}" = "x" ] || \
 # Configuration
 export EXTIF="eth1"                     # Interface with the public / external IP
 export LOCIF="eth0"                     # Interface with the local / internal IP
-export LOCIP4NETW="192.168.0.0/16"      # Local ipv4 Subnet (could be more than the connected subnet if necessary)
-export LOCIP4PREF="192.168.1."          # Prefix used to write ipv4 rules
-export LOCIP6NETW="fd85:e1b1:e282::/48" # Local ipv6 Subnet (could be more than the connected subnet if necessary)
-export LOCIP6PREF="fd85:e1b1:e282:1::"  # Prefix used to write ipv6 rules
+export LOCIP4NETW="192.168.0.0/16"      # Local ipv4 Subnet
+export LOCIP4PREF="192.168.1."          # Prefix used to write ipv4 rules from host number
+export LOCIP4SUFF=""                    # Suffix used to write ipv4 rules from host number
+export LOCIP6NETW="fd85:e1b1:e282::/48" # Local ipv6 Subnet
+export LOCIP6PREF="fd85:e1b1:e282:1:"   # Prefix used to write ipv6 rules from host number
+export LOCIP6SUFF="::"                  # Suffix used to write ipv6 rules from host number
 
 # Load dual stack library'
   echo "source ${KCLIE_PATH}/lib/iptables_dualstack.bash
@@ -188,66 +190,66 @@ DualMasquerade () {
 DualHttpNat () {
 
   if [ "x$1" = "x" ] ; then
-    echo "Usage: DualHttpNat [End of local ip4/6]"
+    echo "Usage: DualHttpNat [Host Number used in ip4/6]"
     return 1
   fi
-  ENDIP=$1
-  echo "Redirecting Http/Https to ${LOCIP4PREF}${ENDIP} / ${LOCIP6PREF}${ENDIP} ..."
+  HOSTNB=$1
+  echo "Redirecting Http/Https to (host Nb) ${HOSTNB} ..."
 
-  Ipv4    -A PREROUTING -t nat -j DNAT -i ${EXTIF} -p tcp --dport 80 --to ${LOCIP4PREF}${ENDIP}:80
-  Ipv6    -A PREROUTING -t nat -j DNAT -i ${EXTIF} -p tcp --dport 80 --to [${LOCIP6PREF}${ENDIP}]:80
-  Ipv4    -A PREROUTING -t nat -j DNAT -i ${EXTIF} -p tcp --dport 443 --to ${LOCIP4PREF}${ENDIP}:443
-  Ipv6    -A PREROUTING -t nat -j DNAT -i ${EXTIF} -p tcp --dport 443 --to [${LOCIP6PREF}${ENDIP}]:443
+  Ipv4    -A PREROUTING -t nat -j DNAT -i ${EXTIF} -p tcp --dport 80 --to ${LOCIP4PREF}${HOSTNB}${LOCIP4SUFF}:80
+  Ipv6    -A PREROUTING -t nat -j DNAT -i ${EXTIF} -p tcp --dport 80 --to [${LOCIP6PREF}${HOSTNB}${LOCIP6SUFF}]:80
+  Ipv4    -A PREROUTING -t nat -j DNAT -i ${EXTIF} -p tcp --dport 443 --to ${LOCIP4PREF}${HOSTNB}${LOCIP4SUFF}:443
+  Ipv6    -A PREROUTING -t nat -j DNAT -i ${EXTIF} -p tcp --dport 443 --to [${LOCIP6PREF}${HOSTNB}${LOCIP6SUFF}]:443
   ${ip4t} -A FORWARD -j DROP   -p tcp --dport 80 -m string --to 70 --algo bm --string 'GET /w00tw00t.at.ISC.SANS.'
   ${ip6t} -A FORWARD -j DROP   -p tcp --dport 80 -m string --to 70 --algo bm --string 'GET /w00tw00t.at.ISC.SANS.'
-  Ipv4    -A FORWARD -j ACCEPT -p tcp -d ${LOCIP4PREF}${ENDIP} --dport 80
-  Ipv4    -A FORWARD -j ACCEPT -p tcp -d ${LOCIP4PREF}${ENDIP} --dport 443
-  Ipv6    -A FORWARD -j ACCEPT -p tcp -d ${LOCIP6PREF}${ENDIP} --dport 80
-  Ipv6    -A FORWARD -j ACCEPT -p tcp -d ${LOCIP6PREF}${ENDIP} --dport 443
+  Ipv4    -A FORWARD -j ACCEPT -p tcp -d ${LOCIP4PREF}${HOSTNB}${LOCIP4SUFF} --dport 80
+  Ipv4    -A FORWARD -j ACCEPT -p tcp -d ${LOCIP4PREF}${HOSTNB}${LOCIP4SUFF} --dport 443
+  Ipv6    -A FORWARD -j ACCEPT -p tcp -d ${LOCIP6PREF}${HOSTNB}${LOCIP6SUFF} --dport 80
+  Ipv6    -A FORWARD -j ACCEPT -p tcp -d ${LOCIP6PREF}${HOSTNB}${LOCIP6SUFF} --dport 443
 }
 
 DualCustomNat () {
 
   if [ "x$1" = "x" ] || [ "x$2" = "x" ] || [ "x$3" = "x" ] || [ "x$4" = "x" ]; then
-    echo "Usage: DualCustomNat [tcp/udp] [External Port] [Local Port] [End of local ip4/6]"
+    echo "Usage: DualCustomNat [tcp/udp] [External Port] [Local Port] [Host Number used in ip4/6]"
     return 1
   fi
   TYPE=$1
   DPORT=$2
   LPORT=$3
-  ENDIP=$4
+  HOSTNB=$4
 
-  echo "Redirecting port ${DPORT} (${TYPE}) TO ${LOCIP4PREF}${ENDIP} / ${LOCIP6PREF}${ENDIP} port ${LPORT} ..."
+  echo "Redirecting port ${DPORT} (${TYPE}) TO (host Nb) ${HOSTNB} port ${LPORT} ..."
 
-  Ipv4 -A PREROUTING -t nat -j DNAT -i ${EXTIF} -p ${TYPE} --dport ${DPORT} --to ${LOCIP4PREF}${ENDIP}:${LPORT}
-  Ipv6 -A PREROUTING -t nat -j DNAT -i ${EXTIF} -p ${TYPE} --dport ${DPORT}  --to [${LOCIP6PREF}${ENDIP}]:${LPORT}
-  Ipv4 -A FORWARD -j ACCEPT -p tcp -d ${LOCIP4PREF}${ENDIP} --dport ${LPORT}
-  Ipv6 -A FORWARD -j ACCEPT -p tcp -d ${LOCIP6PREF}${ENDIP} --dport ${LPORT}
+  Ipv4 -A PREROUTING -t nat -j DNAT -i ${EXTIF} -p ${TYPE} --dport ${DPORT} --to ${LOCIP4PREF}${HOSTNB}${LOCIP4SUFF}:${LPORT}
+  Ipv6 -A PREROUTING -t nat -j DNAT -i ${EXTIF} -p ${TYPE} --dport ${DPORT}  --to [${LOCIP6PREF}${HOSTNB}${LOCIP6SUFF}]:${LPORT}
+  Ipv4 -A FORWARD -j ACCEPT -p tcp -d ${LOCIP4PREF}${HOSTNB}${LOCIP4SUFF} --dport ${LPORT}
+  Ipv6 -A FORWARD -j ACCEPT -p tcp -d ${LOCIP6PREF}${HOSTNB}${LOCIP6SUFF} --dport ${LPORT}
 }
 
 DualSshNat () {
 
   if [ "x$1" = "x" ] || [ "x$2" = "x" ] || [ "x$3" = "x" ] ; then
-    echo "Usage: DualSshNat [extrenal port prefix] [First End of local ip4/6] [Last End of local ip4/6]"
+    echo "Usage: DualSshNat [extrenal port prefix] [First Host Number used in ip4/6] [Last Host Number used in ip4/6]"
     echo ""
     echo "Note : Prefix can be from 1 to 65, the end part will always have 3 digits (with leading zero)"
     return 1
   fi
   DPREFIX=$1
-  FIRST_ENDIP=$2
-  LAST_ENDIP=$3
+  FIRST_HOSTNB=$2
+  LAST_HOSTNB=$3
 
-  echo "Redirecting SSH ports ${DPREFIX}XXX FROM (ip-prefix)${FIRST_ENDIP} TO (ip-prefix)${LAST_ENDIP}"
+  echo "Redirecting SSH ports ${DPREFIX}XXX FROM (host Nb) ${FIRST_HOSTNB} TO (host Nb) ${LAST_HOSTNB}"
 
-  for ENDIP in `seq -w ${FIRST_ENDIP} ${LAST_ENDIP}` ; do
-    Ipv4 -A PREROUTING -t nat -j DNAT -i ${EXTIF} -p tcp --dport ${DPREFIX}`printf "%.3d" ${ENDIP}` --to ${LOCIP4PREF}${ENDIP}:22
+  for HOSTNB in `seq -w ${FIRST_HOSTNB} ${LAST_HOSTNB}` ; do
+    Ipv4 -A PREROUTING -t nat -j DNAT -i ${EXTIF} -p tcp --dport ${DPREFIX}$(printf "%03d" ${HOSTNB#0}) --to ${LOCIP4PREF}${HOSTNB}${LOCIP4SUFF}:22
   done
-  for ENDIP in `seq -w ${FIRST_ENDIP} ${LAST_ENDIP}` ; do
-    Ipv6 -A PREROUTING -t nat -j DNAT -i ${EXTIF} -p tcp --dport ${DPREFIX}`printf "%.3d" ${ENDIP}` --to [${LOCIP6PREF}${ENDIP}]:22
+  for HOSTNB in `seq -w ${FIRST_HOSTNB} ${LAST_HOSTNB}` ; do
+    Ipv6 -A PREROUTING -t nat -j DNAT -i ${EXTIF} -p tcp --dport ${DPREFIX}$(printf "%03d" ${HOSTNB#0}) --to [${LOCIP6PREF}${HOSTNB}${LOCIP6SUFF}]:22
   done
 
-  Ipv4 -A FORWARD -j ACCEPT -p tcp -m iprange --dst-range ${LOCIP4PREF}${FIRST_ENDIP}-${LOCIP4PREF}${LAST_ENDIP} --dport 22
-  Ipv6 -A FORWARD -j ACCEPT -p tcp -m iprange --dst-range ${LOCIP6PREF}${FIRST_ENDIP}-${LOCIP6PREF}${LAST_ENDIP} --dport 22
+  Ipv4 -A FORWARD -j ACCEPT -p tcp -m iprange --dst-range ${LOCIP4PREF}${FIRST_HOSTNB}${LOCIP4SUFF}-${LOCIP4PREF}${LAST_HOSTNB}${LOCIP4SUFF} --dport 22
+  Ipv6 -A FORWARD -j ACCEPT -p tcp -m iprange --dst-range ${LOCIP6PREF}${FIRST_HOSTNB}${LOCIP6SUFF}-${LOCIP6PREF}${LAST_HOSTNB}${LOCIP6SUFF} --dport 22
 }
 
 OvhMonitoring () {
