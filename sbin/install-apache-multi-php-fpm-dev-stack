@@ -55,6 +55,7 @@ cp -r ${KCLIE_PATH}/etc/apache2/* /etc/apache2/
 a2enconf kclie-dev-multi-fpm.conf
 a2ensite 0000-kclie-dev-default.conf
 
+chmod ugo+x /home/${SUDO_USER}
 sudo -u ${SUDO_USER} mkdir -p /home/${SUDO_USER}/web/
 echo '<?php phpinfo();' | sudo -u ${SUDO_USER} tee -a /home/${SUDO_USER}/web/phpinfo.php
 chown ${SUDO_USER}:www-data /etc/apache2/sites-enabled
