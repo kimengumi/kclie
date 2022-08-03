@@ -64,7 +64,7 @@ for VP in 5.6 7.0 7.1 7.2 7.3 7.4 8.0 8.1
 do
   echo -e "\n\t# INSTALL PHP $VP\n"
   NP=`echo ${VP} | sed "s/\.//g"`
-  apt-get install -y php${VP}-fpm php${VP}-bcmath php${VP}-bz2 php${VP}-curl php${VP}-gd php${VP}-intl php${VP}-mbstring php${VP}-mysql php${VP}-soap php${VP}-readline php${VP}-xml php${VP}-zip
+  apt-get install -y php${VP}-fpm php${VP}-bcmath php${VP}-bz2 php${VP}-curl php${VP}-gd php${VP}-imagick php${VP}-intl php${VP}-mbstring php${VP}-mysql php${VP}-soap php${VP}-readline php${VP}-xml php${VP}-zip
   apt-get install -y php${VP}-mcrypt
   sed -i "s/user \= www-data/user \= ${SUDO_USER}/g" /etc/php/${VP}/fpm/pool.d/www.conf
   sed -i "s/pm.start_servers \= 2/pm.start_servers \= 1/g" /etc/php/${VP}/fpm/pool.d/www.conf
