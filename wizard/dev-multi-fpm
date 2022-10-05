@@ -1,0 +1,145 @@
+#!/bin/bash
+#
+# Kimengumi Command Line Interface Environnement
+#
+# Install & update a standardized Apache / MariaDb / multi-Php DEV stack using Ondrej PPA
+#
+# !!! WARNING !!!
+# The type of rules deployed by this wizard is for DEVELOPMENT environment only !
+# It is not suitable for production environment !
+#
+# NOTICE OF LICENSE
+#
+# Licensed under the EUPL, Version 1.1 or – as soon they will be approved by
+# the European Commission - subsequent versions of the EUPL (the "Licence");
+# You may not use this work except in compliance with the Licence.
+# You may obtain a copy of the Licence at:
+#
+# https://joinup.ec.europa.eu/software/page/eupl
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the Licence is distributed on an "AS IS" basis,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the Licence for the specific language governing permissions and
+# limitations under the Licence.
+#
+# @author Antonio Rossetti <antonio@kimengumi.fr>
+# @copyright Since 2009 Antonio Rossetti
+# @license <https://joinup.ec.europa.eu/software/page/eupl> EUPL
+
+head -n 10 $0 | tail -n 9
+
+# Check KCLIE env and load if necessary
+if [ "x${KCLIE_PATH}" = "x" ]; then
+    source $(dirname $0)/../env
+fi
+
+if [ ! -x /usr/bin/add-apt-repository ]; then
+    echo 'Current version is for Ubuntu only'
+    exit 1
+fi
+
+if [ "${SUDO_USER}x" = 'x' ] || [ "${SUDO_USER}x" = 'rootx' ]; then
+    echo 'This script is intented to be run in sudo from the dev user'
+    exit 1
+fi
+
+echo -e "\n# ADD PHP Ondrej PPA\n"
+
+#add-apt-repository -y ppa:ondrej/php
+
+echo -e "\n### INSTALL ###\n"
+
+# Detect available PHPs from fpm packages
+apt-cache --generate pkgnames >/tmp/pkgnames.list
+PHPS=$(awk -e 'match($0,/php([0-9]\.[0-9])-fpm/,r) {print r[1] }' /tmp/pkgnames.list | sort)
+
+# Install all usual mods available for all PHPs available
+rm -f /tmp/phpinstall.list
+for VP in ${PHPS}; do
+    for MOD in fpm bcmath bz2 curl gd imagick intl mbstring mcrypt mysql soap readline xml zip; do
+        echo php${VP}-${MOD} >>/tmp/phpinstall.list
+    done
+done
+
+# filter to avoid install of nonexistent modules on certain php versions
+grep -wFf /tmp/phpinstall.list /tmp/pkgnames.list | xargs apt install -qqy apache2 apache2-utils mariadb-server mariadb-client
+
+echo -e "\n#### CONFIG ###\n"
+echo -e "# CONFIG APACHE"
+
+# Apply kclie apache skeleton
+cp -r ${KCLIE_PATH}/etc/apache2/* /etc/apache2/
+PXXVCONF="/etc/apache2/sites-available/0010-kclie-dev-phpxx-localhost.conf"
+printf "\n\n# This file is auto-generated on each update on KCLIE dev-multi-fpm stack. Please do not modify\n\n" >${PXXVCONF}
+
+a2dissite 000-default
+a2dissite default-ssl
+a2enmod rewrite
+a2enmod headers
+a2enmod ssl
+a2enmod proxy_fcgi
+a2enmod autoindex
+a2enmod macro
+a2enconf kclie-dev-multi-fpm.conf
+a2ensite 0000-kclie-dev-default.conf
+a2ensite 0010-kclie-dev-phpxx-localhost.conf
+
+# Web root is current user home
+chmod ugo+x /home/${SUDO_USER}
+sudo -u ${SUDO_USER} mkdir -p /home/${SUDO_USER}/web/
+echo '<?php phpinfo();' >/home/${SUDO_USER}/web/phpinfo.php
+
+# Allow current user to directly write custom vhost
+chown ${SUDO_USER}:www-data /etc/apache2/sites-enabled
+
+# Config FPMs
+echo -e "# CONFIG PHP"
+for VP in ${PHPS}; do
+    echo -n "$VP  "
+
+    # in a local dev environment, php-fpm will run with the current user uid
+    sed -i "s/user \= www-data/user \= ${SUDO_USER}/g" /etc/php/${VP}/fpm/pool.d/www.conf
+    sed -i "s/pm.start_servers \= 2/pm.start_servers \= 1/g" /etc/php/${VP}/fpm/pool.d/www.conf
+    systemctl restart php${VP}-fpm
+
+    # generated default phpXX.localhost vhost foreach php version
+    NP=$(echo ${VP} | sed "s/\.//g")
+    echo "Use DevPhpFpmVhost ${VP} php${NP}.localhost /home/${SUDO_USER}/web/" >>${PXXVCONF}
+
+    # remove old style stack vhosts
+    rm -f /etc/apache2/sites-enabled/php${NP}.localhost.conf
+done
+
+echo -e "\n# CONFIG MARIADB"
+for LOCALHOST in "127.0.0.1" "::1" "localhost"; do
+    mysql -e "CREATE USER IF NOT EXISTS 'dev'@'${LOCALHOST}' IDENTIFIED BY 'dev'"
+    mysql -e "GRANT USAGE ON * . * TO 'dev'@'${LOCALHOST}'"
+    mysql -e "GRANT ALL PRIVILEGES ON \`dev\_%\` . * TO 'dev'@'${LOCALHOST}'"
+    mysql -e "GRANT TRIGGER ON \`dev\_%\` . * TO 'dev'@'${LOCALHOST}'"
+    mysql -e "GRANT ALL PRIVILEGES ON \`git\_%\` . * TO 'dev'@'${LOCALHOST}'"
+    mysql -e "GRANT TRIGGER ON \`git\_%\` . * TO 'dev'@'${LOCALHOST}'"
+    # Backwards compatibility of mysql_create_local_user
+    mysql -e "GRANT ALL PRIVILEGES ON \`${SUDO_USER}\_%\` . * TO 'dev'@'${LOCALHOST}'"
+    mysql -e "GRANT TRIGGER ON \`${SUDO_USER}\_%\` . * TO 'dev'@'${LOCALHOST}'"
+done
+mysql -e 'FLUSH PRIVILEGES'
+
+echo "[client]
+host     = localhost
+user     = dev
+password = dev" >/home/${SUDO_USER}/.my.cnf
+
+echo -e "\n#### RESTART STACK ###\n"
+systemctl restart apache2
+systemctl restart mysql
+rm /tmp/phpinstall.list /tmp/pkgnames.list
+
+echo -e "\n#### DONE ###\n\nAvailable local vhosts are:"
+for VP in ${PHPS}; do
+    echo "https://php$(echo ${VP} | sed "s/\.//g").localhost"
+done
+echo -e "\nAll pointing to : /home/${SUDO_USER}/web/\n"
+echo "Your local Mysql/MariaDb user is :"
+cat /home/${SUDO_USER}/.my.cnf
+echo -e "\nIt can access/manage any database prefixed by : \n-dev_*\n-git_*\n-${SUDO_USER}_*\n"
