@@ -1,59 +1,81 @@
 #!/usr/bin/php
-<?php
-$host  = isset($argv[1]) ? $argv[1] : null;
-$port  = isset($argv[2]) ? $argv[2] :11211;
-$limit = isset($argv[3]) ? $argv[3] :10000;
-$lookupKey = "";
-$time = time();
+<?php /*
+*
+* Kimengumi Command Line Interface Environnement (kclie)
+*
+* Licensed under the EUPL, Version 1.2 or – as soon they will be approved by
+* the European Commission - subsequent versions of the EUPL (the "Licence");
+* You may not use this work except in compliance with the Licence.
+* You may obtain a copy of the Licence at:
+*
+* https://joinup.ec.europa.eu/software/page/eupl
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the Licence is distributed on an "AS IS" basis,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the Licence for the specific language governing permissions and
+* limitations under the Licence.
+*
+* @author Antonio Rossetti <antonio@kimengumi.fr>
+* @copyright since 2009 Antonio Rossetti
+* @license <https://joinup.ec.europa.eu/software/page/eupl> EUPL
+*/
 
-if(!$host)
-	die("Utilisation : memcached-dump-keys [serveur] [port (def.11211)] [limite (dev.10000)]");
+$host      = isset( $argv[1] ) ? $argv[1] : null;
+$port      = isset( $argv[2] ) ? $argv[2] : 11211;
+$limit     = isset( $argv[3] ) ? $argv[3] : 10000;
+$lookupKey = "";
+$time      = time();
+
+if ( ! $host ) {
+	die( "Utilisation : memcached-dump-keys [serveur] [port (def.11211)] [limite (dev.10000)]" );
+}
 
 
 $memcache = new Memcache();
-$memcache->connect($host, $port) || die();
+$memcache->connect( $host, $port ) || die();
 
-$list = array();
-$allSlabs = $memcache->getExtendedStats('slabs');
-$items = $memcache->getExtendedStats('items');
+$list     = array();
+$allSlabs = $memcache->getExtendedStats( 'slabs' );
+$items    = $memcache->getExtendedStats( 'items' );
 
-foreach ($allSlabs as $server => $slabs) {
-    foreach ($slabs as $slabId => $slabMeta) {
-        if (!is_numeric($slabId)) {
-            continue;
-        }
-    
-        $cdump = $memcache->getExtendedStats('cachedump', (int)$slabId, $limit);
-        
-        foreach ($cdump as $server => $entries) {
-            if (!$entries) {
-                continue;
-            }
-            
-            foreach($entries as $eName => $eData) {
-                $list[$eName] = array(
-                    'key' => $eName,
-                    'slabId' => $slabId,
-                    'size' => $eData[0],
-                    'age' => $eData[1]
-                );
-            }
-        }
-    }
+foreach ( $allSlabs as $server => $slabs ) {
+	foreach ( $slabs as $slabId => $slabMeta ) {
+		if ( ! is_numeric( $slabId ) ) {
+			continue;
+		}
+
+		$cdump = $memcache->getExtendedStats( 'cachedump', (int) $slabId, $limit );
+
+		foreach ( $cdump as $server => $entries ) {
+			if ( ! $entries ) {
+				continue;
+			}
+
+			foreach ( $entries as $eName => $eData ) {
+				$list[ $eName ] = array(
+					'key'    => $eName,
+					'slabId' => $slabId,
+					'size'   => $eData[0],
+					'age'    => $eData[1]
+				);
+			}
+		}
+	}
 }
 
-ksort($list);
+ksort( $list );
 
-if (!empty($lookupKey)) {
-     echo "Searching for keys that contain: '{$lookupKey}'\n";
-     foreach ($list as $row) {
-        if (strpos($row['key'], $lookupKey) !== FALSE) {
-            echo "Key: {$row['key']}, size: {$row['size']}b, age: ", ($time - $row['age']), "s, slab id: {$row['slabId']}\n";
-        }
-     }
+if ( ! empty( $lookupKey ) ) {
+	echo "Searching for keys that contain: '{$lookupKey}'\n";
+	foreach ( $list as $row ) {
+		if ( strpos( $row['key'], $lookupKey ) !== false ) {
+			echo "Key: {$row['key']}, size: {$row['size']}b, age: ", ( $time - $row['age'] ), "s, slab id: {$row['slabId']}\n";
+		}
+	}
 } else {
-    echo "Printing out all keys\n";
-    foreach ($list as $row) {
-        echo "Key: {$row['key']}, size: {$row['size']}b, age: ", ($time - $row['age']), "s, slab id: {$row['slabId']}\n";
-    } 
+	echo "Printing out all keys\n";
+	foreach ( $list as $row ) {
+		echo "Key: {$row['key']}, size: {$row['size']}b, age: ", ( $time - $row['age'] ), "s, slab id: {$row['slabId']}\n";
+	}
 }

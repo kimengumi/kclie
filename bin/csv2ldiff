@@ -1,12 +1,10 @@
 #!/usr/bin/env php
-<?php /*
-* Kimengumi Command Line Interface Environnement
+<?php
+/*
 *
-* CSV to LDIF converter
+* Kimengumi Command Line Interface Environnement (kclie)
 *
-* Copyright 2017 Antonio Rossetti (https://www.kimengumi.fr)
-*
-* Licensed under the EUPL, Version 1.1 or – as soon they will be approved by
+* Licensed under the EUPL, Version 1.2 or – as soon they will be approved by
 * the European Commission - subsequent versions of the EUPL (the "Licence");
 * You may not use this work except in compliance with the Licence.
 * You may obtain a copy of the Licence at:
@@ -18,74 +16,93 @@
 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 * See the Licence for the specific language governing permissions and
 * limitations under the Licence.
+*
+* @author Antonio Rossetti <antonio@kimengumi.fr>
+* @copyright since 2009 Antonio Rossetti
+* @license <https://joinup.ec.europa.eu/software/page/eupl> EUPL
 */
 
-$requiredCsvFields=array('uid','firstname','lastname','mail');
-$optionalCsvFields=array('subDn1','subDn2');
+/*
+* CSV to LDIF converter
+*/
 
-if(count($argv)< 3)
-  die("\nUsage csv2ldif [csv file] [base dn] [csv separator (optional, default ';')]\n\n");
+$requiredCsvFields = array( 'uid', 'firstname', 'lastname', 'mail' );
+$optionalCsvFields = array( 'subDn1', 'subDn2' );
 
-$csvFile=$argv[1];
-$baseDn=$argv[2];
-$csvSeparator=isset($argv[3]) ? $argv[3] :";";
-$ldif = "";
-$ldifFile=preg_replace('/.csv$/','.ldif',$csvFile);
-
-if (($csvHandle = fopen($csvFile, "r")) === FALSE)
-  die("\nCan not open $csvFile\n");
-
-if (($ldifHandle = fopen($ldifFile, "w")) === FALSE)
-  die("\nCan not create $ldifFile\n");
-
-$csvHead = fgetcsv($csvHandle, 0, $csvSeparator);
-foreach($requiredCsvFields as $field)
-  if(!in_array($field,$csvHead))
-    die("\nError : minimal required fields in CSV file are :\n".implode("\n",$requiredCsvFields)."\n");
-
-while (($csvRow = fgetcsv($csvHandle, 0, $csvSeparator)) !== FALSE) {
-  $r=array_combine($csvHead,$csvRow);
-
-  $dn='dn: uid='.$r['uid'].',ou=people'.
-    ((isset($r['subDn2']) && $r['subDn2']) ? ',ou='.$r['subDn2'] : '').
-    ((isset($r['subDn1']) && $r['subDn1']) ? ',ou='.$r['subDn1'] : '').
-    ','.$baseDn;
-
-  $oc=array(
-    'objectClass: inetOrgPerson',
-    'objectClass: organizationalPerson',
-    'objectClass: person',
-    'objectClass: gosaMailAccount');
-
-  $dt=array(
-    'cn: '.$r['firstname'].' '.$r['lastname'],
-    'sn: '.$r['lastname'],
-    'givenName: '.$r['firstname'],
-    'uid: '.$r['uid'],
-    'mail: '.$r['mail'],
-    'gosaMailDeliveryMode: []');
-
-  // user have unix account
-  if(isset($r['uidNumber']) && isset($r['gidNumber']) && $r['uidNumber'] && $r['gidNumber']) {
-    $oc[]='objectClass: posixAccount';
-    $oc[]='objectClass: shadowAccount';
-    $dt[]='gecos: '.iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE',$r['firstname'].' '.$r['lastname']);
-    $dt[]='shadowLastChange: '.(int)(time()/60/60/24);
-    if(!isset($r['homeDirectory']) || !$r['homeDirectory'])
-      $dt[]='homeDirectory: /home/'.$r['uid'];
-    if(!isset($r['loginShell']) || !$r['loginShell'])
-      $dt[]='loginShell: /bin/zsh';
-  }
-
-  // generic write for other detected fields
-  foreach($r as $rKey => $rValue)
-    if($rValue && !in_array($rKey,$requiredCsvFields) && !in_array($rKey,$optionalCsvFields))
-      $dt[]=$rKey.': '.$rValue;
-
-  fwrite($ldifHandle,$dn."\n".implode("\n",$oc)."\n".implode("\n",$dt)."\n\n");
+if ( count( $argv ) < 3 ) {
+	die( "\nUsage csv2ldif [csv file] [base dn] [csv separator (optional, default ';')]\n\n" );
 }
 
-fclose($csvHandle);
-fclose($ldifHandle);
+$csvFile      = $argv[1];
+$baseDn       = $argv[2];
+$csvSeparator = isset( $argv[3] ) ? $argv[3] : ";";
+$ldif         = "";
+$ldifFile     = preg_replace( '/.csv$/', '.ldif', $csvFile );
+
+if ( ( $csvHandle = fopen( $csvFile, "r" ) ) === false ) {
+	die( "\nCan not open $csvFile\n" );
+}
+
+if ( ( $ldifHandle = fopen( $ldifFile, "w" ) ) === false ) {
+	die( "\nCan not create $ldifFile\n" );
+}
+
+$csvHead = fgetcsv( $csvHandle, 0, $csvSeparator );
+foreach ( $requiredCsvFields as $field ) {
+	if ( ! in_array( $field, $csvHead ) ) {
+		die( "\nError : minimal required fields in CSV file are :\n" . implode( "\n", $requiredCsvFields ) . "\n" );
+	}
+}
+
+while ( ( $csvRow = fgetcsv( $csvHandle, 0, $csvSeparator ) ) !== false ) {
+	$r = array_combine( $csvHead, $csvRow );
+
+	$dn = 'dn: uid=' . $r['uid'] . ',ou=people' .
+	      ( ( isset( $r['subDn2'] ) && $r['subDn2'] ) ? ',ou=' . $r['subDn2'] : '' ) .
+	      ( ( isset( $r['subDn1'] ) && $r['subDn1'] ) ? ',ou=' . $r['subDn1'] : '' ) .
+	      ',' . $baseDn;
+
+	$oc = array(
+		'objectClass: inetOrgPerson',
+		'objectClass: organizationalPerson',
+		'objectClass: person',
+		'objectClass: gosaMailAccount'
+	);
+
+	$dt = array(
+		'cn: ' . $r['firstname'] . ' ' . $r['lastname'],
+		'sn: ' . $r['lastname'],
+		'givenName: ' . $r['firstname'],
+		'uid: ' . $r['uid'],
+		'mail: ' . $r['mail'],
+		'gosaMailDeliveryMode: []'
+	);
+
+	// user have unix account
+	if ( isset( $r['uidNumber'] ) && isset( $r['gidNumber'] ) && $r['uidNumber'] && $r['gidNumber'] ) {
+		$oc[] = 'objectClass: posixAccount';
+		$oc[] = 'objectClass: shadowAccount';
+		$dt[] = 'gecos: ' . iconv( 'UTF-8', 'ASCII//TRANSLIT//IGNORE', $r['firstname'] . ' ' . $r['lastname'] );
+		$dt[] = 'shadowLastChange: ' . (int) ( time() / 60 / 60 / 24 );
+		if ( ! isset( $r['homeDirectory'] ) || ! $r['homeDirectory'] ) {
+			$dt[] = 'homeDirectory: /home/' . $r['uid'];
+		}
+		if ( ! isset( $r['loginShell'] ) || ! $r['loginShell'] ) {
+			$dt[] = 'loginShell: /bin/zsh';
+		}
+	}
+
+	// generic write for other detected fields
+	foreach ( $r as $rKey => $rValue ) {
+		if ( $rValue && ! in_array( $rKey, $requiredCsvFields ) && ! in_array( $rKey, $optionalCsvFields ) ) {
+			$dt[] = $rKey . ': ' . $rValue;
+		}
+	}
+
+	fwrite( $ldifHandle, $dn . "\n" . implode( "\n", $oc ) . "\n" . implode( "\n", $dt ) . "\n\n" );
+}
+
+fclose( $csvHandle );
+fclose( $ldifHandle );
 
 echo "Export $ldifFile Completed\n";

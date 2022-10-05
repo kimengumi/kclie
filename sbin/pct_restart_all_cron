@@ -1,15 +1,8 @@
 #!/bin/bash
 #
-# Kimengumi Command Line Interface Environnement
+# Kimengumi Command Line Interface Environnement (kclie)
 #
-# For some disapointing reasons cron don't start automaticaly on Proxmox.
-# LXC Container at startup. This is a quick an dirty script starting cron
-# service on all CT on the server. This is is intented to be added to
-# /etc/rc.local on the globale zone.
-#
-# Copyright 2017 Antonio Rossetti (https://www.kimengumi.fr)
-#
-# Licensed under the EUPL, Version 1.1 or – as soon they will be approved by
+# Licensed under the EUPL, Version 1.2 or – as soon they will be approved by
 # the European Commission - subsequent versions of the EUPL (the "Licence");
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at:
@@ -21,6 +14,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the Licence for the specific language governing permissions and
 # limitations under the Licence.
+#
+# @author Antonio Rossetti <antonio@kimengumi.fr>
+# @copyright since 2009 Antonio Rossetti
+# @license <https://joinup.ec.europa.eu/software/page/eupl> EUPL
+#
+
+#
+# For some reasons cron don't start automaticaly on Proxmox LXC Container at startup. This is a quick an dirty script starting
+# cron service on all CT on the server. This is is intented to be added to /etc/rc.local on the globale zone.
+#
 
 pctRestartAllCron() {
     if [ "x$1" != "xnosleep" ] ; then

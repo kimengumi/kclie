@@ -1,14 +1,33 @@
 #!/usr/bin/php
-<?php
-$host  = isset($argv[1]) ? $argv[1] : null;
-$port  = isset($argv[2]) ? $argv[2] :11211;
+<?php /*
+*
+* Kimengumi Command Line Interface Environnement (kclie)
+*
+* Licensed under the EUPL, Version 1.2 or – as soon they will be approved by
+* the European Commission - subsequent versions of the EUPL (the "Licence");
+* You may not use this work except in compliance with the Licence.
+* You may obtain a copy of the Licence at:
+*
+* https://joinup.ec.europa.eu/software/page/eupl
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the Licence is distributed on an "AS IS" basis,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the Licence for the specific language governing permissions and
+* limitations under the Licence.
+*
+* @author Antonio Rossetti <antonio@kimengumi.fr>
+* @copyright since 2009 Antonio Rossetti
+* @license <https://joinup.ec.europa.eu/software/page/eupl> EUPL
+*/
 
-if(!$host)
-	die("Utilisation : memcached-flush-all [serveur] [port (def.11211)]");
+$host = isset( $argv[1] ) ? $argv[1] : null;
+$port = isset( $argv[2] ) ? $argv[2] : 11211;
 
-
+if ( ! $host ) {
+	die( "Utilisation : memcached-flush-all [serveur] [port (def.11211)]" );
+}
 
 $m = new Memcache();
-$m->connect($host, $port) || die();
-echo $m->flush(0) ? "OK\n" : "KO\n";
-
+$m->connect( $host, $port ) || die();
+echo $m->flush( 0 ) ? "OK\n" : "KO\n";

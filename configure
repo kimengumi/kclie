@@ -1,12 +1,8 @@
 #!/bin/bash
 #
-# Kimengumi Command Line Interface Environnement
+# Kimengumi Command Line Interface Environnement (kclie)
 #
-# Install & configure / update utillity
-#
-# Copyright 2017 Antonio Rossetti (https://www.kimengumi.fr)
-#
-# Licensed under the EUPL, Version 1.1 or – as soon they will be approved by
+# Licensed under the EUPL, Version 1.2 or – as soon they will be approved by
 # the European Commission - subsequent versions of the EUPL (the "Licence");
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at:
@@ -18,6 +14,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the Licence for the specific language governing permissions and
 # limitations under the Licence.
+#
+# @author Antonio Rossetti <antonio@kimengumi.fr>
+# @copyright since 2009 Antonio Rossetti
+# @license <https://joinup.ec.europa.eu/software/page/eupl> EUPL
+#
+
+#
+# Install & configure / update utillity
+#
 
 WHITE="\033[1;97;49m"
 
@@ -137,7 +142,7 @@ echo -e "KCLIE directory is : ${SETUP_PATH}"
 echo -e "${WHITE}Configuring KCLIE ...\033[0m"
 if [ ! -e ${SETUP_PATH}/env ] ; then
   echo '#
-  # Kimengumi Command Line Interface Environnement
+  # Kimengumi Command Line Interface Environnement (kclie)
   #
   # Host configuration file
   #
@@ -214,7 +219,7 @@ if [ "x${SETUP_USERMODE}" = "xy" ] ; then
   for RC_BASH in ~/.profile ~/.bash_profile ~/.zshrc ; do
     if [ -w ${RC_BASH} ] && ! grep -q "\. ${SETUP_PATH}/env" ${RC_BASH} ; then
       echo ""  >> ${RC_BASH}
-      echo "# Kimengumi Command Line Interface Environnement"  >> ${RC_BASH}
+      echo "# Kimengumi Command Line Interface Environnement (kclie)"  >> ${RC_BASH}
       echo "set -a"  >> ${RC_BASH}
       echo ". ${SETUP_PATH}/env" >> ${RC_BASH}
       echo "set +a"  >> ${RC_BASH}
@@ -246,7 +251,7 @@ echo -e "${WHITE}Applying shells customizations ...\033[0m"
 for RC_BASH in /etc/bash.bashrc /etc/bashrc /etc/zsh/zshrc /etc/zshrc ; do
   if [ -w ${RC_BASH} ] && ! grep -q "\. ${SETUP_PATH}/etc/profile" ${RC_BASH} ; then
     echo ""  >> ${RC_BASH}
-    echo "# Kimengumi Command Line Interface Environnement"  >> ${RC_BASH}
+    echo "# Kimengumi Command Line Interface Environnement (kclie)"  >> ${RC_BASH}
     echo "set -a"  >> ${RC_BASH}
     echo ". ${SETUP_PATH}/env" >> ${RC_BASH}
     echo "set +a"  >> ${RC_BASH}

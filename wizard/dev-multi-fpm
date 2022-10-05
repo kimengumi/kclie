@@ -1,16 +1,8 @@
 #!/bin/bash
 #
-# Kimengumi Command Line Interface Environnement
+# Kimengumi Command Line Interface Environnement (kclie)
 #
-# Install & update a standardized Apache / MariaDb / multi-Php DEV stack using Ondrej PPA
-#
-# !!! WARNING !!!
-# The type of rules deployed by this wizard is for DEVELOPMENT environment only !
-# It is not suitable for production environment !
-#
-# NOTICE OF LICENSE
-#
-# Licensed under the EUPL, Version 1.1 or – as soon they will be approved by
+# Licensed under the EUPL, Version 1.2 or – as soon they will be approved by
 # the European Commission - subsequent versions of the EUPL (the "Licence");
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at:
@@ -24,10 +16,20 @@
 # limitations under the Licence.
 #
 # @author Antonio Rossetti <antonio@kimengumi.fr>
-# @copyright Since 2009 Antonio Rossetti
+# @copyright since 2009 Antonio Rossetti
 # @license <https://joinup.ec.europa.eu/software/page/eupl> EUPL
+#
 
-head -n 10 $0 | tail -n 9
+#
+# Install & update a standardized Apache / MariaDb / multi-Php DEV stack using Ondrej PPA
+#
+# !!! WARNING !!!
+# The type of rules deployed by this wizard is for DEVELOPMENT environment only !
+# It is not suitable for production environment !
+#
+
+# Splashscreen
+echo -e "\033[1;97;49m$(head -n 4 $0 | tail -n 3)\n#\twizard/$(basename "$0")\n$(head -n 29 $0 | tail -n 7)\033[0m\n"
 
 # Check KCLIE env and load if necessary
 if [ "x${KCLIE_PATH}" = "x" ]; then
@@ -46,7 +48,7 @@ fi
 
 echo -e "\n# ADD PHP Ondrej PPA\n"
 
-#add-apt-repository -y ppa:ondrej/php
+add-apt-repository -y ppa:ondrej/php
 
 echo -e "\n### INSTALL ###\n"
 
@@ -85,7 +87,7 @@ a2enconf kclie-dev-multi-fpm.conf
 a2ensite 0000-kclie-dev-default.conf
 a2ensite 0010-kclie-dev-phpxx-localhost.conf
 
-# Web root is current user home
+# Web root is in current user home
 chmod ugo+x /home/${SUDO_USER}
 sudo -u ${SUDO_USER} mkdir -p /home/${SUDO_USER}/web/
 echo '<?php phpinfo();' >/home/${SUDO_USER}/web/phpinfo.php
@@ -101,7 +103,6 @@ for VP in ${PHPS}; do
     # in a local dev environment, php-fpm will run with the current user uid
     sed -i "s/user \= www-data/user \= ${SUDO_USER}/g" /etc/php/${VP}/fpm/pool.d/www.conf
     sed -i "s/pm.start_servers \= 2/pm.start_servers \= 1/g" /etc/php/${VP}/fpm/pool.d/www.conf
-    systemctl restart php${VP}-fpm
 
     # generated default phpXX.localhost vhost foreach php version
     NP=$(echo ${VP} | sed "s/\.//g")
@@ -133,9 +134,14 @@ password = dev" >/home/${SUDO_USER}/.my.cnf
 echo -e "\n#### RESTART STACK ###\n"
 systemctl restart apache2
 systemctl restart mysql
+for VP in ${PHPS}; do
+    systemctl restart php${VP}-fpm
+done
+
+echo -e "\n#### DONE ###\n"
 rm /tmp/phpinstall.list /tmp/pkgnames.list
 
-echo -e "\n#### DONE ###\n\nAvailable local vhosts are:"
+echo -e "Available local vhosts are:"
 for VP in ${PHPS}; do
     echo "https://php$(echo ${VP} | sed "s/\.//g").localhost"
 done

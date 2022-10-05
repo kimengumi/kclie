@@ -1,12 +1,8 @@
 #!/bin/bash
 #
-# Kimengumi Command Line Interface Environnement
+# Kimengumi Command Line Interface Environnement (kclie)
 #
-# Cheack, repair and optimise all databases (depending of the sql user permissions)
-#
-# Copyright 2017 Antonio Rossetti (https://www.kimengumi.fr)
-#
-# Licensed under the EUPL, Version 1.1 or ?~@~S as soon they will be approved by
+# Licensed under the EUPL, Version 1.2 or – as soon they will be approved by
 # the European Commission - subsequent versions of the EUPL (the "Licence");
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at:
@@ -18,23 +14,30 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the Licence for the specific language governing permissions and
 # limitations under the Licence.
+#
+# @author Antonio Rossetti <antonio@kimengumi.fr>
+# @copyright since 2009 Antonio Rossetti
+# @license <https://joinup.ec.europa.eu/software/page/eupl> EUPL
+#
+
+#
+# Check, repair and optimise all databases (depending of the sql user permissions)
+#
 
 USER=""
-if [ -r /etc/mysql/debian.cnf ] ; then
-	USER="--defaults-extra-file=/etc/mysql/debian.cnf"
+if [ -r /etc/mysql/debian.cnf ]; then
+    USER="--defaults-extra-file=/etc/mysql/debian.cnf"
 fi
 
 #MyISAM tables
-for TABLE in $(mysql ${USER} -Bse 'SELECT CONCAT_WS("\`.\`",TABLE_SCHEMA,TABLE_NAME) FROM information_schema.TABLES WHERE ENGINE="MyISAM" AND TABLE_SCHEMA NOT IN ("information_schema","performance_schema")')
-do
-	mysql ${USER} -Bse "CHECK TABLE \`${TABLE}\`"
-	mysql ${USER} -Bse "REPAIR TABLE \`${TABLE}\`"
-	mysql ${USER} -Bse "OPTIMIZE TABLE \`${TABLE}\`"
+for TABLE in $(mysql ${USER} -Bse 'SELECT CONCAT_WS("\`.\`",TABLE_SCHEMA,TABLE_NAME) FROM information_schema.TABLES WHERE ENGINE="MyISAM" AND TABLE_SCHEMA NOT IN ("information_schema","performance_schema")'); do
+    mysql ${USER} -Bse "CHECK TABLE \`${TABLE}\`"
+    mysql ${USER} -Bse "REPAIR TABLE \`${TABLE}\`"
+    mysql ${USER} -Bse "OPTIMIZE TABLE \`${TABLE}\`"
 done
 
 #InnoDB tables
-for TABLE in $(mysql ${USER} -Bse 'SELECT CONCAT_WS("\`.\`",TABLE_SCHEMA,TABLE_NAME) FROM information_schema.TABLES WHERE ENGINE="InnoDB" AND TABLE_SCHEMA NOT IN ("information_schema","performance_schema")')
-do
-	mysql ${USER} -Bse "CHECK TABLE \`${TABLE}\`"
-	mysql ${USER} -Bse "ALTER TABLE \`${TABLE}\` ENGINE=INNODB"
+for TABLE in $(mysql ${USER} -Bse 'SELECT CONCAT_WS("\`.\`",TABLE_SCHEMA,TABLE_NAME) FROM information_schema.TABLES WHERE ENGINE="InnoDB" AND TABLE_SCHEMA NOT IN ("information_schema","performance_schema")'); do
+    mysql ${USER} -Bse "CHECK TABLE \`${TABLE}\`"
+    mysql ${USER} -Bse "ALTER TABLE \`${TABLE}\` ENGINE=INNODB"
 done

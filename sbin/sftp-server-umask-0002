@@ -1,3 +1,0 @@
-#!/bin/bash
-umask 0002 
-/usr/lib/openssh/sftp-server

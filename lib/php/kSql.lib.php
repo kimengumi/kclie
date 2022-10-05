@@ -1,13 +1,9 @@
 <?php
 /*
-* Kimengumi Command Line Interface Environnement
 *
-* Minimalistic SQL Library
-* mostly useful to quick write php CLI batchs.
+* Kimengumi Command Line Interface Environnement (kclie)
 *
-* Copyright 2021 Antonio Rossetti (https://www.kimengumi.fr)
-*
-* Licensed under the EUPL, Version 1.1 or – as soon they will be approved by
+* Licensed under the EUPL, Version 1.2 or – as soon they will be approved by
 * the European Commission - subsequent versions of the EUPL (the "Licence");
 * You may not use this work except in compliance with the Licence.
 * You may obtain a copy of the Licence at:
@@ -19,6 +15,14 @@
 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 * See the Licence for the specific language governing permissions and
 * limitations under the Licence.
+*
+* @author Antonio Rossetti <antonio@kimengumi.fr>
+* @copyright since 2009 Antonio Rossetti
+* @license <https://joinup.ec.europa.eu/software/page/eupl> EUPL
+*/
+
+/*
+* Minimalistic SQL Library, mostly useful to quick write php CLI batchs.
 */
 
 class kSql {
@@ -76,7 +80,7 @@ class kSql {
 		if ( is_bool( $res = self::$db->query( $query ) ) ) {
 			return $res ?? die( "SQL ERR " . self::$db->error . "\n" . $query . "\n" );
 		} else {
-			return $res->fetch_all(MYSQLI_ASSOC);
+			return $res->fetch_all( MYSQLI_ASSOC );
 		}
 
 
