@@ -1,34 +1,35 @@
 Kimengumi Command Line Interface Environnement (kclie)
 ===================
 
-KCLIE is a usefull command line environnement, tools & libraries.
+KCLIE is a useful command line environment, tools & libraries.
 
 It gives you :
 
- - A standardized Bash & Zsh teminial environnemt.
- - A set of additionnal users commands, increasing your efficiency.
- - A set of additionnal admin commands, simplifying your admin life.
- - A set of batch libraries for admins, allowing you standardize your scripts
+ - A standardized Bash & Zsh terminal environment.
+ - A set of additional users commands, increasing your efficiency.
+ - A set of additional admin commands, simplifying your admin life.
+ - A set of wizards, for faster & standardized deployments
+ - A set of batch libraries, for faster/reliable script writing
 
 Compatibility
 -------------
 
-Tested / used on :
+Best to use on active Debian or Ubuntu LTS releases
 
- - Debian (5+) / Ubuntu LTS (8.04+)
- - Red Hat Enterprise Linux (6+) / CentOS (5+)
- - Cygwin (1.7+) / Babun (1.2+) / WSL (Windows Subsystem for Linux)
- - Mac OSX (10.10+, excluding networking/firewalling scripts & libraries)
+But allow used _(with partial support)_ on :
+
+- Mac OSX
+- Red Hat Enterprise Linux / CentOS / Rocky Linux
+- WSL (Windows Subsystem for Linux)
+- Older releases
 
 Installation
 -------------
 
 ### for a whole system (all users)
 
-*as root*
-
-    git clone https://github.com/kimengumi/kclie.git /opt/kclie
-    /opt/kclie/configure
+    sudo git clone https://github.com/kimengumi/kclie.git /opt/kclie
+    sudo /opt/kclie/configure
 
 ### for a single user
 

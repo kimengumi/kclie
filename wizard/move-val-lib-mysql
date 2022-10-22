@@ -1,0 +1,100 @@
+#!/bin/bash
+#
+# Kimengumi Command Line Interface Environnement (kclie)
+#
+# Licensed under the EUPL, Version 1.2 or – as soon they will be approved by
+# the European Commission - subsequent versions of the EUPL (the "Licence");
+# You may not use this work except in compliance with the Licence.
+# You may obtain a copy of the Licence at:
+#
+# https://joinup.ec.europa.eu/software/page/eupl
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the Licence is distributed on an "AS IS" basis,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the Licence for the specific language governing permissions and
+# limitations under the Licence.
+#
+# @author Antonio Rossetti <antonio@kimengumi.fr>
+# @copyright since 2009 Antonio Rossetti
+# @license <https://joinup.ec.europa.eu/software/page/eupl> EUPL
+#
+
+#
+# Move MariaDb data dir to another location (default /home/mysql)
+# Update Apparamor / Systemd / Mariadb accordingly
+# Keep a symlink on /var/lib/mysql for tracking
+# Allow successive move to different locations.
+#
+
+# Splashscreen
+head -n 4 $0 | tail -n 3
+echo -e "#\twizard/$(basename "$0") [destination (optional)]"
+head -n 28 $0 | tail -n 6
+
+if [ "${USER}x" != 'rootx' ]; then
+    echo 'Must be run in root / sudo'
+    exit 1
+fi
+
+if [ ! -x "$(which systemctl)" ]; then
+    echo 'Missing Systemd'
+    exit 1
+fi
+
+LIB="/var/lib/mysql"
+SRC=${LIB}
+DEST="/home/mysql"
+
+if [ ! -e ${LIB} ]; then
+    echo "Missing ${LIB} !"
+    exit 1
+fi
+
+if [ -L ${LIB} ]; then
+    SRC=$(readlink -f ${SRC})
+    echo "Using previously moved data dir ${SRC}"
+    DEST=${SRC}
+fi
+
+if [ ! -d ${SRC} ]; then
+    echo "Missing ${SRC} real data dir !"
+    exit 1
+fi
+
+if [ "x$1" != "x" ]; then
+    DEST=$1
+fi
+
+if [ ${SRC} != ${DEST} ]; then
+    echo "New destination: ${DEST}"
+fi
+
+echo "Stop Mariadb"
+systemctl stop mariadb
+
+if [ ${SRC} != ${DEST} ] && [ -d ${SRC} ] && [ ! -d ${DEST} ]; then
+    echo "Moving data from ${SRC} to ${DEST}..."
+    mv ${SRC} ${DEST}
+    if [ -L ${LIB} ]; then
+        rm ${LIB}
+    fi
+    ln -s ${DEST} ${LIB}
+fi
+
+echo "Updating config ..."
+if [ -e /etc/apparmor.d/abstractions/mysql ]; then
+    sed -i "s#${SRC}#${DEST}#g; s#${LIB}#${DEST}#g" /etc/apparmor.d/abstractions/mysql
+fi
+if [ -e /etc/mysql/mariadb.conf.d/50-server.cnf ]; then
+    sed -i "s#${SRC}#${DEST}#g; #${LIB}#${DEST}#g" /etc/mysql/mariadb.conf.d/50-server.cnf
+fi
+if [ -e /usr/lib/systemd/system/mariadb.service ] && [[ ${DEST} == "/home/"* ]]; then
+    sed -i "s#ProtectHome=true#ProtectHome=false#g" /usr/lib/systemd/system/mariadb.service
+fi
+
+systemctl daemon-reload
+systemctl restart apparmor
+
+echo "Start Mariadb"
+systemctl start mariadb
