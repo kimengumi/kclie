@@ -85,8 +85,7 @@ BatchStart() {
     tee -a ${DEFAULT_LOG_DIR}/${SCRIPT_NAME}.log <${SHMDIR}/${SCRIPT_NAME}_$$_fifo_err &
     exec >>${DEFAULT_LOG_DIR}/${SCRIPT_NAME}.log 2>${SHMDIR}/${SCRIPT_NAME}_$$_fifo_err
     if [ "x${QUIET_TIMELOG}" = "x" ]; then
-        echo "============================================"
-        echo "## $(date +"%T ## %F") ## Start of ${SCRIPT_NAME} ##"
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] ## ${SCRIPT_NAME} START"
     fi
     BackupSetWeekDayFull 6 #saturday
 
@@ -96,7 +95,7 @@ BatchStart() {
 
 BatchEnd() {
     if [ "x${QUIET_TIMELOG}" = "x" ]; then
-        echo "## $(date +"%T ## %F") ## End of ${SCRIPT_NAME} ##"
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] ## ${SCRIPT_NAME} END"
     fi
     rm ${SHMDIR}/${SCRIPT_NAME}_$$_fifo_err
     export IFS=${IFS_STD}
@@ -104,7 +103,7 @@ BatchEnd() {
 
 BatchEcho() {
     if [ "x${QUIET_TIMELOG}" = "x" ]; then
-        echo "## $(date +"%T") ## $1 ##"
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] ${FUNCNAME[1]}: $@"
     else
         echo $1
     fi
@@ -182,20 +181,18 @@ ProxmoxDumpAll() {
 }
 
 BackupMysql() {
-    # backup all databases, and keep (or not) one month (or week) of old dumps
+    # backup all databases, and keep one full dump locally, naming dump filename rotation is weekly by default
     # usage : BackupMysql [none/week/month/year (optional, default week)] [none/gzip (optional, default gzip)] [REP(optional)]
 
     HIST="$1"
     COMPRESS="$2"
     REP="$3"
 
-    if [ -e /etc/mysql/debian.cnf ]; then
-        USER="--defaults-extra-file=/etc/mysql/debian.cnf"
-    elif [ -e ${HOME}/.my.cnf ]; then
-        USER="--defaults-extra-file=${HOME}/.my.cnf"
-    else
-        echo "No credentials found for mysql" >&2
-        return 5
+    EXTRAFILE=""
+    if [ -r /etc/mysql/debian.cnf ]; then
+        EXTRAFILE="--defaults-extra-file=/etc/mysql/debian.cnf"
+    elif [ -r ${HOME}/.my.cnf ]; then
+        EXTRAFILE="--defaults-extra-file=${HOME}/.my.cnf"
     fi
 
     if [ "x${HIST}" = "xnone" ]; then
@@ -211,32 +208,32 @@ BackupMysql() {
     if [ "x${REP}" = "x" ]; then
         REP="${DEFAULT_BACKUP_DIR}/mysql"
     fi
-    echo "Dumping in ${REP}"
+    BatchEcho "Dumping in ${REP}"
     if [ ! -d ${REP} ]; then
         mkdir -p ${REP} || return 4
     fi
 
     BatchEcho "Lock all tables of all databases"
-    mysql ${USER} -Bse "FLUSH TABLES WITH READ LOCK;"
+    mysql ${EXTRAFILE} -Bse "FLUSH TABLES WITH READ LOCK;"
 
-    for BASE in $(mysql ${USER} -Bse 'show databases'); do
+    for BASE in $(mysql ${EXTRAFILE} -Bse 'show databases'); do
         if [ "x${BASE}" != "xinformation_schema" ] && [ "x${BASE}" != "xperformance_schema" ]; then
             BatchEcho "Dumping database ${BASE}"
+            EXTRAOPTIONS=""
             if [ "x${BASE}" = "xmysql" ]; then
                 EXTRAOPTIONS="--events"
-            else
-                EXTRAOPTIONS=""
             fi
+            rm -f ${REP}/${BASE}*.sql*
             if [ "x${COMPRESS}" = "none" ]; then
-                mysqldump ${USER} --skip-lock-tables -f ${BASE} ${EXTRAOPTIONS} >${REP}/${BASE}${HIST}.sql
+                mysqldump ${EXTRAFILE} --skip-lock-tables -f ${BASE} ${EXTRAOPTIONS} >${REP}/${BASE}${HIST}.sql
             else
-                mysqldump ${USER} --skip-lock-tables -f ${BASE} ${EXTRAOPTIONS} | gzip -9f >${REP}/${BASE}${HIST}.sql.gz
+                mysqldump ${EXTRAFILE} --skip-lock-tables -f ${BASE} ${EXTRAOPTIONS} | gzip -9f >${REP}/${BASE}${HIST}.sql.gz
             fi
         fi
     done
 
     BatchEcho "Unlock tables"
-    mysql ${USER} -Bse "UNLOCK TABLES;"
+    mysql ${EXTRAFILE} -Bse "UNLOCK TABLES;"
 }
 
 BackupSetWeekDayFull() {
@@ -280,7 +277,7 @@ BackupRep() {
     if [ ! -d ${SNAPREP} ]; then
         mkdir -p ${SNAPREP} || return 4
     fi
-    if [ "x${REP}" = "x/etc" ] && [ -f /usr/bin/dpkg ]; then
+    if [ "x${REP}" = "x/etc" ] && [ -x /usr/bin/dpkg ]; then
         /usr/bin/dpkg --get-selections >/etc/apt/$(hostname -s).dpkg-get-selections
     fi
     if [ "x${REP}" = "x/" ]; then
@@ -295,7 +292,8 @@ BackupRep() {
         mkdir -p "${TAREP}" || return 4
     fi
     if [ "x${IS_FULL_DAY}" = "x1" ] && [ -e "${SNAPREP}/${NOM}.snapshot" ]; then
-        rm ${SNAPREP}/${NOM}.snapshot || return 3
+        rm -f ${SNAPREP}/${NOM}.snapshot || return 3
+        rm -r ${TAREP}/${NOM}*.tar*
     fi
     cd ${REP} || return 2
     EXCLUDE=""
@@ -396,15 +394,6 @@ SmartCheckDisk() {
 }
 
 Purge() {
-
-    if [ "x$1" = "x" ] || [ "x$2" = "x" ]; then
-        echo "Utilisation: Purge [nb-jours] [rep]"
-        return 1
-    fi
-
-    #Find created of modified files more than X days
-    find $2 -ctime +$1 -mtime +$1 -type f -exec rm {} \;
-
-    #Find empty directories, created of modified more than X days
-    find $2 -depth -type d -empty -ctime +$1 -mtime +$1 -exec rmdir {} \;
+    #Keep for retro-compatibility
+    ${KCLIE_PATH}/bin/clean "$@"
 }
