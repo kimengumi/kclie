@@ -75,6 +75,10 @@ cp -r ${KCLIE_PATH}/etc/apache2/* /etc/apache2/
 PXXVCONF="/etc/apache2/sites-available/0010-kclie-dev-phpxx-localhost.conf"
 printf "\n\n# This file is auto-generated on each update on KCLIE dev-multi-fpm stack. Please do not modify\n\n" >${PXXVCONF}
 
+if [ -e /etc/apache2/sites-available/0000-kclie-dev-default.conf ] ; then
+    a2dissite 0000-kclie-dev-default.conf
+    rm /etc/apache2/sites-available/0000-kclie-dev-default.conf
+fi
 a2dissite 000-default
 a2dissite default-ssl
 a2enmod rewrite
@@ -83,8 +87,9 @@ a2enmod ssl
 a2enmod proxy_fcgi
 a2enmod autoindex
 a2enmod macro
+a2enconf kclie-base.conf
 a2enconf kclie-dev-multi-fpm.conf
-a2ensite 0000-kclie-dev-default.conf
+a2ensite 0000-kclie-default.conf
 a2ensite 0010-kclie-dev-phpxx-localhost.conf
 
 # Web root is in current user home
