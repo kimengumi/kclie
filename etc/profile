@@ -64,9 +64,6 @@ else
 	fi
 fi
 
-# By default, any created files should be writable for group
-umask 0002
-
 # variables
 if [ -e /usr/bin/vim.nox ] ; then
 	export SVN_EDITOR=/usr/bin/vim.nox
