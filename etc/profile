@@ -113,4 +113,10 @@ if [ -d /etc/profile.d ]; then
   done
   unset i
 fi
+
+# include user's private .local/bin in PATH if it exists
+if [ -d "$HOME/.local/bin" ] ; then
+    PATH="$HOME/.local/bin:$PATH"
+fi
+
 # vim: set filetype=sh
