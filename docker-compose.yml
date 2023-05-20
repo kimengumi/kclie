@@ -1,0 +1,54 @@
+version: '3'
+
+services:
+    kclie-debian:
+        container_name: kclie-debian
+        image: debian:latest
+        stdin_open: true
+        tty: true
+        volumes:
+            -   type: bind
+                source: ./
+                target: /opt/kclie
+            - debian-cache:/var/cache
+        command: >
+            bash -c "
+              export DEBIAN_FRONTEND=noninteractive;
+              ln -fs /usr/share/zoneinfo/Europe/Paris /etc/localtime;
+              apt update;
+              apt install -y gawk git procps sudo tzdata zsh;
+              dpkg-reconfigure --frontend noninteractive tzdata;
+              git config --global pull.rebase false ;
+              groupadd user;
+              useradd -g user -G sudo -s /usr/bin/zsh -m user;
+              (echo "user:user" | chpasswd);
+              /opt/kclie/configure;
+              (echo "motd" | sudo -u user tee /home/user/.zshrc)
+              su --login user"
+    kclie-ubuntu:
+        container_name: kclie-ubuntu
+        image: ubuntu:latest
+        stdin_open: true
+        tty: true
+        volumes:
+            -   type: bind
+                source: ./
+                target: /opt/kclie
+            - ubuntu-cache:/var/cache
+        command: >
+            bash -c "
+              export DEBIAN_FRONTEND=noninteractive;
+              ln -fs /usr/share/zoneinfo/Europe/Paris /etc/localtime;
+              apt update;
+              apt install -y dialog gawk git procps sudo software-properties-common tzdata zsh;
+              dpkg-reconfigure --frontend noninteractive tzdata;
+              git config --global pull.rebase false ;
+              groupadd user;
+              useradd -g user -G sudo -s /usr/bin/zsh -m user;
+              (echo "user:user" | chpasswd);
+              /opt/kclie/configure;
+              (echo "motd" | sudo -u user tee /home/user/.zshrc)
+              su --login user"
+volumes:
+    debian-cache:
+    ubuntu-cache:

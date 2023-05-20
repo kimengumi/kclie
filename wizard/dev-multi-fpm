@@ -48,16 +48,18 @@ fi
 
 echo -e "\n# ADD PHP Ondrej PPA\n"
 
+export DEBIAN_FRONTEND=noninteractive
 add-apt-repository -y ppa:ondrej/php
+apt-get update -y
 
 echo -e "\n### INSTALL ###\n"
 
 # Detect available PHPs from fpm packages
 apt-cache --generate pkgnames >/tmp/pkgnames.list
-PHPS=$(awk -e 'match($0,/php([0-9]\.[0-9])-fpm/,r) {print r[1] }' /tmp/pkgnames.list | sort)
+PHPS=$(gawk -e 'match($0,/php([0-9]\.[0-9])-fpm/,r) {print r[1] }' /tmp/pkgnames.list | sort)
 
 # Install all usual mods available for all PHPs available
-rm -f /tmp/phpinstall.list
+rm -f /tmp/phpinstall.list 2> /dev/null
 for VP in ${PHPS}; do
     for MOD in fpm bcmath bz2 curl gd imagick intl mbstring mcrypt mysql soap readline xml zip; do
         echo php${VP}-${MOD} >>/tmp/phpinstall.list
@@ -137,10 +139,10 @@ user     = dev
 password = dev" >/home/${SUDO_USER}/.my.cnf
 
 echo -e "\n#### RESTART STACK ###\n"
-systemctl restart apache2
-systemctl restart mysql
+systemctl restart apache2 || service apache2 restart
+systemctl restart mysql || service mariadb restart
 for VP in ${PHPS}; do
-    systemctl restart php${VP}-fpm
+    systemctl restart php${VP}-fpm || service php${VP}-fpm  restart
 done
 
 echo -e "\n#### DONE ###\n"
