@@ -15,7 +15,7 @@
 # See the Licence for the specific language governing permissions and
 # limitations under the Licence.
 #
-# @author Antonio Rossetti <antonio@kimengumi.fr>
+# @author Antonio Rossetti <antonio@rossetti.fr>
 # @copyright since 2009 Antonio Rossetti
 # @license <https://joinup.ec.europa.eu/software/page/eupl> EUPL
 #
@@ -36,11 +36,6 @@ if [ "x${KCLIE_PATH}" = "x" ]; then
     source $(dirname $0)/../env
 fi
 
-if [ ! -x /usr/bin/add-apt-repository ]; then
-    echo 'Current version is for Ubuntu only'
-    exit 1
-fi
-
 if [ "${SUDO_USER}x" = 'x' ] || [ "${SUDO_USER}x" = 'rootx' ]; then
     echo 'This script is intented to be run in sudo from the dev user'
     exit 1
@@ -49,8 +44,18 @@ fi
 echo -e "\n# ADD PHP Ondrej PPA\n"
 
 export DEBIAN_FRONTEND=noninteractive
-add-apt-repository -y ppa:ondrej/php
-apt-get update -y
+if [ -x /usr/bin/add-apt-repository ]; then
+    add-apt-repository -y ppa:ondrej/php
+    apt-get update -y
+else
+    apt-get -y install apt-transport-https lsb-release ca-certificates
+    wget -O /etc/apt/trusted.gpg.d/php.gpg https://packages.sury.org/php/apt.gpg
+    echo "deb https://packages.sury.org/php/ $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/php.list
+    apt-get update
+fi
+
+
+
 
 echo -e "\n### INSTALL ###\n"
 

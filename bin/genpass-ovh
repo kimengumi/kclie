@@ -15,9 +15,13 @@
 # See the Licence for the specific language governing permissions and
 # limitations under the Licence.
 #
-# @author Antonio Rossetti <antonio@kimengumi.fr>
+# @author Antonio Rossetti <antonio@rossetti.fr>
 # @copyright since 2009 Antonio Rossetti
 # @license <https://joinup.ec.europa.eu/software/page/eupl> EUPL
+#
+
+#
+# alternate version of genpass following OVH password creation rules
 #
 
 my $password;
