@@ -1,0 +1,69 @@
+#!/bin/bash
+#
+# Kimengumi Command Line Interface Environnement (kclie)
+#
+# Licensed under the EUPL, Version 1.2 or – as soon they will be approved by
+# the European Commission - subsequent versions of the EUPL (the "Licence");
+# You may not use this work except in compliance with the Licence.
+# You may obtain a copy of the Licence at:
+#
+# https://joinup.ec.europa.eu/software/page/eupl
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the Licence is distributed on an "AS IS" basis,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the Licence for the specific language governing permissions and
+# limitations under the Licence.
+#
+# @author Antonio Rossetti <antonio@rossetti.fr>
+# @copyright since 2009 Antonio Rossetti
+# @license <https://joinup.ec.europa.eu/software/page/eupl> EUPL
+#
+
+#
+# convert all images from a source directory to a destination directory :
+# - recursively
+# - Copy non-images files in the destination dir.
+# - will not overwrite existing files in the destination dir.
+#
+
+if [ ! -x "$(which convert)" ]; then
+    echo 'Missing convert (imagemagick)'
+    exit 1
+fi
+
+if [ ! -d "$1" ] || [ ! -d "$2" ]; then
+    echo 'Invalid source dir'
+    echo 'Usage: convert_recursive [SRC-DIR] [DST-DIR] [convert output-options]'
+    exit 1
+fi
+SRC_DIR=$1
+DST_DIR=$2
+
+(
+    cd ${SRC_DIR}
+    find . -type f
+) | while read REL_FILE; do
+
+    SRC_FILE="${SRC_DIR}/${REL_FILE}"
+    DST_FILE="${DST_DIR}/${REL_FILE}"
+
+    if [ -e ${DST_FILE} ]; then
+        echo "skip ${REL_FILE}"
+    else
+
+        REL_DIR=$(dirname ${DST_FILE})
+        if [ ! -d ${REL_DIR} ]; then
+            mkdir -p ${REL_DIR}
+        fi
+
+        MIME_TYPE=$(file -b --mime-type "${SRC_FILE}")
+        if [[ "${MIME_TYPE}" == image/* ]]; then
+            echo "conv ${REL_FILE}"
+            convert ${SRC_FILE} "${@:3}" ${DST_FILE}
+        else
+            echo "copy ${REL_FILE}"
+            cp -p ${SRC_FILE} ${DST_FILE}
+        fi
+    fi
+done
