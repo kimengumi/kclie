@@ -23,21 +23,22 @@
 # THIS FILE IS MANAGED/UPDATED BY WIZARD DEPLOYMENT. PLEASE DO NOT MODIFY.
 #
 
-<VirtualHost _default_:80>
-    DocumentRoot /var/www/html
-    CustomLog ${APACHE_LOG_DIR}/access.log combined
-    ErrorLog ${APACHE_LOG_DIR}/error.log
-    LogLevel warn
-</VirtualHost>
-<Virtualhost _default_:443>
-    DocumentRoot /var/www/html
-    CustomLog ${APACHE_LOG_DIR}/access.ssl.log combined
-    ErrorLog ${APACHE_LOG_DIR}/error.ssl.log
-    LogLevel warn
-    Use SnakeSsl
-</VirtualHost>
-<Directory /var/www/html/>
-    Options -Indexes -MultiViews
-    AllowOverride None
-    Require all granted
-</Directory>
+[client]
+default-character-set = utf8mb4
+
+[mysql]
+default-character-set = utf8mb4
+
+[mysqld]
+skip-name-resolve
+max_connections = 2048
+local_infile = 0
+log_error = /var/log/mysql/error.log
+
+# buffers & caches
+innodb_buffer_pool_size = 256M
+query_cache_limit = 16M
+query_cache_size = 256M
+read_buffer_size = 512K
+read_rnd_buffer_size = 4M
+sort_buffer_size = 64M

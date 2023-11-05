@@ -1,0 +1,210 @@
+#!/bin/bash
+#
+# Kimengumi Command Line Interface Environnement (kclie)
+#
+# Licensed under the EUPL, Version 1.2 or – as soon they will be approved by
+# the European Commission - subsequent versions of the EUPL (the "Licence");
+# You may not use this work except in compliance with the Licence.
+# You may obtain a copy of the Licence at:
+#
+# https://joinup.ec.europa.eu/software/page/eupl
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the Licence is distributed on an "AS IS" basis,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the Licence for the specific language governing permissions and
+# limitations under the Licence.
+#
+# @author Antonio Rossetti <antonio@rossetti.fr>
+# @copyright since 2009 Antonio Rossetti
+# @license <https://joinup.ec.europa.eu/software/page/eupl> EUPL
+#
+
+#
+# Configure a given APACHE2 vhost with it's specific PHP-FPM attached pool
+#
+#
+#
+#
+#
+
+# Splashscreen
+echo -e "\033[1;97;49m$(head -n 4 $0 | tail -n 3)\n#\twizard/$(basename "$0")\n$(head -n 29 $0 | tail -n 7)\033[0m\n"
+
+if [ "${USER}x" != 'rootx' ]; then
+    echo 'Must be run in root / sudo'
+    exit 1
+fi
+
+# Check KCLIE env and load if necessary
+if [ "x${KCLIE_PATHA}" = "x" ]; then
+    source $(dirname $0)/../env || ( echo 'KCLIE not configured' ; exit 2 )
+fi
+
+if [ "x$1" != "x" ] ; then
+    VHOST_USER=$1
+else
+    echo 'User (user/group will be owner of the vhost directory) :'
+    read VHOST_USER
+fi
+
+if [ "x$2" != "x" ] ; then
+    VHOST_GROUP=$2
+else
+    echo 'Group (www-data/group will run php-fpm) :'
+    read VHOST_GROUP
+fi
+
+if [ "x$3" != "x" ] ; then
+    VHOST_NAME=$3
+else
+    echo 'ServerName (will also determine directory) :'
+    read VHOST_NAME
+fi
+
+if [ "x$4" != "x" ] ; then
+        PHP_VER=$4
+else
+    echo 'PHP Version (x.y) :'
+    read PHP_VER
+fi
+
+echo -e "\n####### Global setup init/update #######\n"
+
+export DEBIAN_FRONTEND=noninteractive
+
+# MARIADB
+echo -e "Add/Update MariaDB global config ...\n"
+if [ ! -e /etc/mysql/mariadb.conf.d ] ; then
+    apt install -qqy mariadb-server mariadb-client
+    systemctl start mariadb || service mariadb start
+fi
+cp -r ${KCLIE_PATH}/etc/mysql/* /etc/mysql/
+
+# APACHE
+echo -e "Add/Update Apache2 global config ...\n"
+if [ ! -e /etc/apache2 ] ; then
+    apt install -qqy apache2 apache2-utils
+    systemctl start apache2 || service apache2 start
+fi
+sed -i "s#ServerSignature On#ServerSignature Off#g"  /etc/apache2/conf-available/security.conf
+sed -i "s#ServerTokens OS#ServerTokens Prod#g"  /etc/apache2/conf-available/security.conf
+cp -r ${KCLIE_PATH}/etc/apache2/* /etc/apache2/
+a2dismod autoindex -f
+a2dissite 000-default
+a2enmod deflate expires headers http2 macro proxy_fcgi rewrite ssl
+a2enconf kclie-base kclie-prod-multi-fpm
+a2ensite 0000-kclie-default
+if [ ! -e /var/www/html/index.html ] || grep -q 'Default Page: It works' /var/www/html/index.html ; then
+    # on default vhost, silence is golden (but don't override custom pages if exist)
+    echo "<html></html>" >  /var/www/html/index.html
+fi
+if [ ! -e /var/www/html/robots.txt ] ; then
+    echo -e "User-Agent: *\nDisallow: /" >  /var/www/html/robots.txt
+fi
+
+# PHP
+if [ ! -e /etc/systemd/system/php${PHP_VER}-fpm.service.d/kclie-umask.conf ] ; then
+
+    echo -e "\nAdd/Update Ondrej PPA ...\n"
+    if [ -x /usr/bin/add-apt-repository ]; then
+        add-apt-repository -y ppa:ondrej/php
+    elif [ ! -e /etc/apt/trusted.gpg.d/php.gpg ]; then
+        apt install -qqy apt-transport-https lsb-release ca-certificates
+        wget -O /etc/apt/trusted.gpg.d/php.gpg https://packages.sury.org/php/apt.gpg
+        echo "deb https://packages.sury.org/php/ $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/php.list
+    fi
+    apt update -qqy
+
+    echo -e "\nAdd/Configure PHP ${PHP_VER} ...\n"
+    # Get all usual mods
+    rm -f /tmp/phpinstall.list 2> /dev/null
+    for MOD in fpm bcmath bz2 curl gd imagick intl memcache memcached mbstring mcrypt mysql opcache redis readline soap xml zip; do
+        echo php${PHP_VER}-${MOD} >>/tmp/phpinstall.list
+    done
+    # filter to avoid install of nonexistent modules on certain php versions
+    apt-cache --generate pkgnames >/tmp/pkgnames.list
+    grep -wFf /tmp/phpinstall.list /tmp/pkgnames.list | xargs apt install -qqy
+    # Start PHP with 0002 default umask
+    mkdir -p /etc/systemd/system/php${PHP_VER}-fpm.service.d
+    echo -e "[Service]\nUMask=0002" > /etc/systemd/system/php${PHP_VER}-fpm.service.d/kclie-umask.conf
+
+    systemctl start php${PHP_VER}-fpm || service php${PHP_VER}-fpm start
+fi
+
+echo -e "\n####### User setup #######\n"
+
+if ! getent group ${VHOST_GROUP} >/dev/null 2>&1; then
+    echo -e "Create group ${VHOST_GROUP}"
+    groupadd ${VHOST_GROUP}
+fi
+
+if ! getent passwd ${VHOST_USER} >/dev/null 2>&1; then
+    echo -e "Create user ${VHOST_USER}"
+    if [ -e /bin/zsh ] ; then
+        useradd -g ${VHOST_GROUP} -s /bin/zsh -m ${VHOST_USER}
+    else
+        useradd -g ${VHOST_GROUP} -s /bin/bash -m ${VHOST_USER}
+    fi
+fi
+
+echo -e "\n####### Vhost setup #######\n"
+
+echo -e "Create vhost dir & config files"
+sudo -u ${VHOST_USER} mkdir -m 775 -p /home/${VHOST_USER}/web/${VHOST_NAME}/{www,var/tmp}
+
+TMP_FPM_CONF="/tmp/${VHOST_NAME}.php-${PHP_VER}-fpm.conf"
+VHOST_FPM_CONF=" /etc/php/${PHP_VER}/fpm/pool.d/${VHOST_NAME}.conf"
+echo "[${VHOST_NAME}]
+
+user = www-data
+group = ${VHOST_GROUP}
+
+listen = /run/php/${VHOST_NAME}.sock
+listen.owner = www-data
+listen.group = www-data
+
+pm = dynamic
+pm.max_children = 5
+pm.start_servers = 1
+pm.min_spare_servers = 1
+pm.max_spare_servers = 3
+
+php_admin_value[open_basedir]=/home/${VHOST_USER}/web/${VHOST_NAME}/
+php_admin_value[upload_tmp_dir]=/home/${VHOST_USER}/web/${VHOST_NAME}/var/tmp
+php_admin_value[sys_temp_dir]=/home/${VHOST_USER}/web/${VHOST_NAME}/var/tmp" > ${TMP_FPM_CONF}
+
+if [ -e ${VHOST_FPM_CONF} ] && ! cmp -s ${TMP_FPM_CONF} ${VHOST_FPM_CONF} ; then
+    echo -e "\n!!! ${VHOST_FPM_CONF} already exists, not applying config !!!!\n"
+    echo diff ${TMP_FPM_CONF} ${VHOST_FPM_CONF}
+    diff ${TMP_FPM_CONF} ${VHOST_FPM_CONF}
+    echo -e "\nThe new file is available in ${TMP_FPM_CONF} for manual merge\n"
+else
+    mv ${TMP_FPM_CONF} ${VHOST_FPM_CONF}
+    echo ${VHOST_FPM_CONF}
+fi
+
+TMP_APACHE_CONF="/tmp/${VHOST_NAME}.apache.conf"
+VHOST_APACHE_CONF=" /etc/apache2/sites-available/${VHOST_NAME}.conf"
+echo "<Virtualhost *:80>
+        Use RedirHttpBase ${VHOST_NAME}
+</VirtualHost>
+<Virtualhost *:443>
+        Use PhpFpmSslBase ${VHOST_NAME} ${VHOST_USER}
+</VirtualHost>" > ${TMP_APACHE_CONF}
+
+if [ -e ${VHOST_APACHE_CONF} ] && ! cmp -s ${TMP_APACHE_CONF} ${VHOST_APACHE_CONF} ; then
+    echo -e "\n!!! ${VHOST_APACHE_CONF} already exists, not applying config !!!!\n"
+    echo diff ${TMP_APACHE_CONF} ${VHOST_APACHE_CONF}
+    diff ${TMP_APACHE_CONF} ${VHOST_APACHE_CONF}
+    echo -e "\nThe new file is available in ${TMP_APACHE_CONF} for manual merge\n"
+else
+    mv ${TMP_APACHE_CONF} ${VHOST_APACHE_CONF}
+    echo ${VHOST_APACHE_CONF}
+    a2ensite ${VHOST_NAME}
+fi
+
+echo -e "\nReload Php / Apache / MariaDB configuraion ...\n"
+systemctl reload php${PHP_VER}-fpm || service php${PHP_VER}-fpm reload
+systemctl reload apache2 || service apache2 reload
+systemctl reload mysql || service mariadb reload

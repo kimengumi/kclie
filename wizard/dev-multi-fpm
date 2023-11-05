@@ -66,7 +66,7 @@ PHPS=$(gawk -e 'match($0,/php([0-9]\.[0-9])-fpm/,r) {print r[1] }' /tmp/pkgnames
 # Install all usual mods available for all PHPs available
 rm -f /tmp/phpinstall.list 2> /dev/null
 for VP in ${PHPS}; do
-    for MOD in fpm bcmath bz2 curl gd imagick intl mbstring mcrypt mysql soap readline xml zip; do
+    for MOD in fpm bcmath bz2 curl gd imagick intl memcache memcached mbstring mcrypt mysql opcache redis readline soap xml zip; do
         echo php${VP}-${MOD} >>/tmp/phpinstall.list
     done
 done
