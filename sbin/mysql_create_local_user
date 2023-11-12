@@ -34,7 +34,12 @@ else
     read USER
 fi
 
-read -p "Do You want to generate a password ? [Y/n] : " GENPASS
+if [ "x$2" != "xnoninteractive" ]; then
+    read -p "D You want to generate a password ? [Y/n] : " GENPASS
+else
+    GENPASS='y'
+fi
+
 if [ "x${GENPASS}" = "xn" ]; then
     echo -e "User password :"
     read PASS
@@ -58,7 +63,11 @@ done
 
 echo "Account created
 "
-read -p "Do You want to create /home/${USER}/.my.cnf ? [y/N] : " MYCNF
+if [ "x$2" != "xnoninteractive" ]; then
+    read -p "Do You want to create /home/${USER}/.my.cnf ? [y/N] : " MYCNF
+else
+    MYCNF="y"
+fi
 
 if [ "x${MYCNF}" = "xy" ]; then
     echo "[client]

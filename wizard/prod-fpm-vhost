@@ -29,7 +29,7 @@
 #
 
 # Splashscreen
-echo -e "\033[1;97;49m$(head -n 4 $0 | tail -n 3)\n#\twizard/$(basename "$0")\n$(head -n 29 $0 | tail -n 7)\033[0m\n"
+echo -e "\033[1;34m$(head -n 4 $0 | tail -n 3)\n#\twizard/$(basename "$0")\n$(head -n 29 $0 | tail -n 7)\033[0m\n"
 
 if [ "${USER}x" != 'rootx' ]; then
     echo 'Must be run in root / sudo'
@@ -69,23 +69,32 @@ else
     read PHP_VER
 fi
 
-echo -e "\n####### Global setup init/update #######\n"
+C_GRE='\033[0;92m'
+C_RED='\033[0;91m'
+C_YEL='\033[0;93m'
+C_OFF='\033[0m'
+
+echo -e "\n${C_GRE}####### Global init/update${C_OFF}\n"
 
 export DEBIAN_FRONTEND=noninteractive
 
 # MARIADB
-echo -e "Add/Update MariaDB global config ...\n"
+echo -e "${C_GRE}Add/Update MariaDB global config${C_OFF}\n"
 if [ ! -e /etc/mysql/mariadb.conf.d ] ; then
     apt install -qqy mariadb-server mariadb-client
     systemctl start mariadb || service mariadb start
+else
+    echo "MariaDB already installed"
 fi
 cp -r ${KCLIE_PATH}/etc/mysql/* /etc/mysql/
 
 # APACHE
-echo -e "Add/Update Apache2 global config ...\n"
+echo -e "\n${C_GRE}Add/Update Apache2 global config${C_OFF}\n"
 if [ ! -e /etc/apache2 ] ; then
     apt install -qqy apache2 apache2-utils
     systemctl start apache2 || service apache2 start
+else
+    echo "Apache2 already installed"
 fi
 sed -i "s#ServerSignature On#ServerSignature Off#g"  /etc/apache2/conf-available/security.conf
 sed -i "s#ServerTokens OS#ServerTokens Prod#g"  /etc/apache2/conf-available/security.conf
@@ -97,16 +106,16 @@ a2enconf kclie-base kclie-prod-multi-fpm
 a2ensite 0000-kclie-default
 if [ ! -e /var/www/html/index.html ] || grep -q 'Default Page: It works' /var/www/html/index.html ; then
     # on default vhost, silence is golden (but don't override custom pages if exist)
-    echo "<html></html>" >  /var/www/html/index.html
+    echo "<html></html>" > /var/www/html/index.html
 fi
 if [ ! -e /var/www/html/robots.txt ] ; then
-    echo -e "User-Agent: *\nDisallow: /" >  /var/www/html/robots.txt
+    echo -e "User-Agent: *\nDisallow: /" > /var/www/html/robots.txt
 fi
 
 # PHP
 if [ ! -e /etc/systemd/system/php${PHP_VER}-fpm.service.d/kclie-umask.conf ] ; then
 
-    echo -e "\nAdd/Update Ondrej PPA ...\n"
+    echo -e "\n${C_GRE}Add/Update Ondrej PPA${C_OFF}\n"
     if [ -x /usr/bin/add-apt-repository ]; then
         add-apt-repository -y ppa:ondrej/php
     elif [ ! -e /etc/apt/trusted.gpg.d/php.gpg ]; then
@@ -116,45 +125,69 @@ if [ ! -e /etc/systemd/system/php${PHP_VER}-fpm.service.d/kclie-umask.conf ] ; t
     fi
     apt update -qqy
 
-    echo -e "\nAdd/Configure PHP ${PHP_VER} ...\n"
+    echo -e "\n${C_GRE}Add/Configure PHP ${PHP_VER}${C_OFF}\n"
+
     # Get all usual mods
     rm -f /tmp/phpinstall.list 2> /dev/null
     for MOD in fpm bcmath bz2 curl gd imagick intl memcache memcached mbstring mcrypt mysql opcache redis readline soap xml zip; do
         echo php${PHP_VER}-${MOD} >>/tmp/phpinstall.list
     done
+
     # filter to avoid install of nonexistent modules on certain php versions
     apt-cache --generate pkgnames >/tmp/pkgnames.list
     grep -wFf /tmp/phpinstall.list /tmp/pkgnames.list | xargs apt install -qqy
+
     # Start PHP with 0002 default umask
     mkdir -p /etc/systemd/system/php${PHP_VER}-fpm.service.d
     echo -e "[Service]\nUMask=0002" > /etc/systemd/system/php${PHP_VER}-fpm.service.d/kclie-umask.conf
-
+    systemctl daemon-reload
     systemctl start php${PHP_VER}-fpm || service php${PHP_VER}-fpm start
+else
+    echo -e "\nPHP-FPM ${PHP_VER} already available"
 fi
 
-echo -e "\n####### User setup #######\n"
+echo -e "\n${C_GRE}####### Vhost init/update${C_OFF}\n"
 
+# Group
 if ! getent group ${VHOST_GROUP} >/dev/null 2>&1; then
-    echo -e "Create group ${VHOST_GROUP}"
+    echo -e "${C_GRE}Create group ${VHOST_GROUP}${C_OFF}"
     groupadd ${VHOST_GROUP}
+else
+    echo "Group ${VHOST_GROUP} already exists"
 fi
 
+# User
 if ! getent passwd ${VHOST_USER} >/dev/null 2>&1; then
-    echo -e "Create user ${VHOST_USER}"
+    echo -e "${C_GRE}Create user ${VHOST_USER}${C_OFF}"
     if [ -e /bin/zsh ] ; then
         useradd -g ${VHOST_GROUP} -s /bin/zsh -m ${VHOST_USER}
     else
         useradd -g ${VHOST_GROUP} -s /bin/bash -m ${VHOST_USER}
     fi
+else
+    echo "User ${VHOST_USER} already exists"
 fi
 
-echo -e "\n####### Vhost setup #######\n"
+# multi DB user
+if [ ! -e /home/${VHOST_USER}/.my.cnf ]; then
+    echo -e "${C_GRE}Create user DB account ${VHOST_USER}${C_OFF}"
+    ${KCLIE_PATH}/sbin/mysql_create_local_user ${VHOST_USER} noninteractive
+else
+    echo "User DB account ${VHOST_USER} already exists"
+fi
 
-echo -e "Create vhost dir & config files"
-sudo -u ${VHOST_USER} mkdir -m 775 -p /home/${VHOST_USER}/web/${VHOST_NAME}/{www,var/tmp}
+# vhost dir
+VHOST_DIR="/home/${VHOST_USER}/web/${VHOST_NAME}"
+if [ ! -e ${VHOST_DIR}/var/tmp ]; then
+    echo -e "${C_GRE}Create dir ${VHOST_DIR}${C_OFF}"
+    sudo -u ${VHOST_USER} mkdir -m 775 -p ${VHOST_DIR}/{www,var/tmp}
+else
+    echo "Dir ${VHOST_DIR} already exists"
+fi
 
+# vhost PHP FPM
 TMP_FPM_CONF="/tmp/${VHOST_NAME}.php-${PHP_VER}-fpm.conf"
-VHOST_FPM_CONF=" /etc/php/${PHP_VER}/fpm/pool.d/${VHOST_NAME}.conf"
+VHOST_FPM_CONF="/etc/php/${PHP_VER}/fpm/pool.d/${VHOST_NAME}.conf"
 echo "[${VHOST_NAME}]
 
 user = www-data
@@ -174,18 +207,24 @@ php_admin_value[open_basedir]=/home/${VHOST_USER}/web/${VHOST_NAME}/
 php_admin_value[upload_tmp_dir]=/home/${VHOST_USER}/web/${VHOST_NAME}/var/tmp
 php_admin_value[sys_temp_dir]=/home/${VHOST_USER}/web/${VHOST_NAME}/var/tmp" > ${TMP_FPM_CONF}
 
-if [ -e ${VHOST_FPM_CONF} ] && ! cmp -s ${TMP_FPM_CONF} ${VHOST_FPM_CONF} ; then
-    echo -e "\n!!! ${VHOST_FPM_CONF} already exists, not applying config !!!!\n"
+if [ $(grep -r "/run/php/${VHOST_NAME}.sock" /etc/php/ | grep -v ${VHOST_FPM_CONF} | wc -l) -ge 1 ] ; then
+    echo -e "${C_RED}"
+    grep -rl "/run/php/${VHOST_NAME}.sock" /etc/php/
+    echo -e "already declares the same socket name, not applying config !!!!\n"
+    echo -e "${C_YEL}The new file is available in ${TMP_FPM_CONF} for manual deploy/merge\n${C_OFF}"
+elif [ -e ${VHOST_FPM_CONF} ] && ! cmp -s ${TMP_FPM_CONF} ${VHOST_FPM_CONF} ; then
+    echo -e "${C_RED}\n${VHOST_FPM_CONF}\nalready exists with a different config : not deploying!\n${C_OFF}"
+    diff --color ${TMP_FPM_CONF} ${VHOST_FPM_CONF}
     echo diff ${TMP_FPM_CONF} ${VHOST_FPM_CONF}
-    diff ${TMP_FPM_CONF} ${VHOST_FPM_CONF}
-    echo -e "\nThe new file is available in ${TMP_FPM_CONF} for manual merge\n"
+    echo -e "${C_YEL}The new config is kept on the temporary file of the diff above for manual deploy/merge${C_OFF}\n"
 else
+    echo -e "${C_GRE}Deploy ${VHOST_FPM_CONF}${C_OFF}"
     mv ${TMP_FPM_CONF} ${VHOST_FPM_CONF}
-    echo ${VHOST_FPM_CONF}
 fi
 
+# vhost Apache
 TMP_APACHE_CONF="/tmp/${VHOST_NAME}.apache.conf"
-VHOST_APACHE_CONF=" /etc/apache2/sites-available/${VHOST_NAME}.conf"
+VHOST_APACHE_CONF="/etc/apache2/sites-available/${VHOST_NAME}.conf"
 echo "<Virtualhost *:80>
         Use RedirHttpBase ${VHOST_NAME}
 </VirtualHost>
@@ -193,18 +232,53 @@ echo "<Virtualhost *:80>
         Use PhpFpmSslBase ${VHOST_NAME} ${VHOST_USER}
 </VirtualHost>" > ${TMP_APACHE_CONF}
 
-if [ -e ${VHOST_APACHE_CONF} ] && ! cmp -s ${TMP_APACHE_CONF} ${VHOST_APACHE_CONF} ; then
-    echo -e "\n!!! ${VHOST_APACHE_CONF} already exists, not applying config !!!!\n"
+if [ $(grep -r "${VHOST_NAME}" /etc/apache2/sites-enabled/ | grep -v ${VHOST_APACHE_CONF} | wc -l) -ge 1 ] ; then
+    echo -e "${C_RED}"
+    grep -rl "${VHOST_NAME}" /etc/apache2/sites-enabled/
+    echo -e "already declares the same vhost name, not applying config !!!!\n"
+    echo -e "${C_YEL}The new file is available in ${TMP_APACHE_CONF} for manual deploy/merge\n${C_OFF}"
+elif  [ -e ${VHOST_APACHE_CONF} ] && ! cmp -s ${TMP_APACHE_CONF} ${VHOST_APACHE_CONF} ; then
+    echo -e "${C_RED}\n${VHOST_APACHE_CONF}\nalready exists with a different config : not deploying!\n${C_OFF}"
+    diff --color ${TMP_APACHE_CONF} ${VHOST_APACHE_CONF}
     echo diff ${TMP_APACHE_CONF} ${VHOST_APACHE_CONF}
-    diff ${TMP_APACHE_CONF} ${VHOST_APACHE_CONF}
-    echo -e "\nThe new file is available in ${TMP_APACHE_CONF} for manual merge\n"
+    echo -e "${C_YEL}The new config is kept on the temporary file of the diff above for manual deploy/merge${C_OFF}\n"
 else
+    echo -e "${C_GRE}Deploy ${VHOST_APACHE_CONF}${C_OFF}"
     mv ${TMP_APACHE_CONF} ${VHOST_APACHE_CONF}
-    echo ${VHOST_APACHE_CONF}
     a2ensite ${VHOST_NAME}
 fi
 
-echo -e "\nReload Php / Apache / MariaDB configuraion ...\n"
+# vhost db
+VHOST_DB_NAME=$(echo "${VHOST_USER}_${VHOST_NAME}" | sed -e "s/\./-/g")
+if [ $(mysql -Bse "SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user = '${VHOST_DB_NAME}')") -ne  1 ] ; then
+    echo -e "\n${C_GRE}Create vhost database ${VHOST_DB_NAME}${C_OFF}"
+    VHOST_DB_PASS=$(${KCLIE_PATH}/bin/genpass-ovh)
+    mysql -e "CREATE DATABASE IF NOT EXISTS \`${VHOST_DB_NAME}\`"
+    for LOCALHOST in "127.0.0.1" "::1" "localhost"; do
+        mysql -e "CREATE USER IF NOT EXISTS  '${VHOST_DB_NAME}'@'${LOCALHOST}' IDENTIFIED BY '${VHOST_DB_PASS}'" || exit 1
+        mysql -e "GRANT USAGE ON * . * TO '${VHOST_DB_NAME}'@'${LOCALHOST}'" || exit 1
+        mysql -e "GRANT ALL PRIVILEGES ON \`${VHOST_DB_NAME}\` . * TO '${VHOST_DB_NAME}'@'${LOCALHOST}'" || exit 1
+        mysql -e "GRANT TRIGGER ON \`${VHOST_DB_NAME}\` . * TO '${VHOST_DB_NAME}'@'${LOCALHOST}'"
+    done
+    echo -e "\n${C_YEL}Database : ${VHOST_DB_NAME}\nUser : ${VHOST_DB_NAME}\nPass : ${VHOST_DB_PASS}\n"
+
+    VHOST_DB_SF_CONF="${VHOST_DIR}/.env.local"
+    if [ ! -e ${VHOST_DB_SF_CONF}  ]; then
+        echo -e "${C_GRE}Deploy ${VHOST_DB_SF_CONF}     Symfony/.env style conf${C_OFF}"
+        echo -e "DATABASE_URL=\"mysql://${VHOST_DB_NAME}:${VHOST_DB_PASS}@127.0.0.1:3306/${VHOST_DB_NAME}?serverVersion=$(mariadb --version | awk '{print $5}' | sed -e 's/,//g')&charset=utf8mb4\"" > ${VHOST_DB_SF_CONF}
+        chown ${VHOST_USER}:${VHOST_GROUP} ${VHOST_DB_SF_CONF}
+    fi
+    VHOST_DB_GEN_CONF="${VHOST_DIR}/db.config.php"
+    if [ ! -e /home/${VHOST_USER}/web/${VHOST_NAME}/db.config.php ]; then
+        echo -e "${C_GRE}Deploy ${VHOST_DB_GEN_CONF}  Generic PHP db conf${C_OFF}"
+        echo -e "<?php\ndefine('DB_NAME','${VHOST_DB_NAME}');\ndefine('DB_USER','${VHOST_DB_NAME}');\ndefine('DB_PASSWORD','${VHOST_DB_PASS}');\ndefine('DB_HOST','localhost');" >> ${VHOST_DB_GEN_CONF}
+        chown ${VHOST_USER}:${VHOST_GROUP} ${VHOST_DB_GEN_CONF}
+    fi
+else
+    echo "DB user already exists"
+fi
+
+echo -e "\n${C_GRE}Reload Php / Apache / MariaDB configuraion${C_OFF}\n"
 systemctl reload php${PHP_VER}-fpm || service php${PHP_VER}-fpm reload
 systemctl reload apache2 || service apache2 reload
 systemctl reload mysql || service mariadb reload
