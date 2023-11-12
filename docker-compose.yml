@@ -24,19 +24,22 @@ services:
     kclie-debian:
         container_name: kclie-debian
         image: debian:latest
+        pull_policy: always
         stdin_open: true
         tty: true
         volumes:
             -   type: bind
                 source: ./
                 target: /opt/kclie
-            - debianvarcache:/var/cache
+            - debian-var-cache-apt:/var/cache/apt
+            - debian-var-lib-apt:/var/lib/apt
         command: >
             bash -c "
+              rm -f /etc/apt/apt.conf.d/docker-*;
               export DEBIAN_FRONTEND=noninteractive;
               ln -fs /usr/share/zoneinfo/Europe/Paris /etc/localtime;
-              apt update;
-              apt install -y gawk git procps sudo tzdata wget zsh;
+              if [ $(find "/var/lib/apt/extended_states" -mtime -1 -print 2>/dev/null | wc -l) -lt 1 ];then apt-get update; fi
+              apt-get install -y gawk git procps sudo tzdata vim-tiny wget zsh;
               dpkg-reconfigure --frontend noninteractive tzdata;
               git config --global pull.rebase false ;
               groupadd user;
@@ -48,19 +51,22 @@ services:
     kclie-ubuntu:
         container_name: kclie-ubuntu
         image: ubuntu:latest
+        pull_policy: always
         stdin_open: true
         tty: true
         volumes:
             -   type: bind
                 source: ./
                 target: /opt/kclie
-            - ubuntuvarcache:/var/cache
+            - ubuntu-var-cache-apt:/var/cache/apt
+            - ubuntu-var-lib-apt:/var/lib/apt
         command: >
             bash -c "
+              rm -f /etc/apt/apt.conf.d/docker-*;
               export DEBIAN_FRONTEND=noninteractive;
               ln -fs /usr/share/zoneinfo/Europe/Paris /etc/localtime;
-              apt update;
-              apt install -y dialog gawk git procps sudo software-properties-common tzdata wget zsh;
+              if [ $(find "/var/lib/apt/extended_states" -mtime -1 -print 2>/dev/null | wc -l) -lt 1 ];then apt-get update; fi;
+              apt-get install -y dialog gawk git procps sudo software-properties-common tzdata vim-tiny wget zsh;
               dpkg-reconfigure --frontend noninteractive tzdata;
               git config --global pull.rebase false ;
               groupadd user;
@@ -70,5 +76,7 @@ services:
               (echo "motd" | sudo -u user tee /home/user/.zshrc)
               su --login user"
 volumes:
-    debianvarcache:
-    ubuntuvarcache:
+    debian-var-cache-apt:
+    ubuntu-var-cache-apt:
+    debian-var-lib-apt:
+    ubuntu-var-lib-apt:
