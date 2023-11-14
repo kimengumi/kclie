@@ -39,7 +39,7 @@ services:
               export DEBIAN_FRONTEND=noninteractive;
               ln -fs /usr/share/zoneinfo/Europe/Paris /etc/localtime;
               if [ $(find "/var/lib/apt/extended_states" -mtime -1 -print 2>/dev/null | wc -l) -lt 1 ];then apt-get update; fi
-              apt-get install -y gawk git procps sudo tzdata vim-tiny wget zsh;
+              apt-get install -y cron gawk git procps sudo tzdata vim-tiny wget zsh;
               dpkg-reconfigure --frontend noninteractive tzdata;
               git config --global pull.rebase false ;
               groupadd user;
