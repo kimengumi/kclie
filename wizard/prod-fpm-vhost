@@ -37,7 +37,7 @@ if [ "${USER}x" != 'rootx' ]; then
 fi
 
 # Check KCLIE env and load if necessary
-if [ "x${KCLIE_PATHA}" = "x" ]; then
+if [ "x${KCLIE_PATH}" = "x" ]; then
     source $(dirname $0)/../env || ( echo 'KCLIE not configured' ; exit 2 )
 fi
 
@@ -82,11 +82,11 @@ export DEBIAN_FRONTEND=noninteractive
 echo -e "${C_GRE}Add/Update MariaDB global config${C_OFF}\n"
 if [ ! -e /etc/mysql/mariadb.conf.d ] ; then
     apt install -qqy mariadb-server mariadb-client
+    cp -r ${KCLIE_PATH}/etc/mysql/* /etc/mysql/
     systemctl start mariadb || service mariadb start
 else
     echo "MariaDB already installed"
 fi
-cp -r ${KCLIE_PATH}/etc/mysql/* /etc/mysql/
 
 # APACHE
 echo -e "\n${C_GRE}Add/Update Apache2 global config${C_OFF}\n"
@@ -281,4 +281,3 @@ fi
 echo -e "\n${C_GRE}Reload Php / Apache / MariaDB configuraion${C_OFF}\n"
 systemctl reload php${PHP_VER}-fpm || service php${PHP_VER}-fpm reload
 systemctl reload apache2 || service apache2 reload
-systemctl reload mysql || service mariadb reload
