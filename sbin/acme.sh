@@ -34,17 +34,20 @@ if ! getent passwd www-data >/dev/null 2>&1; then
     exit
 fi
 
-export LE_WORKING_DIR=${KCLIE_PATH}/vendor/acme.sh
-export LE_CONFIG_HOME=/etc/acme.sh
+ACME_DIR=${KCLIE_PATH}/vendor/acme.sh
+ACME_CNF=/etc/acme.sh
+SUDO_EXEC="sudo LE_WORKING_DIR=${ACME_DIR} LE_CONFIG_HOME=${ACME_CNF} -u www-data"
+ACME_EXEC="${SUDO_EXEC} ${ACME_DIR}/acme.sh"
 
-if [ ! -x ${LE_WORKING_DIR}/acme.sh ] || [ ! -e ${LE_CONFIG_HOME}/account.conf ]; then
+if [ ! -x ${ACME_DIR}/acme.sh ] || [ ! -e ${ACME_CNF}/account.conf ]; then
 
     echo -e "\n\033[0;92mInstall Acme.sh\033[0m\n"
-    mkdir -p ${LE_WORKING_DIR} ${LE_CONFIG_HOME}
-    chown www-data:www-data ${LE_WORKING_DIR} ${LE_CONFIG_HOME}
-    cd ${LE_WORKING_DIR}
-    wget -nv -O - https://raw.githubusercontent.com/acmesh-official/acme.sh/master/acme.sh | sudo -u www-data \
-        sh -s -- --install-online --home ${LE_WORKING_DIR} --config-home ${LE_CONFIG_HOME}
+    mkdir -p ${ACME_DIR} ${ACME_CNF} /var/www/html
+    chown www-data:www-data ${ACME_DIR} ${ACME_CNF} /var/www/html
+    cd ${ACME_DIR}
+    wget -nv -O - https://raw.githubusercontent.com/acmesh-official/acme.sh/master/acme.sh | ${SUDO_EXEC} sh -s -- --install-online
+    ${ACME_EXEC} --set-default-ca --server letsencrypt
+    ${ACME_EXEC} --install-cronjob
 fi
 
-sudo -u www-data ${LE_WORKING_DIR}/acme.sh "$@"
+${ACME_EXEC} "$@"
