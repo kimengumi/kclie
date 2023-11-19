@@ -21,15 +21,50 @@
 #
 
 #
-# Configure a given APACHE2 vhost with it's specific PHP-FPM attached pool
+# Configure a given APACHE2 vhost with it's specific PHP-FPM attached pool :
 #
+# Main features :
+# - Auto deploy Apache2, Mariadb, Acme.sh & each required PHP version with standardized config
+# - User / group is created if not exists
+# - One user can have multiple vhosts
+# - User will have a special multi-account (will mysql CLI autologin) allowing accces to all user's vhost databases
+# - Vhost files will be owned by user:group, but PHP will run as www-data:group
+# - public docroot will be /home/user/web/servername/www
+# - PHP execution directories will be restricted to /home/user/web/servername
+# - Database will be user_servername
+# - Each vhost will have a pre-generated .env.local and db.config.php with db connection
+# - apache2 vhost conf will be /etc/apache2/sites-available/servername.conf
+# - php-fpm pool conf will be /etc/php/x.y/fpm/pool.d/servername.conf
+# - you can re-run the wizard on a existing vhost : customs modifications of theses files won't be destroyed
+# - Ine the wizard, all generated credentials will be displayed in yellow
 #
+# Usage :
+# ./prod-fpm-vhost [user] [group] [x.y] [y/n] [servername] ([serveralias])(...)
 #
-#
+# user        : User which will be owner of the vhost directory
+# group       : Group which will be owner of the vhost directory (www-data/group will run php-fpm)
+# x.y         : PHP version (using https://deb.sury.org PPA)
+# y/n         : (re)generate a Let's encrypt SSL certificate (using acme.sh) or not
+# servername  : Vhost ServerName (also used for standardized directories/files structures)
+# serveralias : Multiple optional ServerAlias (SSL cert will include those if generated)
 #
 
+# Help mode
+if [ "x$1" = "x-help" ] || [ "x$1" = "x--help" ] || [ "x$1" = "x-h" ]; then
+    echo -e "$(head -n 4 $0 | tail -n 3)\n#\twizard/$(basename "$0")\n$(head -n 49 $0 | tail -n 27)"
+    exit
+fi
+
 # Splashscreen
-echo -e "\033[1;34m$(head -n 4 $0 | tail -n 3)\n#\twizard/$(basename "$0")\n$(head -n 29 $0 | tail -n 7)\033[0m\n"
+if [ -t 1 ] && [ $# -lt 6 ]; then # interactive
+    echo -e "\033[1;34m$(head -n 4 $0 | tail -n 3)\n#\twizard/$(basename "$0")\n$(head -n 49 $0 | tail -n 27)\033[0m\n"
+fi
+
+# define colors
+C_GRE='\033[0;92m'
+C_RED='\033[0;91m'
+C_YEL='\033[0;93m'
+C_OFF='\033[0m'
 
 if [ "${USER}x" != 'rootx' ]; then
     echo 'Must be run in root / sudo'
@@ -41,60 +76,79 @@ if [ "x${KCLIE_PATH}" = "x" ]; then
     source $(dirname $0)/../env || ( echo 'KCLIE not configured' ; exit 2 )
 fi
 
-if [ "x$1" != "x" ] ; then
+# Mandatory args = interactive if not present
+if [ "x$1" != "x" ]; then
     VHOST_USER=$1
 else
-    echo 'User (user/group will be owner of the vhost directory) :'
-    read VHOST_USER
+    read -p 'User (user/group will be owner of the vhost directory) : ' VHOST_USER
 fi
 
-if [ "x$2" != "x" ] ; then
+if [ "x$2" != "x" ]; then
     VHOST_GROUP=$2
 else
-    echo 'Group (www-data/group will run php-fpm) :'
-    read VHOST_GROUP
+    read -p 'Group (www-data/group will run php-fpm) : ' VHOST_GROUP
 fi
 
-if [ "x$3" != "x" ] ; then
-    VHOST_NAME=$3
+if [ "x$3" != "x" ]; then
+    PHP_VER=$3
 else
-    echo 'ServerName (will also determine directory) :'
-    read VHOST_NAME
+    read -p 'PHP Version (x.y) : ' PHP_VER
 fi
 
-if [ "x$4" != "x" ] ; then
-        PHP_VER=$4
+if [ "x$4" != "x" ]; then
+    REGEN_SSL=$4
 else
-    echo 'PHP Version (x.y) :'
-    read PHP_VER
+    read -p "Do you want to (re)generate an Acme / Let's encrypt SSL Certificate (y/n) ? " REGEN_SSL
+fi
+case ${REGEN_SSL} in
+    [Yy]*) REGEN_SSL='1';;
+    [Nn]*) REGEN_SSL='';;
+    *)
+        echo -e "${C_RED}Generate a Let's encrypt SSL is not y/n${C_OFF}"
+        exit 1;;
+esac
+
+if [ "x$5" != "x" ]; then
+    VHOST_NAME=$5
+else
+    read -p 'ServerName (will also determine directory) : ' VHOST_NAME
 fi
 
-C_GRE='\033[0;92m'
-C_RED='\033[0;91m'
-C_YEL='\033[0;93m'
-C_OFF='\033[0m'
+if [ "x$6" != "x" ]; then
+    VHOST_ALIASES=("${@:6}")
+elif [ -t 1 ]; then #interactive
+    while true; do
+        read -p 'ServerAlias (hit enter to stop add) :' VHOST_ALIAS
+        if [ -z "${VHOST_ALIAS}" ]; then
+            break
+        fi
+        VHOST_ALIASES+=("${VHOST_ALIAS}")
+    done
+else
+    VHOST_ALIASES=''
+fi
 
 echo -e "\n${C_GRE}####### Global init/update${C_OFF}\n"
 
 export DEBIAN_FRONTEND=noninteractive
 
 # MARIADB
-echo -e "${C_GRE}Add/Update MariaDB global config${C_OFF}\n"
-if [ ! -e /etc/mysql/mariadb.conf.d ] ; then
+if [ ! -e /etc/mysql/mariadb.conf.d ]; then
+    echo -e "${C_GRE}Install MariaDB & global config${C_OFF}"
     apt install -qqy mariadb-server mariadb-client
     cp -r ${KCLIE_PATH}/etc/mysql/* /etc/mysql/
-    systemctl start mariadb || service mariadb start
+    systemctl restart mariadb || service mariadb restart
 else
     echo "MariaDB already installed"
 fi
 
 # APACHE
-echo -e "\n${C_GRE}Add/Update Apache2 global config${C_OFF}\n"
-if [ ! -e /etc/apache2 ] ; then
+if [ ! -e /etc/apache2 ]; then
+    echo -e "\n${C_GRE}Install Apache2 & global config${C_OFF}"
     apt install -qqy apache2 apache2-utils
     systemctl start apache2 || service apache2 start
 else
-    echo "Apache2 already installed"
+    echo -e "\n${C_GRE}Update Apache2 global config${C_OFF}"
 fi
 sed -i "s#ServerSignature On#ServerSignature Off#g"  /etc/apache2/conf-available/security.conf
 sed -i "s#ServerTokens OS#ServerTokens Prod#g"  /etc/apache2/conf-available/security.conf
@@ -108,12 +162,12 @@ if [ ! -e /var/www/html/index.html ] || grep -q 'Default Page: It works' /var/ww
     # on default vhost, silence is golden (but don't override custom pages if exist)
     echo "<html></html>" > /var/www/html/index.html
 fi
-if [ ! -e /var/www/html/robots.txt ] ; then
+if [ ! -e /var/www/html/robots.txt ]; then
     echo -e "User-Agent: *\nDisallow: /" > /var/www/html/robots.txt
 fi
 
 # PHP
-if [ ! -e /etc/systemd/system/php${PHP_VER}-fpm.service.d/kclie-umask.conf ] ; then
+if [ ! -e /etc/systemd/system/php${PHP_VER}-fpm.service.d/kclie-umask.conf ]; then
 
     echo -e "\n${C_GRE}Add/Update Ondrej PPA${C_OFF}\n"
     if [ -x /usr/bin/add-apt-repository ]; then
@@ -124,6 +178,13 @@ if [ ! -e /etc/systemd/system/php${PHP_VER}-fpm.service.d/kclie-umask.conf ] ; t
         echo "deb https://packages.sury.org/php/ $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/php.list
     fi
     apt update -qqy
+
+    # Check PHP version exists from fpm packages
+    apt-cache --generate pkgnames >/tmp/pkgnames.list
+    if ! grep -q "php${PHP_VER}-fpm" /tmp/pkgnames.list ; then
+        echo -e "${C_RED}PHP version \"${PHP_VER}\" is not available${C_OFF}"
+        exit 1
+    fi
 
     echo -e "\n${C_GRE}Add/Configure PHP ${PHP_VER}${C_OFF}\n"
 
@@ -159,21 +220,33 @@ fi
 # User
 if ! getent passwd ${VHOST_USER} >/dev/null 2>&1; then
     echo -e "${C_GRE}Create user ${VHOST_USER}${C_OFF}"
-    if [ -e /bin/zsh ] ; then
+    if [ -e /bin/zsh ]; then
         useradd -g ${VHOST_GROUP} -s /bin/zsh -m ${VHOST_USER}
     else
         useradd -g ${VHOST_GROUP} -s /bin/bash -m ${VHOST_USER}
     fi
+    VHOST_USER_PASS=$(${KCLIE_PATH}/bin/genpass 32)
+    echo "${VHOST_USER}:${VHOST_USER_PASS}" | chpasswd;
+    echo -e "\n${C_YEL}User : ${VHOST_USER}\nPass : ${VHOST_USER_PASS}\n"
 else
     echo "User ${VHOST_USER} already exists"
 fi
 
-# multi DB user
-if [ ! -e /home/${VHOST_USER}/.my.cnf ]; then
-    echo -e "${C_GRE}Create user DB account ${VHOST_USER}${C_OFF}"
-    ${KCLIE_PATH}/sbin/mysql_create_local_user ${VHOST_USER} noninteractive
+# user DB
+if [ $(mysql -Bse "SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user = '${VHOST_USER}')") -ne  1 ]; then
+    echo -e "\n${C_GRE}Create DB user${C_OFF} (prefixed multi-database user)"
+    VHOST_USER_DB_PASS=$(${KCLIE_PATH}/bin/genpass 32)
+    for LOCALHOST in "127.0.0.1" "::1" "localhost"; do
+        mysql -e "CREATE USER IF NOT EXISTS '${VHOST_USER}'@'${LOCALHOST}' IDENTIFIED BY '${VHOST_USER_DB_PASS}'"
+        mysql -e "GRANT USAGE ON * . * TO '${VHOST_USER}'@'${LOCALHOST}'"
+        mysql -e "GRANT ALL PRIVILEGES ON \`${VHOST_USER}\_%\` . * TO '${VHOST_USER}'@'${LOCALHOST}'"
+        mysql -e "GRANT TRIGGER ON \`${VHOST_USER}\_%\` . * TO '${VHOST_USER}'@'${LOCALHOST}'"
+    done
+    echo -e "${C_GRE}Deploy cli autologin conf /home/${VHOST_USER}/.my.cnf${C_OFF}"
+    echo -e "[client]\nhost = localhost\nuser = ${VHOST_USER}\npassword = \"${VHOST_USER_DB_PASS}\"" >/home/${VHOST_USER}/.my.cnf
+    echo -e "\n${C_YEL}Databases : ${VHOST_USER}_*\n  DB User : ${VHOST_USER}\n  DB Pass : ${VHOST_USER_DB_PASS}\n"
 else
-    echo "User DB account ${VHOST_USER} already exists"
+    echo "DB user already exists"
 fi
 
 # vhost dir
@@ -188,26 +261,26 @@ fi
 # vhost PHP FPM
 TMP_FPM_CONF="/tmp/${VHOST_NAME}.php-${PHP_VER}-fpm.conf"
 VHOST_FPM_CONF="/etc/php/${PHP_VER}/fpm/pool.d/${VHOST_NAME}.conf"
-echo "[${VHOST_NAME}]
-
+NBTHREADS=1
+if [ -r /proc/cpuinfo ] ; then # default dynamic sizing from number of threads
+	NBTHREADS=$(LANG=C; awk -F ": " '/^processor/ {t++}; END { print t}' /proc/cpuinfo)
+fi
+echo -e "[${VHOST_NAME}]\n
 user = www-data
-group = ${VHOST_GROUP}
-
+group = ${VHOST_GROUP}\n
 listen = /run/php/${VHOST_NAME}.sock
 listen.owner = www-data
-listen.group = www-data
-
+listen.group = www-data\n
 pm = dynamic
-pm.max_children = 5
-pm.start_servers = 1
-pm.min_spare_servers = 1
-pm.max_spare_servers = 3
-
+pm.max_children = $(( 6 * ${NBTHREADS} ))
+pm.start_servers = $(( 2 * ${NBTHREADS} ))
+pm.min_spare_servers = ${NBTHREADS}
+pm.max_spare_servers = $(( 4 * ${NBTHREADS} ))\n
 php_admin_value[open_basedir]=/home/${VHOST_USER}/web/${VHOST_NAME}/
 php_admin_value[upload_tmp_dir]=/home/${VHOST_USER}/web/${VHOST_NAME}/var/tmp
 php_admin_value[sys_temp_dir]=/home/${VHOST_USER}/web/${VHOST_NAME}/var/tmp" > ${TMP_FPM_CONF}
 
-if [ $(grep -r "/run/php/${VHOST_NAME}.sock" /etc/php/ | grep -v ${VHOST_FPM_CONF} | wc -l) -ge 1 ] ; then
+if [ $(grep -r "/run/php/${VHOST_NAME}.sock" /etc/php/ | grep -v ${VHOST_FPM_CONF} | wc -l) -ge 1 ]; then
     echo -e "${C_RED}"
     grep -rl "/run/php/${VHOST_NAME}.sock" /etc/php/
     echo -e "already declares the same socket name, not applying config !!!!\n"
@@ -225,14 +298,17 @@ fi
 # vhost Apache
 TMP_APACHE_CONF="/tmp/${VHOST_NAME}.apache.conf"
 VHOST_APACHE_CONF="/etc/apache2/sites-available/${VHOST_NAME}.conf"
-echo "<Virtualhost *:80>
-        Use RedirHttpBase ${VHOST_NAME}
-</VirtualHost>
-<Virtualhost *:443>
-        Use PhpFpmSslBase ${VHOST_NAME} ${VHOST_USER}
-</VirtualHost>" > ${TMP_APACHE_CONF}
+echo -e "<Virtualhost *:80>\n\tUse RedirHttpBase ${VHOST_NAME}" > ${TMP_APACHE_CONF}
+for VHOST_ALIAS in "${VHOST_ALIASES[@]}"; do
+    echo -e "\tServerAlias ${VHOST_ALIAS}" >> ${TMP_APACHE_CONF}
+done
+echo -e "</VirtualHost>\n<Virtualhost *:443>\n\tUse PhpFpmSslBase ${VHOST_NAME} ${VHOST_USER}" >> ${TMP_APACHE_CONF}
+for VHOST_ALIAS in "${VHOST_ALIASES[@]}"; do
+    echo -e "\tServerAlias ${VHOST_ALIAS}" >> ${TMP_APACHE_CONF}
+done
+echo -e "</VirtualHost>" >> ${TMP_APACHE_CONF}
 
-if [ $(grep -r "${VHOST_NAME}" /etc/apache2/sites-enabled/ | grep -v ${VHOST_APACHE_CONF} | wc -l) -ge 1 ] ; then
+if [ $(grep -r "${VHOST_NAME}" /etc/apache2/sites-enabled/ | grep -v ${VHOST_APACHE_CONF} | wc -l) -ge 1 ]; then
     echo -e "${C_RED}"
     grep -rl "${VHOST_NAME}" /etc/apache2/sites-enabled/
     echo -e "already declares the same vhost name, not applying config !!!!\n"
@@ -250,18 +326,16 @@ fi
 
 # vhost db
 VHOST_DB_NAME=$(echo "${VHOST_USER}_${VHOST_NAME}" | sed -e "s/\./-/g")
-if [ $(mysql -Bse "SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user = '${VHOST_DB_NAME}')") -ne  1 ] ; then
+if [ $(mysql -Bse "SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user = '${VHOST_DB_NAME}')") -ne  1 ]; then
     echo -e "\n${C_GRE}Create vhost database ${VHOST_DB_NAME}${C_OFF}"
     VHOST_DB_PASS=$(${KCLIE_PATH}/bin/genpass-ovh)
     mysql -e "CREATE DATABASE IF NOT EXISTS \`${VHOST_DB_NAME}\`"
     for LOCALHOST in "127.0.0.1" "::1" "localhost"; do
-        mysql -e "CREATE USER IF NOT EXISTS  '${VHOST_DB_NAME}'@'${LOCALHOST}' IDENTIFIED BY '${VHOST_DB_PASS}'" || exit 1
-        mysql -e "GRANT USAGE ON * . * TO '${VHOST_DB_NAME}'@'${LOCALHOST}'" || exit 1
-        mysql -e "GRANT ALL PRIVILEGES ON \`${VHOST_DB_NAME}\` . * TO '${VHOST_DB_NAME}'@'${LOCALHOST}'" || exit 1
+        mysql -e "CREATE USER IF NOT EXISTS  '${VHOST_DB_NAME}'@'${LOCALHOST}' IDENTIFIED BY '${VHOST_DB_PASS}'"
+        mysql -e "GRANT USAGE ON * . * TO '${VHOST_DB_NAME}'@'${LOCALHOST}'"
+        mysql -e "GRANT ALL PRIVILEGES ON \`${VHOST_DB_NAME}\` . * TO '${VHOST_DB_NAME}'@'${LOCALHOST}'"
         mysql -e "GRANT TRIGGER ON \`${VHOST_DB_NAME}\` . * TO '${VHOST_DB_NAME}'@'${LOCALHOST}'"
     done
-    echo -e "\n${C_YEL}Database : ${VHOST_DB_NAME}\nUser : ${VHOST_DB_NAME}\nPass : ${VHOST_DB_PASS}\n"
-
     VHOST_DB_SF_CONF="${VHOST_DIR}/.env.local"
     if [ ! -e ${VHOST_DB_SF_CONF}  ]; then
         echo -e "${C_GRE}Deploy ${VHOST_DB_SF_CONF}     Symfony/.env style conf${C_OFF}"
@@ -274,10 +348,31 @@ if [ $(mysql -Bse "SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user = '${VHOST_
         echo -e "<?php\ndefine('DB_NAME','${VHOST_DB_NAME}');\ndefine('DB_USER','${VHOST_DB_NAME}');\ndefine('DB_PASSWORD','${VHOST_DB_PASS}');\ndefine('DB_HOST','localhost');" >> ${VHOST_DB_GEN_CONF}
         chown ${VHOST_USER}:${VHOST_GROUP} ${VHOST_DB_GEN_CONF}
     fi
+    echo -e "\n${C_YEL}Database : ${VHOST_DB_NAME}\n DB User : ${VHOST_DB_NAME}\n DB Pass : ${VHOST_DB_PASS}\n"
 else
     echo "DB user already exists"
 fi
 
-echo -e "\n${C_GRE}Reload Php / Apache / MariaDB configuraion${C_OFF}\n"
+# vhost Acme.sh
+if [ "${REGEN_SSL}" ]; then
+    # standalone Acme.sh Retro-compatibility
+    if [ -e /root/.acme.sh/${VHOST_NAME}_ecc/fullchain.cer ] || [ -e /root/.acme.sh/${VHOST_NAME}/fullchain.cer ]; then
+        echo -e "\n${C_GRE}Revoke old standalone acme.sh certificate ${VHOST_NAME}${C_OFF}"
+        /root/.acme.sh/acme.sh --revoke -d ${VHOST_NAME}
+    fi
+    # KCLIE Acme.sh wrapper
+    if [ -e /etc/.acme.sh/${VHOST_NAME}_ecc/fullchain.cer ] || [ -e /etc/.acme.sh/${VHOST_NAME}/fullchain.cer ]; then
+        echo -e "\n${C_GRE}Revoke old certificate ${VHOST_NAME}${C_OFF}"
+        ${KCLIE_PATH}/sbin/acme.sh --revoke -d ${VHOST_NAME}
+    fi
+    echo -e "\n${C_GRE}Ask new certificate ${VHOST_NAME}${C_OFF}"
+    ACME_ALIASES=''
+    for VHOST_ALIAS in "${VHOST_ALIASES[@]}" ; do
+        ACME_ALIASES="${ACME_ALIASES} -d ${VHOST_ALIAS}"
+    done
+    ${KCLIE_PATH}/sbin/acme.sh --issue --server letsencrypt -w /var/www/html -d ${VHOST_NAME} ${ACME_ALIASES}
+fi
+
+echo -e "${C_GRE}Reload Php / Apache / MariaDB configuraion${C_OFF}"
 systemctl reload php${PHP_VER}-fpm || service php${PHP_VER}-fpm reload
 systemctl reload apache2 || service apache2 reload
