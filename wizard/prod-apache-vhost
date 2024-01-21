@@ -61,7 +61,7 @@ if [ "x$1" = "x-help" ] || [ "x$1" = "x--help" ] || [ "x$1" = "x-h" ]; then
 fi
 
 # Splashscreen
-if [ -t 1 ] && [ $# -lt 6 ]; then # interactive
+if [ -t 1 ] && [ $# -lt 5 ]; then # interactive
     echo -e "\033[1;34m$(head -n 4 $0 | tail -n 3)\n#\twizard/$(basename "$0")\n$(head -n 56 $0 | tail -n 32)\033[0m\n"
 fi
 
@@ -137,17 +137,19 @@ echo -e "\n${C_GRE}####### Global init/update${C_OFF}\n"
 export DEBIAN_FRONTEND=noninteractive
 
 # MARIADB
-if [ ! -e /etc/mysql/mariadb.conf.d ]; then
-    echo -e "${C_GRE}Install MariaDB & global config${C_OFF}"
-    apt install -qqy mariadb-server mariadb-client
-    cp -r ${KCLIE_PATH}/etc/mysql/* /etc/mysql/
-    systemctl restart mariadb || service mariadb restart
-else
-    echo "MariaDB already installed"
+if [ "${PHP_VER}" ]; then
+    if [ ! -e /etc/mysql/mariadb.conf.d ]; then
+        echo -e "${C_GRE}Install MariaDB & global config${C_OFF}"
+        apt install -qqy mariadb-server mariadb-client
+        cp -r ${KCLIE_PATH}/etc/mysql/* /etc/mysql/
+        systemctl restart mariadb || service mariadb restart
+    else
+        echo "MariaDB already installed"
+    fi
 fi
 
 # APACHE
-if [ ! -e /etc/apache2 ]; then
+if [ ! -e /etc/apache2/apache2.conf ]; then
     echo -e "\n${C_GRE}Install Apache2 & global config${C_OFF}"
     apt install -qqy apache2 apache2-utils
     systemctl start apache2 || service apache2 start
@@ -246,6 +248,7 @@ if [ "${PHP_VER}${IS_STATIC}" ]; then
         else
             useradd -g ${VHOST_GROUP} -s /bin/bash -m ${VHOST_USER}
         fi
+        chmod 751 /home/${VHOST_USER}
         VHOST_USER_PASS=$(${KCLIE_PATH}/bin/genpass 32)
         echo "${VHOST_USER}:${VHOST_USER_PASS}" | chpasswd;
         echo -e "\n${C_YEL}User : ${VHOST_USER}\nPass : ${VHOST_USER_PASS}\n"
@@ -276,9 +279,14 @@ fi
 # vhost dir
 if [ "${PHP_VER}${IS_STATIC}" ]; then
     VHOST_DIR="/home/${VHOST_USER}/web/${VHOST_NAME}"
-    if [ ! -e ${VHOST_DIR}/var/tmp ]; then
+    if [ ! -e ${VHOST_DIR}/www ]; then
         echo -e "${C_GRE}Create dir ${VHOST_DIR}${C_OFF}"
-        sudo -u ${VHOST_USER} mkdir -m 775 -p ${VHOST_DIR}/{www,var/tmp}
+        sudo -u ${VHOST_USER} mkdir -p ${VHOST_DIR}/www
+        chmod 751 /home/${VHOST_USER}/web ${VHOST_DIR} ${VHOST_DIR}/www
+        if [ "${PHP_VER}" ]; then
+            sudo -u ${VHOST_USER} mkdir -p ${VHOST_DIR}/var/tmp
+            chmod 771 ${VHOST_DIR}/var ${VHOST_DIR}/var/tmp
+        fi
     else
         echo "Dir ${VHOST_DIR} already exists"
     fi
