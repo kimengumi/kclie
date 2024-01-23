@@ -97,7 +97,9 @@ BatchEnd() {
     if [ "x${QUIET_TIMELOG}" = "x" ]; then
         echo "[$(date '+%Y-%m-%d %H:%M:%S')] ## ${SCRIPT_NAME} END"
     fi
-    rm ${SHMDIR}/${SCRIPT_NAME}_$$_fifo_err
+    if [ -e ${SHMDIR}/${SCRIPT_NAME}_$$_fifo_err ]; then
+        rm ${SHMDIR}/${SCRIPT_NAME}_$$_fifo_err
+    fi
     export IFS=${IFS_STD}
 }
 
