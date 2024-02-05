@@ -403,7 +403,7 @@ fi
 
 # vhost Acme.sh
 if [ "${REGEN_SSL}" ]; then
-    # standalone Acme.sh Retro-compatibility
+    # migrate standalone Acme.sh certificate
     if [ -e /root/.acme.sh/${VHOST_NAME}_ecc/fullchain.cer ] || [ -e /root/.acme.sh/${VHOST_NAME}/fullchain.cer ]; then
         echo -e "\n${C_GRE}Revoke old standalone acme.sh certificate ${VHOST_NAME}${C_OFF}"
         /root/.acme.sh/acme.sh --revoke -d ${VHOST_NAME}
@@ -419,6 +419,11 @@ if [ "${REGEN_SSL}" ]; then
         ACME_ALIASES="${ACME_ALIASES} -d ${VHOST_ALIAS}"
     done
     ${KCLIE_PATH}/sbin/acme.sh --issue --server letsencrypt -w /var/www/html -d ${VHOST_NAME} ${ACME_ALIASES}
+fi
+"# standalone Acme.sh Retro-compatibility for other certificate"s
+if [ -d /root/.acme.sh ] && [ -d /var/www/letsencrypt ]; then
+    rm -rf /var/www/letsencrypt
+    ln -s /var/www/html /var/www/letsencrypt
 fi
 
 echo -e "${C_GRE}Reload Php / Apache / MariaDB configuraion${C_OFF}"
