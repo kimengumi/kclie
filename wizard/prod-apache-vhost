@@ -420,14 +420,17 @@ if [ "${REGEN_SSL}" ]; then
     done
     ${KCLIE_PATH}/sbin/acme.sh --issue --server letsencrypt -w /var/www/html -d ${VHOST_NAME} ${ACME_ALIASES}
 fi
-"# standalone Acme.sh Retro-compatibility for other certificate"s
+
+# standalone Acme.sh Retro-compatibility for other certificate
 if [ -d /root/.acme.sh ] && [ -d /var/www/letsencrypt ]; then
     rm -rf /var/www/letsencrypt
     ln -s /var/www/html /var/www/letsencrypt
 fi
 
-echo -e "${C_GRE}Reload Php / Apache / MariaDB configuraion${C_OFF}"
+# Reload
 if [ "${PHP_VER}" ]; then
+    echo -e "${C_GRE}Reload php${PHP_VER}-fpm ${C_OFF}"
     systemctl reload php${PHP_VER}-fpm || service php${PHP_VER}-fpm reload
 fi
+echo -e "${C_GRE}Reload apache2 ${C_OFF}"
 systemctl reload apache2 || service apache2 reload
