@@ -219,7 +219,10 @@ echo -e "\n${C_GRE}####### Vhost init/update${C_OFF}\n"
 
 # Group
 if [ "${PHP_VER}${IS_STATIC}" ]; then
-    if ! getent group ${VHOST_GROUP} >/dev/null 2>&1; then
+    if getent passwd ${VHOST_USER} >/dev/null 2>&1; then
+        VHOST_GROUP=$(id -gn ${VHOST_USER})
+        echo "User ${VHOST_USER} already exists, using group ${VHOST_GROUP}"
+    elif ! getent group ${VHOST_GROUP} >/dev/null 2>&1; then
         echo -e "${C_GRE}Create group: ${VHOST_GROUP}${C_OFF}"
         groupadd ${VHOST_GROUP}
     else
