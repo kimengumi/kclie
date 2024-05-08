@@ -238,6 +238,10 @@ if [ "x${SETUP_USERMODE}" = "xy" ] ; then
       cat ${SETUP_PATH}/etc/skel/${RC_SKEL} > ~/${RC_SKEL}
     fi
   done
+  # GIT DEFAULT CONF
+  if [ ! -e ~/.gitconfig ] ; then
+    cat ${SETUP_PATH}/etc/gitconfig > ~/.gitconfig
+  fi
 
   echo done ; exit
 fi
@@ -258,13 +262,16 @@ for RC_BASH in /etc/bash.bashrc /etc/bashrc /etc/zsh/zshrc /etc/zshrc ; do
     echo ". ${SETUP_PATH}/etc/profile" >> ${RC_BASH}
   fi
 done
+# GIT DEFAULT CONF
+if [ ! -e /etc/gitconfig ] ; then
+  cat ${SETUP_PATH}/etc/gitconfig > /etc/gitconfig
+fi
 # ZSH SPECIFIC
 for ETC_ZSH_DIR in /etc/zsh/ /etc/ ; do
   if [ -w ${ETC_ZSH_DIR}/zshrc ] && ! grep -q "\. ${SETUP_PATH}/etc/zsh/zshrc" ${ETC_ZSH_DIR}/zshrc ; then
     echo ". ${SETUP_PATH}/etc/zsh/zshrc" >> ${ETC_ZSH_DIR}/zshrc
     echo ". ${SETUP_PATH}/etc/zsh/zlogout" >> ${ETC_ZSH_DIR}/zlogout
   fi
-
 done
 
 echo -e "${WHITE}Installing welcome banner ...\033[0m"
