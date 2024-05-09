@@ -1,0 +1,100 @@
+#!/bin/bash
+#
+# Kimengumi Command Line Interface Environnement (kclie)
+#
+# Licensed under the EUPL, Version 1.2 or – as soon they will be approved by
+# the European Commission - subsequent versions of the EUPL (the "Licence");
+# You may not use this work except in compliance with the Licence.
+# You may obtain a copy of the Licence at:
+#
+# https://joinup.ec.europa.eu/software/page/eupl
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the Licence is distributed on an "AS IS" basis,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the Licence for the specific language governing permissions and
+# limitations under the Licence.
+#
+# @author Antonio Rossetti <antonio@rossetti.fr>
+# @copyright since 2009 Antonio Rossetti
+# @license <https://joinup.ec.europa.eu/software/page/eupl> EUPL
+#
+
+#
+# active URI redirections / server & HTTPS checker
+#
+# Take an uri list from /etc/apache2/sites-enabled/*.conf, but can also take the result of :
+#   grep . /etc/apache2/sites-enabled/*.conf > mylist.txt
+# with mylist.txt passed as 1st arg
+#
+# The result is csv formatted
+#
+#
+
+# Deal with spaces
+IFS=$(echo -en "\n\b")
+SERVER_KEYWORD="ServerAlias|ServerName|RedirHttpBase|PhpFpmSslBase|StaticSslBase|RedirSslBase"
+TMP_LIST="/tmp/active-uri-checker.tmp"
+
+function HostResolv {
+	host $1 2>/dev/null | egrep -vi "mail|alias" | head -n 1 | awk '{ print $NF }' | sed -e 's/\.$//g'
+}
+
+# Take from apache conf or a static file
+if [ "x$1" = "x" ] ; then
+    SRC_LIST=$(grep . /etc/apache2/sites-enabled/*.conf | sort | uniq)
+else
+    SRC_LIST=$(sort $1 | uniq)
+fi
+
+# filter uris
+if [ -e ${TMP_LIST} ] ; then
+    rm ${TMP_LIST}
+fi
+for LIST_LINE in ${SRC_LIST} ; do
+    HOST_CONF=$(echo "${LIST_LINE}" | cut -d\: -f1)
+    URIS=($(echo "${LIST_LINE}" | awk -F${SERVER_KEYWORD} '{print $2}' | sed -e 's/ /\n/g'))
+    for HOST_URI in "${URIS[@]}"; do
+        if [[ -n "${HOST_URI}" ]] && [[ "${HOST_URI}" == *\.* ]] ; then
+            echo -e "${HOST_CONF};${HOST_URI}" >> ${TMP_LIST}
+            if [[ "${HOST_URI}" == '*.'* ]] ; then
+                echo -e "${HOST_CONF};$(echo "${HOST_URI}" | sed -e 's/\*/www/g')" >> ${TMP_LIST}
+            fi
+        fi
+    done
+done
+
+# csv result header
+echo "HOST CONF;HOST URI;HOST IP;HOST SVR;HTTPS;REDIR URI;REDIR IP;REDIR SVR"
+
+# Sort/uniq to avoid multiple call of same uri (often declared twice for 80/443 in conf)
+for LIST_LINE in $(sort ${TMP_LIST} | uniq) ; do
+
+    HOST_CONF=$(echo "${LIST_LINE}" | cut -d\; -f1)
+    HOST_URI=$(echo "${LIST_LINE}" | cut -d\; -f2)
+	HOST_IP=$(HostResolv ${HOST_URI})
+	HOST_SVR=""
+	HTTPS=""
+	REDIR_URI=""
+	REDIR_IP=""
+	REDIR_SVR=""
+
+	if [[ -n "${HOST_IP}" ]] && [[ "${HOST_IP}" != *'('* ]] ; then
+		HOST_SVR=`HostResolv ${HOST_IP}`
+        HTTPS=$( (curl -sm 15 https://${HOST_URI} >/dev/null 2>&1 && echo "yes") || echo "no")
+		REDIR_URI=$(curl -sLIm 15 ${HOST_URI} | grep '^Location:' | tail -n 1 | cut -d"/" -f3  | tr -d '\r' | tr -d '\n')
+		if [[ -z "${REDIR_URI}" ]] || [[ "${REDIR_URI}" == "${HOST_URI}" ]] ; then
+            REDIR_URI=""
+		else
+        	REDIR_IP=$(HostResolv ${REDIR_URI})
+        	if  [[ "${REDIR_IP}" == "${HOST_IP}" ]] ; then
+        	    REDIR_IP="same"
+        	    REDIR_SVR="same"
+        	else
+       		    REDIR_SVR=$(HostResolv ${REDIR_IP})
+       		fi
+		fi
+	fi
+
+    echo "${HOST_CONF};${HOST_URI};${HOST_IP};${HOST_SVR};${HTTPS};${REDIR_URI};${REDIR_IP};${REDIR_SVR}"
+done
