@@ -30,7 +30,7 @@ if [ "x$1" != "x" ]; then
 fi
 
 IFS=$(echo -en "\n\b") # deal with spaces
-FILTER="apache2|mariadbd|memcached|mysqld|nginx|php-fpm|puma|redis-server"
+FILTER="apache2|httpd|mariadbd|memcached|mysqld|nginx|php-fpm|puma|redis-server"
 PS_LIST=$( ps -eo pid,ppid,size,user,comm,command | grep ${GREP} | egrep ${FILTER} | grep -v grep | awk '{
     mpid = ($2 == 1) ? $1 : $2;
     printf("%s;%s;%s;%s;%s;%s",$1,mpid,$3,$4,$5,mpid);
