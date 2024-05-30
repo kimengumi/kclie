@@ -138,7 +138,7 @@ export DEBIAN_FRONTEND=noninteractive
 
 # MARIADB
 if [ "${PHP_VER}" ]; then
-    if [ ! -e /etc/mysql/mariadb.conf.d ]; then
+    if [ ! -e /etc/mysql/mariadb.conf.d/30-kclie.cnf ]; then
         echo -e "${C_GRE}Install MariaDB & global config${C_OFF}"
         apt install -qqy mariadb-server mariadb-client
         cp -r ${KCLIE_PATH}/etc/mysql/* /etc/mysql/
