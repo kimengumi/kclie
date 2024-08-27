@@ -23,7 +23,10 @@
 # ZSH profile
 #
 
+# only on the initial terminal
 if [ "x${SSH_AGENT_PID}" != "x" ] ; then
-    # kill only on logout of the initial terminal
+    # remove file for simultaneous terminals retrieval
+    rm ${SSH_AUTH_SOCK}.${SSH_AGENT_PID}
+    # kill
     (eval `ssh-agent -k`) >/dev/null 2>&1
 fi
