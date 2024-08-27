@@ -28,27 +28,26 @@ if [ ! -e ${HOME}/.zshrc ] ; then
 fi
 
 # ssh-agent (multiple ssh keys)
-# Check if an agent is already running for the current user
-export SSH_AGENT_PID="`pgrep -u ${USERNAME} ssh-agent | tail -n1`"
-if [ "x${SSH_AGENT_PID}" != "x" ] ; then
-	# Retrive socket from PID
-	# Linux
-	if [ `(ls /tmp/ssh-*/agent.*.${SSH_AGENT_PID}) >/dev/null 2>&1` ] ; then
-		for SOCK in `ls --color=never /tmp/ssh-*/agent.*.${SSH_AGENT_PID}` ; do
-			export SSH_AUTH_SOCK="`cat ${SOCK}`"
-		done
-	fi
-	# MacOs
-	if [ `(ls /var/folders/*/*/*/ssh-*/agent.*.${SSH_AGENT_PID}) >/dev/null 2>&1` ] ; then
-		for SOCK in `ls --color=never /var/folders/*/*/*/ssh-*/agent.*.${SSH_AGENT_PID}` ; do
-			export SSH_AUTH_SOCK="`cat ${SOCK}`"
-		done
-	fi
-else
-	# start ssh-agent
-	eval `ssh-agent` >/dev/null
-	# Leave a file allowing other terminals to retrive the agent
-	echo ${SSH_AUTH_SOCK} > ${SSH_AUTH_SOCK}.${SSH_AGENT_PID}
+# Check if an agent already loaded (mostly desktop)
+if [ "x${SSH_AUTH_SOCK}" = "x" ] ; then
+    # Find running PID for user (non-gui terms)
+    SSH_AGENT_FIND_PID="`pgrep -u ${USERNAME} ssh-agent | tail -n1`"
+    if [ "x${SSH_AGENT_FIND_PID}" != "x" ] ; then
+        # Retrieve socket from PID : Linux
+        for SSH_AGENT_FIND_SOCK in `ls --color=never /tmp/ssh-*/agent.*.${SSH_AGENT_FIND_PID}` ; do
+            export SSH_AUTH_SOCK="`cat ${SSH_AGENT_FIND_SOCK}`"
+        done 2>/dev/null
+        # Retrieve socket from PID : MacOs
+        for SSH_AGENT_FIND_SOCK in `ls --color=never /var/folders/*/*/*/ssh-*/agent.*.${SSH_AGENT_FIND_PID}` ; do
+            export SSH_AUTH_SOCK="`cat ${SSH_AGENT_FIND_SOCK}`"
+        done 2>/dev/null
+    # init only if ~/.ssh/use-ssh-agent file present
+    elif [ -e ${HOME}/.ssh/use-ssh-agent ] ; then
+        # start ssh-agent
+        eval `ssh-agent` >/dev/null
+        # Leave a file for simultaneous terminals retrieval
+        echo ${SSH_AUTH_SOCK} > ${SSH_AUTH_SOCK}.${SSH_AGENT_PID}
+    fi
 fi
 
 # history

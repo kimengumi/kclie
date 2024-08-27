@@ -23,4 +23,7 @@
 # ZSH profile
 #
 
-(eval `ssh-agent -k`) >/dev/null 2>&1
+if [ "x${SSH_AGENT_PID}" != "x" ] ; then
+    # kill only on logout of the initial terminal
+    (eval `ssh-agent -k`) >/dev/null 2>&1
+fi
