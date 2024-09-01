@@ -142,6 +142,10 @@ if [ "${PHP_VER}" ]; then
         echo -e "${C_GRE}Install MariaDB & global config${C_OFF}"
         apt install -qqy mariadb-server mariadb-client
         cp -r ${KCLIE_PATH}/etc/mysql/* /etc/mysql/
+        if [ ! -d /var/log/mysql ]; then
+            mkdir -p /var/log/mysql
+            chown mysql:mysql /var/log/mysql
+        fi
         systemctl restart mariadb || service mariadb restart
     else
         echo "MariaDB already installed"
