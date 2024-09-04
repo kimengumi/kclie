@@ -290,10 +290,6 @@ if [ "${PHP_VER}${IS_STATIC}" ]; then
         echo -e "${C_GRE}Create dir ${VHOST_DIR}${C_OFF}"
         sudo -u ${VHOST_USER} mkdir -p ${VHOST_DIR}/www
         chmod 751 /home/${VHOST_USER}/web ${VHOST_DIR} ${VHOST_DIR}/www
-        if [ "${PHP_VER}" ]; then
-            sudo -u ${VHOST_USER} mkdir -p ${VHOST_DIR}/var/tmp
-            chmod 771 ${VHOST_DIR}/var ${VHOST_DIR}/var/tmp
-        fi
     else
         echo "Dir ${VHOST_DIR} already exists"
     fi
@@ -301,6 +297,10 @@ fi
 
 # vhost PHP FPM
 if [ "${PHP_VER}" ]; then
+    # ensure php tmp dir
+    sudo -u ${VHOST_USER} mkdir -p ${VHOST_DIR}/var/tmp
+    chmod 771 ${VHOST_DIR}/var ${VHOST_DIR}/var/tmp
+    # PHP-fpm conf
     TMP_FPM_CONF="/tmp/${VHOST_NAME}.php-${PHP_VER}-fpm.conf"
     VHOST_FPM_CONF="/etc/php/${PHP_VER}/fpm/pool.d/${VHOST_NAME}.conf"
     NBTHREADS=1
@@ -318,9 +318,9 @@ pm.max_children = $(( 6 * ${NBTHREADS} ))
 pm.start_servers = $(( 2 * ${NBTHREADS} ))
 pm.min_spare_servers = ${NBTHREADS}
 pm.max_spare_servers = $(( 4 * ${NBTHREADS} ))\n
-php_admin_value[open_basedir]=/home/${VHOST_USER}/web/${VHOST_NAME}/
-php_admin_value[upload_tmp_dir]=/home/${VHOST_USER}/web/${VHOST_NAME}/var/tmp
-php_admin_value[sys_temp_dir]=/home/${VHOST_USER}/web/${VHOST_NAME}/var/tmp" > ${TMP_FPM_CONF}
+php_admin_value[open_basedir]=${VHOST_DIR}
+php_admin_value[upload_tmp_dir]=${VHOST_DIR}/var/tmp
+php_admin_value[sys_temp_dir]=${VHOST_DIR}/var/tmp" > ${TMP_FPM_CONF}
 
     if [ $(grep -r "/run/php/${VHOST_NAME}.sock" /etc/php/ | grep -v ${VHOST_FPM_CONF} | wc -l) -ge 1 ]; then
         echo -e "${C_RED}"
