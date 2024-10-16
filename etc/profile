@@ -85,13 +85,13 @@ alias cd..='cd ..'
 alias c=clear
 alias h='history 50'
 alias l="ls -lha ${LSCOLOR}"
-alias ll="ls -l ${LSCOLOR}"
+alias ll="ls -lha ${LSCOLOR}"
 alias la="ls -A ${LSCOLOR}"
 alias ltr="ls -lhatr ${LSCOLOR}"
 alias ls="ls ${LSCOLOR}"
 alias dir="dir ${LSCOLOR}"
 alias vdir="vdir ${LSCOLOR}"
-alias grep='grep --color=auto --exclude-dir=.svn'
+alias grep='grep --color=auto --exclude-dir={.git,.svn}'
 alias fgrep='fgrep --color=auto --exclude-dir={.git,.svn}'
 alias egrep='egrep --color=auto --exclude-dir={.git,.svn}'
 
