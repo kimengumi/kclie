@@ -23,10 +23,10 @@
 #
 # Install & update a standardized Apache / MariaDb / multi-Php DEV stack using Ondrej PPA
 #
-# !!! WARNING !!!
-# The type of rules deployed by this wizard is for DEVELOPMENT environment only !
-# It is not suitable for production environment !
-#
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! WARNING !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# !!! The kind of rules deployed by this wizard is for LOCAL DEVELOPMENT environment ONLY ! !!!
+# !!! It is NOT SUITABLE FOR PRODUCTION environments !                                      !!!
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 # Splashscreen
 echo -e "\033[1;97;49m$(head -n 4 $0 | tail -n 3)\n#\twizard/$(basename "$0")\n$(head -n 29 $0 | tail -n 7)\033[0m\n"
@@ -82,6 +82,9 @@ cp -r ${KCLIE_PATH}/etc/apache2/* /etc/apache2/
 PXXVCONF="/etc/apache2/sites-available/0010-kclie-dev-phpxx-localhost.conf"
 printf "\n\n# This file is auto-generated on each update on KCLIE dev-multi-fpm stack. Please do not modify\n\n" >${PXXVCONF}
 
+# Allow usage of local Mariadb from docker
+sed -i "s/bind-address *\= 127.0.0.1/bind-address \= 172.17.0.1,127.0.0.1/g" /etc/mysql/mariadb.conf.d/50-server.cnf
+
 if [ -e /etc/apache2/sites-available/0000-kclie-dev-default.conf ] ; then
     a2dissite 0000-kclie-dev-default.conf
     rm /etc/apache2/sites-available/0000-kclie-dev-default.conf
@@ -125,7 +128,7 @@ for VP in ${PHPS}; do
 done
 
 echo -e "\n# CONFIG MARIADB"
-for LOCALHOST in "127.0.0.1" "::1" "localhost"; do
+for LOCALHOST in "127.0.0.1" "::1" "localhost" "172.%"; do
     mysql -e "CREATE USER IF NOT EXISTS 'dev'@'${LOCALHOST}' IDENTIFIED BY 'dev'"
     mysql -e "GRANT USAGE ON * . * TO 'dev'@'${LOCALHOST}'"
     mysql -e "GRANT ALL PRIVILEGES ON \`dev\_%\` . * TO 'dev'@'${LOCALHOST}'"
