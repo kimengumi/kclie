@@ -82,9 +82,6 @@ cp -r ${KCLIE_PATH}/etc/apache2/* /etc/apache2/
 PXXVCONF="/etc/apache2/sites-available/0010-kclie-dev-phpxx-localhost.conf"
 printf "\n\n# This file is auto-generated on each update on KCLIE dev-multi-fpm stack. Please do not modify\n\n" >${PXXVCONF}
 
-# Allow usage of local Mariadb from docker
-sed -i "s/bind-address *\= 127.0.0.1/bind-address \= 172.17.0.1,127.0.0.1/g" /etc/mysql/mariadb.conf.d/50-server.cnf
-
 if [ -e /etc/apache2/sites-available/0000-kclie-dev-default.conf ] ; then
     a2dissite 0000-kclie-dev-default.conf
     rm /etc/apache2/sites-available/0000-kclie-dev-default.conf
@@ -128,6 +125,16 @@ for VP in ${PHPS}; do
 done
 
 echo -e "\n# CONFIG MARIADB"
+
+# Allow usage of local Mariadb from docker
+MBD_MAJ_VER=$(mysql -V | awk '{ print $5 }' | sed 's/,//' | awk -F. '{ print $2 }')
+MBD_MIN_VER=$(mysql -V | awk '{ print $5 }' | sed 's/,//' | awk -F. '{ print $1 }')
+if [[ "${MBD_MAJ_VER}" -lt 10 ]] || [[ "${MBD_MAJ_VER}" -eq 10 && "${MBD_MIN_VER}" -lt 11 ]]; then
+    sed -i "s/bind-address *\= 127.0.0.1/bind-address \= 0.0.0.0/g" /etc/mysql/mariadb.conf.d/50-server.cnf
+else
+    sed -i "s/bind-address *\= 127.0.0.1/bind-address \= 172.17.0.1,127.0.0.1/g" /etc/mysql/mariadb.conf.d/50-server.cnf
+fi
+
 for LOCALHOST in "127.0.0.1" "::1" "localhost" "172.%"; do
     mysql -e "CREATE USER IF NOT EXISTS 'dev'@'${LOCALHOST}' IDENTIFIED BY 'dev'"
     mysql -e "GRANT USAGE ON * . * TO 'dev'@'${LOCALHOST}'"
