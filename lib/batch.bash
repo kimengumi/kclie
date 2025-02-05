@@ -104,11 +104,7 @@ BatchEnd() {
 }
 
 BatchEcho() {
-    if [ "x${QUIET_TIMELOG}" = "x" ]; then
-        echo "[$(date '+%Y-%m-%d %H:%M:%S')] ${FUNCNAME[1]}: $@"
-    else
-        echo $1
-    fi
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] ${FUNCNAME[1]}: $@"
 }
 
 BackupDirMount() {
