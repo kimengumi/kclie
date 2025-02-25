@@ -1,0 +1,71 @@
+#!/bin/bash
+#
+# Kimengumi Command Line Interface Environnement (kclie)
+#
+# Licensed under the EUPL, Version 1.2 or – as soon they will be approved by
+# the European Commission - subsequent versions of the EUPL (the "Licence");
+# You may not use this work except in compliance with the Licence.
+# You may obtain a copy of the Licence at:
+#
+# https://joinup.ec.europa.eu/software/page/eupl
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the Licence is distributed on an "AS IS" basis,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the Licence for the specific language governing permissions and
+# limitations under the Licence.
+#
+# @author Antonio Rossetti <antonio@rossetti.fr>
+# @copyright since 2009 Antonio Rossetti
+# @license <https://joinup.ec.europa.eu/software/page/eupl> EUPL
+#
+
+#
+# Create a dump for each vhost created with wizard/prod-apache-vhost
+#
+
+mysql -Bse "FLUSH TABLES WITH READ LOCK;" 2>/dev/null && SKIP_LOCK_TABLES="--skip-lock-tables" && echo "Lock all tables of all databases"
+
+REMAIN_DBS=($(mysql -Bse "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME NOT IN ('information_schema', 'mysql', 'performance_schema', 'sys');"))
+
+# dump matching wizard/prod-apache-vhost DBs in the according vhost dir
+for VHOST_USER_DB_CONF in `ls --color=never -d  /home/*/web/*/db.config.php`; do
+
+    read VHOST_USER VHOST_NAME <<< $(echo "${VHOST_USER_DB_CONF}" | awk -F'/' '{print $3, $5}')
+    VHOST_DB_NAME=$(echo "${VHOST_USER}_${VHOST_NAME}" | sed -e "s/\./-/g")
+    VHOST_DB_DUMP="/home/${VHOST_USER}/web/${VHOST_NAME}/db.dump.sql.gz"
+
+    for REMAIN_DB_KEY in "${!REMAIN_DBS[@]}"; do
+        if [ "${REMAIN_DBS[${REMAIN_DB_KEY}]}" == ${VHOST_DB_NAME} ]; then
+
+            echo Dump DB ${VHOST_DB_NAME} \> ${VHOST_DB_DUMP}
+            mysqldump ${SKIP_LOCK_TABLES} -f ${VHOST_DB_NAME} | gzip -9f > ${VHOST_DB_DUMP}
+            chmod 600 ${VHOST_DB_DUMP}
+            chown ${VHOST_USER} ${VHOST_DB_DUMP}
+            unset 'REMAIN_DBS[REMAIN_DB_KEY]'
+        fi
+    done
+done
+
+# dump remaining DBs in the user home dir
+for REMAIN_DB_KEY in "${!REMAIN_DBS[@]}"; do
+    VHOST_DB_NAME=${REMAIN_DBS[${REMAIN_DB_KEY}]}
+    VHOST_USER=$(echo "${VHOST_DB_NAME}" | awk -F'_' '{print $1}')
+    VHOST_DB_DUMP="/home/${VHOST_USER}/db.dump.${VHOST_DB_NAME}.sql.gz"
+
+    if [ -w /home/${VHOST_USER} ] ; then
+
+        echo Dump DB ${VHOST_DB_NAME} \> ${VHOST_DB_DUMP}
+        mysqldump ${SKIP_LOCK_TABLES} -f ${VHOST_DB_NAME} | gzip -9f > ${VHOST_DB_DUMP}
+        chmod 600 ${VHOST_DB_DUMP}
+        chown ${VHOST_USER} ${VHOST_DB_DUMP}
+    else
+        # DB not related no any user
+        echo "SKIP DB ${VHOST_DB_NAME} !" >&2
+    fi
+done
+
+if [ -n "${SKIP_LOCK_TABLES}" ]; then
+    echo "Unlock tables"
+    mysql -Bse "UNLOCK TABLES;"
+fi
