@@ -49,19 +49,19 @@ done
 
 # dump remaining DBs in the user home dir
 for REMAIN_DB_KEY in "${!REMAIN_DBS[@]}"; do
-    VHOST_DB_NAME=${REMAIN_DBS[${REMAIN_DB_KEY}]}
-    VHOST_USER=$(echo "${VHOST_DB_NAME}" | awk -F'_' '{print $1}')
-    VHOST_DB_DUMP="/home/${VHOST_USER}/db.dump.${VHOST_DB_NAME}.sql.gz"
 
-    if [ -w /home/${VHOST_USER} ] ; then
+    DB_NAME=${REMAIN_DBS[${REMAIN_DB_KEY}]}
+    read DB_USER DB_SUB_NAME <<< $(echo "${DB_NAME}" | awk -F'_' '{print $1, $2}')
 
-        echo Dump DB ${VHOST_DB_NAME} \> ${VHOST_DB_DUMP}
-        mysqldump ${SKIP_LOCK_TABLES} -f ${VHOST_DB_NAME} | gzip -9f > ${VHOST_DB_DUMP}
-        chmod 600 ${VHOST_DB_DUMP}
-        chown ${VHOST_USER} ${VHOST_DB_DUMP}
+    if [ -w /home/${DB_USER} ] ; then
+        DB_DUMP="/home/${DB_USER}/db.dump.${DB_SUB_NAME}.sql.gz"
+        echo Dump DB ${DB_NAME} \> ${DB_DUMP}
+        mysqldump ${SKIP_LOCK_TABLES} -f ${DB_NAME} | gzip -9f > ${DB_DUMP}
+        chmod 600 ${DB_DUMP}
+        chown ${VHOST_USER} ${DB_DUMP}
     else
         # DB not related no any user
-        echo "SKIP DB ${VHOST_DB_NAME} !" >&2
+        echo "SKIP DB ${DB_NAME} !" >&2
     fi
 done
 
