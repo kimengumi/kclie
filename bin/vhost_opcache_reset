@@ -1,0 +1,72 @@
+#!/bin/bash
+#
+# Kimengumi Command Line Interface Environnement (kclie)
+#
+# Licensed under the EUPL, Version 1.2 or – as soon they will be approved by
+# the European Commission - subsequent versions of the EUPL (the "Licence");
+# You may not use this work except in compliance with the Licence.
+# You may obtain a copy of the Licence at:
+#
+# https://joinup.ec.europa.eu/software/page/eupl
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the Licence is distributed on an "AS IS" basis,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the Licence for the specific language governing permissions and
+# limitations under the Licence.
+#
+# @author Antonio Rossetti <antonio@rossetti.fr>
+# @copyright since 2009 Antonio Rossetti
+# @license <https://joinup.ec.europa.eu/software/page/eupl> EUPL
+#
+
+#
+# Reset opcache for a given vhost created with kclie wizard
+#
+# Usage: vhost_opcache_reset ([servername])
+#
+# If servnername is not specified it is detected from current path
+#
+
+source $(dirname ${BASH_SOURCE[0]:-$0})/../lib/vhost.bash
+
+if [ "x$1" != "x" ] ; then
+    VHOST_NAME=$1
+else
+    VHOST_NAME=$(basename $(CurrentDirVhostDir))
+    if [ "x${VHOST_NAME}" != "x" ] ; then
+        echo "Detected vhost \"${VHOST_NAME}\""
+    else
+        echo -e "Please specify the vhost main servername\nUsage:\nvhost_opcache_reset [servername]"
+        exit 1
+    fi
+fi
+
+VHOST_SOCK=/run/php/${VHOST_NAME}.sock
+
+if [ ! -e ${VHOST_SOCK} ]; then
+    echo -e "PHP-fpm pool not exists or is not running for \"${VHOST_NAME}\""
+    exit 1
+fi
+
+
+if [ ! -w ${VHOST_SOCK} ]; then
+    echo -e "PHP-fpm pool \"${VHOST_NAME}\" is not accessible from this user"
+    exit 1
+fi
+
+VHOST_TMP=$(find /home/*/web/${VHOST_NAME}/var/tmp -mindepth 0 -maxdepth 0 -type d | head -n 1)
+if [ -z "$VHOST_TMP" ]; then
+    echo -e "TMP dir of PHP-fpm pool \"${VHOST_NAME}\" not found"
+    exit 1
+fi
+if [ ! -w "$VHOST_TMP" ]; then
+    echo -e "TMP dir of PHP-fpm pool \"${VHOST_NAME}\" not writable"
+    exit 1
+fi
+
+TMP_FILE=$(mktemp  -p ${VHOST_TMP} opcache_reset.XXXXXXXXXX.php)
+echo '<?php echo opcache_reset() ? "Opcache cleared\n" : "ERROE CLEARING OPCACHE\n";' > ${TMP_FILE}
+chmod ugo+r ${TMP_FILE}
+(SCRIPT_FILENAME=${TMP_FILE} REQUEST_METHOD=GET cgi-fcgi -bind -connect ${VHOST_SOCK} | tail -n 1 )
+rm ${TMP_FILE}

@@ -200,7 +200,7 @@ if [ "${PHP_VER}" ]; then
         echo -e "\n${C_GRE}Add/Configure PHP ${PHP_VER}${C_OFF}\n"
 
         # Get all usual mods
-        rm -f /tmp/phpinstall.list 2> /dev/null
+        echo 'libfcgi-bin' > /tmp/phpinstall.list
         for MOD in fpm bcmath bz2 curl gd imagick intl memcache memcached mbstring mcrypt mysql opcache redis readline soap xml zip; do
             echo php${PHP_VER}-${MOD} >>/tmp/phpinstall.list
         done
