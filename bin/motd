@@ -188,7 +188,7 @@ if [ -x /bin/df ] ; then
 	echo
 
 	if [ "${WNIX}" = 'osx' ] ; then
-		/bin/df -hl 2>/dev/null
+		/bin/df -hl 2>/dev/null | grep -v "/System/Volumes/"
 	elif [ "${WNIX}" = 'linux' ] || [ "${WNIX}" = 'cygwin' ] ; then
 		/bin/df -hT -x tmpfs -x rootfs -x iso9660 -x debugfs -x fuse.mhddfs -x devtmpfs -x aufs -x squashfs 2>/dev/null | grep " " | awk 'NR<3{print $0;next}{print $0| "sort -k7"}'
 	elif [ "${WNIX}" = 'wsl' ] ; then

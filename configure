@@ -216,7 +216,7 @@ if [ "x${SETUP_USERMODE}" = "xy" ] ; then
   echo -e "${WHITE}Applying user shells customizations ...\033[0m"
   # PROFILE
   touch ~/.bash_profile
-  for RC_BASH in ~/.profile ~/.bash_profile ~/.zshrc ; do
+  for RC_BASH in ~/.profile ~/.bash_profile ~/.zshrc ~/.zprofile ; do
     if [ -w ${RC_BASH} ] && ! grep -q "\. ${SETUP_PATH}/env" ${RC_BASH} ; then
       echo ""  >> ${RC_BASH}
       echo "# Kimengumi Command Line Interface Environnement (kclie)"  >> ${RC_BASH}
