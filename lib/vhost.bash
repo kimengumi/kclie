@@ -24,13 +24,55 @@
 # Library of functions dealing with vhosts created with kclie wizard
 #
 
-CurrentDirVhostDir() {
+GetVhostDirFromCurrentDir() {
     DIR=$(pwd)
     while [ "${DIR}" != "/" ]; do
         if [ -e "${DIR}/db.config.php" ]; then
-            echo ${DIR}
+            VHOST_DIR=${DIR}
             return
         fi
         DIR=$(dirname "${DIR}")
     done
+}
+
+GetVhostDirFromVhostName() {
+    for SEARCH in `ls --color=never -d  /home/*/web/$1 2>/dev/null`; do
+        if [ -d "${SEARCH}" ]; then
+            VHOST_DIR=${SEARCH}
+            return
+        fi
+    done
+}
+
+GetVhostVarsFromVhostDir() {
+    read VHOST_USER VHOST_NAME <<< $(echo "${VHOST_DIR}" | awk -F'/' '{print $3, $5}')
+    if [ -r "${VHOST_DIR}/db.config.php" ] ; then
+        VHOST_HAVE_DB=1
+        VHOST_DB_NAME=$(echo "${VHOST_USER}_${VHOST_NAME}" | sed -e "s/\./-/g")
+        VHOST_DB_CONF="${VHOST_DIR}/db.config.php"
+        VHOST_DB_DUMP="${VHOST_DIR}/db.dump.sql.gz"
+        VHOST_DB_ENV="${VHOST_DIR}/.env.local"
+    else
+        VHOST_HAVE_DB=0
+    fi
+    if [ -r "/run/php/${VHOST_NAME}.sock" ] ; then
+        VHOST_HAVE_PHP=1
+        VHOST_PHP_SOCK="/run/php/${VHOST_NAME}.sock"
+        VHOST_PHP_TMP="/home/${VHOST_USER}/web/${VHOST_NAME}/var/tmp"
+    else
+        VHOST_HAVE_PHP=0
+    fi
+}
+
+GetVhostVarsFromAuto(){
+    if [ "x$1" != "x" ] ; then
+        GetVhostDirFromVhostName $1
+    else
+        GetVhostDirFromCurrentDir
+    fi
+    if [ "x${VHOST_DIR}" = "x" ] ; then
+        echo -e "Unspecified or not existing vhost. Usage:\n$0 ([servername] dectect form current path if not specified)"
+        exit 1
+    fi
+    GetVhostVarsFromVhostDir
 }

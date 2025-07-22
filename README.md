@@ -1,4 +1,4 @@
-Kimengumi Command Line Interface Environnement (kclie)
+ Kimengumi Command Line Interface Environnement (kclie)
 ===================
 
 KCLIE is a useful command line environment, tools & libraries.
