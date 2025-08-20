@@ -1,4 +1,4 @@
- Kimengumi Command Line Interface Environnement (kclie)
+Kimengumi Command Line Interface Environnement (kclie)
 ===================
 
 KCLIE is a useful command line environment, tools & libraries.
@@ -39,15 +39,39 @@ Installation
 Docker Sandbox
 -------------
 
-#### Debian
+A user "user", sudoer with password "user" is created within the sandbox container.
 
-    docker compose run kclie-debian
+### Debian
 
-#### Ubuntu
+#### Current
 
-    docker compose run kclie-ubuntu
+    docker compose run kclie-debian-stable
 
-On both a user "user", sudoer with password "user" is created within the sandbox container.
+#### Old
+
+    docker compose run kclie-debian-oldstable
+
+#### Old Old
+
+    docker compose run kclie-debian-oldoldstable
+
+#### Future
+
+    docker compose run kclie-debian-testing
+
+### Ubuntu
+
+#### Current LTS
+
+    docker compose run kclie-ubuntu-latest
+
+#### Current _(include non LTS)_
+
+    docker compose run kclie-ubuntu-polling
+
+#### Future _(include non LTS)_
+
+    docker compose run kclie-ubuntu-devel
 
 License
 -------------

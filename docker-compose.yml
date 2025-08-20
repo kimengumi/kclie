@@ -18,9 +18,23 @@
 # @copyright since 2009 Antonio Rossetti
 # @license <https://joinup.ec.europa.eu/software/page/eupl> EUPL
 #
-version: '3'
 
 services:
+
+    kclie-debian-oldoldstable:
+        container_name: kclie-debian-oldoldstable
+        image: debian:oldoldstable
+        pull_policy: always
+        stdin_open: true
+        tty: true
+        volumes:
+            -   type: bind
+                source: ./
+                target: /opt/kclie
+            - debian-oldoldstable-var-cache-apt:/var/cache/apt
+            - debian-oldoldstable-var-lib-apt:/var/lib/apt
+        command: bash -c ". /opt/kclie/docker-entrypoint.sh"
+
     kclie-debian-oldstable:
         container_name: kclie-debian-oldstable
         image: debian:oldstable
@@ -33,23 +47,8 @@ services:
                 target: /opt/kclie
             - debian-oldstable-var-cache-apt:/var/cache/apt
             - debian-oldstable-var-lib-apt:/var/lib/apt
-        command: >
-            bash -c "
-              rm -f /etc/apt/apt.conf.d/docker-*;
-              export DEBIAN_FRONTEND=noninteractive;
-              ln -fs /usr/share/zoneinfo/Europe/Paris /etc/localtime;
-              dpkg-reconfigure --frontend noninteractive tzdata;
-              if [ $(find "/var/lib/apt/extended_states" -mtime -1 -print 2>/dev/null | wc -l) -lt 1 ];then apt-get update; fi
-              apt-get install -y cron gawk git procps python3 sudo systemd tzdata vim-nox wget zsh;
-              wget https://raw.githubusercontent.com/gdraheim/docker-systemctl-replacement/master/files/docker/systemctl3.py -O /usr/bin/systemctl;
-              /usr/bin/systemctl;
-              git config --global pull.rebase false ;
-              groupadd user;
-              useradd -g user -G sudo -s /usr/bin/zsh -m user;
-              (echo "user:user" | chpasswd);
-              /opt/kclie/configure;
-              (echo "motd" | sudo -u user tee /home/user/.zshrc)
-              su --login user"
+        command: bash -c ". /opt/kclie/docker-entrypoint.sh"
+
     kclie-debian-stable:
         container_name: kclie-debian
         image: debian:stable
@@ -62,23 +61,8 @@ services:
                 target: /opt/kclie
             - debian-stable-var-cache-apt:/var/cache/apt
             - debian-stable-var-lib-apt:/var/lib/apt
-        command: >
-            bash -c "
-              rm -f /etc/apt/apt.conf.d/docker-*;
-              export DEBIAN_FRONTEND=noninteractive;
-              ln -fs /usr/share/zoneinfo/Europe/Paris /etc/localtime;
-              dpkg-reconfigure --frontend noninteractive tzdata;
-              if [ $(find "/var/lib/apt/extended_states" -mtime -1 -print 2>/dev/null | wc -l) -lt 1 ];then apt-get update; fi
-              apt-get install -y cron gawk git procps python3 sudo systemd tzdata vim-nox wget zsh;
-              wget https://raw.githubusercontent.com/gdraheim/docker-systemctl-replacement/master/files/docker/systemctl3.py -O /usr/bin/systemctl;
-              /usr/bin/systemctl;
-              git config --global pull.rebase false ;
-              groupadd user;
-              useradd -g user -G sudo -s /usr/bin/zsh -m user;
-              (echo "user:user" | chpasswd);
-              /opt/kclie/configure;
-              (echo "motd" | sudo -u user tee /home/user/.zshrc)
-              su --login user"
+        command: bash -c ". /opt/kclie/docker-entrypoint.sh"
+
     kclie-debian-testing:
         container_name: kclie-debian
         image: debian:testing
@@ -91,23 +75,8 @@ services:
                 target: /opt/kclie
             - debian-testing-var-cache-apt:/var/cache/apt
             - debian-testing-var-lib-apt:/var/lib/apt
-        command: >
-            bash -c "
-              rm -f /etc/apt/apt.conf.d/docker-*;
-              export DEBIAN_FRONTEND=noninteractive;
-              ln -fs /usr/share/zoneinfo/Europe/Paris /etc/localtime;
-              dpkg-reconfigure --frontend noninteractive tzdata;
-              if [ $(find "/var/lib/apt/extended_states" -mtime -1 -print 2>/dev/null | wc -l) -lt 1 ];then apt-get update; fi
-              apt-get install -y cron gawk git procps python3 sudo systemd tzdata vim-nox wget zsh;
-              wget https://raw.githubusercontent.com/gdraheim/docker-systemctl-replacement/master/files/docker/systemctl3.py -O /usr/bin/systemctl;
-              /usr/bin/systemctl;
-              git config --global pull.rebase false ;
-              groupadd user;
-              useradd -g user -G sudo -s /usr/bin/zsh -m user;
-              (echo "user:user" | chpasswd);
-              /opt/kclie/configure;
-              (echo "motd" | sudo -u user tee /home/user/.zshrc)
-              su --login user"
+        command: bash -c ". /opt/kclie/docker-entrypoint.sh"
+
     kclie-ubuntu-latest:
         container_name: kclie-ubuntu
         image: ubuntu:latest
@@ -120,29 +89,47 @@ services:
                 target: /opt/kclie
             - ubuntu-latest-var-cache-apt:/var/cache/apt
             - ubuntu-latest-var-lib-apt:/var/lib/apt
-        command: >
-            bash -c "
-              rm -f /etc/apt/apt.conf.d/docker-*;
-              export DEBIAN_FRONTEND=noninteractive;
-              ln -fs /usr/share/zoneinfo/Europe/Paris /etc/localtime;
-              dpkg-reconfigure --frontend noninteractive tzdata;
-              if [ $(find "/var/lib/apt/extended_states" -mtime -1 -print 2>/dev/null | wc -l) -lt 1 ];then apt-get update; fi;
-              apt-get install -y dialog gawk git procps sudo software-properties-common tzdata vim-nox wget zsh;
-              wget https://raw.githubusercontent.com/gdraheim/docker-systemctl-replacement/master/files/docker/systemctl3.py -O /usr/bin/systemctl;
-              /usr/bin/systemctl;
-              git config --global pull.rebase false ;
-              groupadd user;
-              useradd -g user -G sudo -s /usr/bin/zsh -m user;
-              (echo "user:user" | chpasswd);
-              /opt/kclie/configure;
-              (echo "motd" | sudo -u user tee /home/user/.zshrc)
-              su --login user"
+        command: bash -c ". /opt/kclie/docker-entrypoint.sh"
+
+    kclie-ubuntu-rolling:
+        container_name: kclie-ubuntu
+        image: ubuntu:rolling
+        pull_policy: always
+        stdin_open: true
+        tty: true
+        volumes:
+            -   type: bind
+                source: ./
+                target: /opt/kclie
+            - ubuntu-rolling-var-cache-apt:/var/cache/apt
+            - ubuntu-rolling-var-lib-apt:/var/lib/apt
+        command: bash -c ". /opt/kclie/docker-entrypoint.sh"
+
+    kclie-ubuntu-devel:
+        container_name: kclie-ubuntu
+        image: ubuntu:devel
+        pull_policy: always
+        stdin_open: true
+        tty: true
+        volumes:
+            -   type: bind
+                source: ./
+                target: /opt/kclie
+            - ubuntu-devel-var-cache-apt:/var/cache/apt
+            - ubuntu-devel-var-lib-apt:/var/lib/apt
+        command: bash -c ". /opt/kclie/docker-entrypoint.sh"
 volumes:
+    debian-oldoldstable-var-cache-apt:
+    debian-oldoldstable-var-lib-apt:
     debian-oldstable-var-cache-apt:
-    debian-stable-var-cache-apt:
-    debian-testing-var-cache-apt:
-    ubuntu-latest-var-cache-apt:
     debian-oldstable-var-lib-apt:
+    debian-stable-var-cache-apt:
     debian-stable-var-lib-apt:
+    debian-testing-var-cache-apt:
     debian-testing-var-lib-apt:
+    ubuntu-devel-var-cache-apt:
+    ubuntu-devel-var-lib-apt:
+    ubuntu-latest-var-cache-apt:
     ubuntu-latest-var-lib-apt:
+    ubuntu-rolling-var-cache-apt:
+    ubuntu-rolling-var-lib-apt:
