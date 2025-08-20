@@ -33,11 +33,11 @@ REMAIN_DBS=($(mysql -Bse "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WH
 # dump matching wizard/prod-apache-vhost DBs in the according vhost dir
 for SEARCH in `ls --color=never -d  /home/*/web/*/db.config.php`; do
 
-    VHOST_DIR=$(basename SEARCH);
+    VHOST_DIR=$(dirname ${SEARCH});
     GetVhostVarsFromVhostDir
 
     for REMAIN_DB_KEY in "${!REMAIN_DBS[@]}"; do
-        if [ "${REMAIN_DBS[${REMAIN_DB_KEY}]}" == ${VHOST_DB_NAME} ]; then
+        if [ "${REMAIN_DBS[${REMAIN_DB_KEY}]}" == "${VHOST_DB_NAME}" ]; then
 
             echo Dump DB ${VHOST_DB_NAME} \> ${VHOST_DB_DUMP}
             mysqldump ${SKIP_LOCK_TABLES} -f ${VHOST_DB_NAME} | gzip -9f > ${VHOST_DB_DUMP}
