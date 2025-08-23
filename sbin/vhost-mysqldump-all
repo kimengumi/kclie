@@ -24,14 +24,19 @@
 # Create a dump for each vhost created with wizard/prod-apache-vhost
 #
 
-source $(dirname ${BASH_SOURCE[0]:-$0})/../lib/vhost.bash
+if ! declare -F BatchEcho > /dev/null; then
+    . "$(dirname ${BASH_SOURCE[0]:-$0})/../lib/batch.bash"
+fi
+if ! declare -F GetVhostVarsFromVhostDir > /dev/null; then
+    . "$(dirname ${BASH_SOURCE[0]:-$0})/../lib/vhost.bash"
+fi
 
-mysql -Bse "FLUSH TABLES WITH READ LOCK;" 2>/dev/null && SKIP_LOCK_TABLES="--skip-lock-tables" && echo "Lock all tables of all databases"
+mysql -Bse "FLUSH TABLES WITH READ LOCK;" 2>/dev/null && SKIP_LOCK_TABLES="--skip-lock-tables" && BatchEcho "Lock all tables of all databases"
 
 REMAIN_DBS=($(mysql -Bse "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME NOT IN ('information_schema', 'mysql', 'performance_schema', 'sys');"))
 
 # dump matching wizard/prod-apache-vhost DBs in the according vhost dir
-for SEARCH in `ls --color=never -d  /home/*/web/*/db.config.php`; do
+for SEARCH in $(ls --color=never -d  /home/*/web/*/db.config.php); do
 
     VHOST_DIR=$(dirname ${SEARCH});
     GetVhostVarsFromVhostDir
@@ -39,7 +44,7 @@ for SEARCH in `ls --color=never -d  /home/*/web/*/db.config.php`; do
     for REMAIN_DB_KEY in "${!REMAIN_DBS[@]}"; do
         if [ "${REMAIN_DBS[${REMAIN_DB_KEY}]}" == "${VHOST_DB_NAME}" ]; then
 
-            echo Dump DB ${VHOST_DB_NAME} \> ${VHOST_DB_DUMP}
+            BatchEcho Dump DB ${VHOST_DB_NAME} \> ${VHOST_DB_DUMP}
             mysqldump ${SKIP_LOCK_TABLES} -f ${VHOST_DB_NAME} | gzip -9f > ${VHOST_DB_DUMP}
             chmod 600 ${VHOST_DB_DUMP}
             chown ${VHOST_USER} ${VHOST_DB_DUMP}
@@ -48,25 +53,21 @@ for SEARCH in `ls --color=never -d  /home/*/web/*/db.config.php`; do
     done
 done
 
-# dump remaining DBs in the user home dir
+# dump remaining DBs in DEFAULT_BACKUP_DIR/mysql
 for REMAIN_DB_KEY in "${!REMAIN_DBS[@]}"; do
 
-    DB_NAME=${REMAIN_DBS[${REMAIN_DB_KEY}]}
-    read DB_USER DB_SUB_NAME <<< $(echo "${DB_NAME}" | awk -F'_' '{print $1, $2}')
+    mkdir -p ${DEFAULT_BACKUP_DIR}/mysql
 
-    if [ -w /home/${DB_USER} ] ; then
-        DB_DUMP="/home/${DB_USER}/db.dump.${DB_SUB_NAME}.sql.gz"
-        echo Dump DB ${DB_NAME} \> ${DB_DUMP}
-        mysqldump ${SKIP_LOCK_TABLES} -f ${DB_NAME} | gzip -9f > ${DB_DUMP}
-        chmod 600 ${DB_DUMP}
-        chown ${VHOST_USER} ${DB_DUMP}
-    else
-        # DB not related no any user
-        echo "SKIP DB ${DB_NAME} !" >&2
-    fi
+    DB_NAME=${REMAIN_DBS[${REMAIN_DB_KEY}]}
+    DB_DUMP="${DEFAULT_BACKUP_DIR}/mysql/${DB_NAME}.sql.gz"
+    BatchEcho Dump DB ${DB_NAME} \> ${DB_DUMP}
+    mysqldump ${SKIP_LOCK_TABLES} -f ${DB_NAME} | gzip -9f > ${DB_DUMP}
+    chmod 600 ${DB_DUMP}
+    chown ${VHOST_USER} ${DB_DUMP}
+
 done
 
 if [ -n "${SKIP_LOCK_TABLES}" ]; then
-    echo "Unlock tables"
+    BatchEcho "Unlock tables"
     mysql -Bse "UNLOCK TABLES;"
 fi
