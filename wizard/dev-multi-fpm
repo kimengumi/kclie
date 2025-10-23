@@ -37,7 +37,7 @@ if [ "x${KCLIE_PATH}" = "x" ]; then
 fi
 
 if [ "${SUDO_USER}x" = 'x' ] || [ "${SUDO_USER}x" = 'rootx' ]; then
-    echo 'This script is intented to be run in sudo from the dev user'
+    echo 'This script is intended to be run in sudo from the dev user'
     exit 1
 fi
 

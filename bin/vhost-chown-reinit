@@ -1,0 +1,59 @@
+#!/bin/bash
+#
+# Kimengumi Command Line Interface Environnement (kclie)
+#
+# Licensed under the EUPL, Version 1.2 or – as soon they will be approved by
+# the European Commission - subsequent versions of the EUPL (the "Licence");
+# You may not use this work except in compliance with the Licence.
+# You may obtain a copy of the Licence at:
+#
+# https://joinup.ec.europa.eu/software/page/eupl
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the Licence is distributed on an "AS IS" basis,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the Licence for the specific language governing permissions and
+# limitations under the Licence.
+#
+# @author Antonio Rossetti <antonio@rossetti.fr>
+# @copyright since 2009 Antonio Rossetti
+# @license <https://joinup.ec.europa.eu/software/page/eupl> EUPL
+#
+
+#
+# Reinit the owner of all files of the current vhost to the SSH user
+#
+# Usage: vhost-chown-reinit
+#
+
+if [ "${USER}x" != 'rootx' ]; then
+    sudo ${BASH_SOURCE[0]:-$0}
+    exit $?
+fi
+
+source $(dirname ${BASH_SOURCE[0]:-$0})/../lib/vhost.bash
+
+GetVhostDirFromCurrentDir
+if [ "x${VHOST_DIR}" = "x" ] ; then
+    echo -e "Currently not in a existing vhost."
+    exit 1
+fi
+GetVhostVarsFromVhostDir
+
+if ((${VHOST_HAVE_PHP})); then
+    # ensure php tmp dir
+    mkdir -p ${VHOST_DIR}/var/tmp
+    chmod 771 ${VHOST_DIR}/var ${VHOST_DIR}/var/tmp
+fi
+
+chown -R ${VHOST_USER}:${VHOST_GROUP} ${VHOST_DIR}
+
+#ensure minimal chmod
+chmod -R o-w ${VHOST_DIR}
+chmod o-r ${VHOST_DIR}
+if [ -e ${VHOST_DIR}/.env.local ]; then
+    chmod o-rwx ${VHOST_DIR}/.env.local
+fi
+if [ -e ${VHOST_DIR}/db.config.php ]; then
+    chmod o-rwx ${VHOST_DIR}/db.config.php
+fi

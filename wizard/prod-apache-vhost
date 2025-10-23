@@ -25,7 +25,7 @@
 #
 # Mindset :
 # - Will use a specific PHP-FPM pool for each vhost (no usage of libapache2-mod-php)
-# - Each Vhost is a set of : 1 SSH user + 1 user running PHP-FPM + 1 group used by the 2 users
+# - Each Vhost is a set of: 1 SSH user + 1 PHP-FPM user + 1 common group for the 2 users
 # - Allow to restrict write access to the executed website, without being bothered
 # - Autonomous user : no need of super user intervention for daily update / deliveries / file rights management
 #
@@ -255,13 +255,19 @@ if [ "${PHP_VER}${IS_STATIC}" ]; then
         else
             useradd -g ${VHOST_GROUP} -s /bin/bash -m ${VHOST_USER}
         fi
-        chmod 751 /home/${VHOST_USER}
+
         VHOST_USER_PASS=$(${KCLIE_PATH}/bin/genpass 32)
         echo "${VHOST_USER}:${VHOST_USER_PASS}" | chpasswd;
         echo -e "\n${C_YEL}User : ${VHOST_USER}\nPass : ${VHOST_USER_PASS}\n"
     else
         echo "User ${VHOST_USER} already exists"
     fi
+    #ensure authorized sudo commands
+    for ALLOW_CMD in vhost-chown-reinit ; do
+        if [ ! -e /etc/sudoers.d/kclie-${ALLOW_CMD} ] || ! grep -q "${VHOST_USER} ALL" /etc/sudoers.d/kclie-${ALLOW_CMD}  ; then
+            echo -e "${VHOST_USER} ALL=(root) NOPASSWD:${KCLIE_PATH}/bin/${ALLOW_CMD}" >> /etc/sudoers.d/kclie-${ALLOW_CMD}
+        fi
+    done
 fi
 
 # user DB
@@ -281,6 +287,11 @@ if [ "${PHP_VER}" ]; then
     else
         echo "DB user already exists"
     fi
+    #ensure minimalistic chown/chmod
+    if [ -e /home/${VHOST_USER}/.my.cnf ]; then
+        chown ${VHOST_USER}:${VHOST_GROUP} /home/${VHOST_USER}/.my.cnf
+        chmod 400 /home/${VHOST_USER}/.my.cnf
+    fi
 fi
 
 # vhost dir
@@ -288,11 +299,13 @@ if [ "${PHP_VER}${IS_STATIC}" ]; then
     VHOST_DIR="/home/${VHOST_USER}/web/${VHOST_NAME}"
     if [ ! -e ${VHOST_DIR}/www ]; then
         echo -e "${C_GRE}Create dir ${VHOST_DIR}${C_OFF}"
-        sudo -u ${VHOST_USER} mkdir -p ${VHOST_DIR}/www
-        chmod 751 /home/${VHOST_USER}/web ${VHOST_DIR} ${VHOST_DIR}/www
+        mkdir -p ${VHOST_DIR}/www
     else
         echo "Dir ${VHOST_DIR} already exists"
     fi
+    #ensure minimalistic chown/chmod
+    chown ${VHOST_USER}:${VHOST_GROUP} /home/${VHOST_USER} /home/${VHOST_USER}/web ${VHOST_DIR} ${VHOST_DIR}/www
+    chmod o-rw /home /home/${VHOST_USER} /home/${VHOST_USER}/web ${VHOST_DIR} ${VHOST_DIR}/www
 fi
 
 # vhost PHP FPM
@@ -380,6 +393,8 @@ fi
 # vhost db
 if [ "${PHP_VER}" ]; then
     VHOST_DB_NAME=$(echo "${VHOST_USER}_${VHOST_NAME}" | sed -e "s/\./-/g")
+    VHOST_DB_SF_CONF="${VHOST_DIR}/.env.local"
+    VHOST_DB_GEN_CONF="${VHOST_DIR}/db.config.php"
     if [ $(mysql -Bse "SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user = '${VHOST_DB_NAME}')" || echo 0) -ne 1 ]; then
         echo -e "\n${C_GRE}Create vhost database ${VHOST_DB_NAME}${C_OFF}"
         VHOST_DB_PASS=$(${KCLIE_PATH}/bin/genpass-ovh)
@@ -390,21 +405,26 @@ if [ "${PHP_VER}" ]; then
             mysql -e "GRANT ALL PRIVILEGES ON \`${VHOST_DB_NAME}\` . * TO '${VHOST_DB_NAME}'@'${LOCALHOST}'"
             mysql -e "GRANT TRIGGER ON \`${VHOST_DB_NAME}\` . * TO '${VHOST_DB_NAME}'@'${LOCALHOST}'"
         done
-        VHOST_DB_SF_CONF="${VHOST_DIR}/.env.local"
         if [ ! -e ${VHOST_DB_SF_CONF}  ]; then
             echo -e "${C_GRE}Deploy ${VHOST_DB_SF_CONF}     Symfony/.env style conf${C_OFF}"
             echo -e "DATABASE_URL=\"mysql://${VHOST_DB_NAME}:${VHOST_DB_PASS}@127.0.0.1:3306/${VHOST_DB_NAME}?serverVersion=$(mariadb --version | awk '{print $5}' | sed -e 's/,//g')&charset=utf8mb4\"" > ${VHOST_DB_SF_CONF}
-            chown ${VHOST_USER}:${VHOST_GROUP} ${VHOST_DB_SF_CONF}
         fi
-        VHOST_DB_GEN_CONF="${VHOST_DIR}/db.config.php"
-        if [ ! -e /home/${VHOST_USER}/web/${VHOST_NAME}/db.config.php ]; then
+        if [ ! -e ${VHOST_DB_GEN_CONF} ]; then
             echo -e "${C_GRE}Deploy ${VHOST_DB_GEN_CONF}  Generic PHP db conf${C_OFF}"
             echo -e "<?php\ndefine('DB_NAME','${VHOST_DB_NAME}');\ndefine('DB_USER','${VHOST_DB_NAME}');\ndefine('DB_PASSWORD','${VHOST_DB_PASS}');\ndefine('DB_HOST','localhost');" >> ${VHOST_DB_GEN_CONF}
-            chown ${VHOST_USER}:${VHOST_GROUP} ${VHOST_DB_GEN_CONF}
         fi
         echo -e "\n${C_YEL}Database : ${VHOST_DB_NAME}\n DB User : ${VHOST_DB_NAME}\n DB Pass : ${VHOST_DB_PASS}\n"
     else
         echo "DB user already exists"
+    fi
+    #ensure minimalistic chown/chmod
+    if [ -e ${VHOST_DB_SF_CONF} ]; then
+        chown ${VHOST_USER}:${VHOST_GROUP} ${VHOST_DB_SF_CONF}
+        chmod o-rwx ${VHOST_DB_SF_CONF}
+    fi
+    if [ -e ${VHOST_DB_GEN_CONF} ]; then
+        chown ${VHOST_USER}:${VHOST_GROUP} ${VHOST_DB_GEN_CONF}
+        chmod o-rwx ${VHOST_DB_GEN_CONF}
     fi
 fi
 

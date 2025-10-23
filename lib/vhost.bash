@@ -27,9 +27,11 @@
 GetVhostDirFromCurrentDir() {
     DIR=$(pwd)
     while [ "${DIR}" != "/" ]; do
-        if [ -e "${DIR}/db.config.php" ]; then
-            VHOST_DIR=${DIR}
-            return
+        if [ -e "${DIR}/db.config.php" ] || [ -e "${DIR}/.env.local" ]; then
+            if [[ "${DIR}" =~ ^/home/[^/]+/web/[^/]+/?$ ]]; then
+                VHOST_DIR=${DIR%/}
+                return
+            fi
         fi
         DIR=$(dirname "${DIR}")
     done
@@ -46,12 +48,11 @@ GetVhostDirFromVhostName() {
 
 GetVhostVarsFromVhostDir() {
     read VHOST_USER VHOST_NAME <<< $(echo "${VHOST_DIR}" | awk -F'/' '{print $3, $5}')
-    if [ -r "${VHOST_DIR}/db.config.php" ] ; then
+    VHOST_GROUP=$(id -gn ${VHOST_USER})
+    if [ -r "${VHOST_DIR}/db.config.php" ] || [ -r "${VHOST_DIR}/.env.local" ]; then
         VHOST_HAVE_DB=1
         VHOST_DB_NAME=$(echo "${VHOST_USER}_${VHOST_NAME}" | sed -e "s/\./-/g")
-        VHOST_DB_CONF="${VHOST_DIR}/db.config.php"
         VHOST_DB_DUMP="${VHOST_DIR}/db.dump.sql.gz"
-        VHOST_DB_ENV="${VHOST_DIR}/.env.local"
     else
         VHOST_HAVE_DB=0
     fi
@@ -71,7 +72,7 @@ GetVhostVarsFromAuto(){
         GetVhostDirFromCurrentDir
     fi
     if [ "x${VHOST_DIR}" = "x" ] ; then
-        echo -e "Unspecified or not existing vhost. Usage:\n$0 ([servername] dectect form current path if not specified)"
+        echo -e "Unspecified or not existing vhost. Usage:\n$0 ([servername] dectect from current path if not specified)"
         exit 1
     fi
     GetVhostVarsFromVhostDir
