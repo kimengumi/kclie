@@ -319,21 +319,24 @@ if [ "${PHP_VER}" ]; then
     NBTHREADS=1
     if [ -r /proc/cpuinfo ] ; then # default dynamic sizing from number of threads
         NBTHREADS=$(LANG=C; awk -F ": " '/^processor/ {t++}; END { print t}' /proc/cpuinfo)
+        if [ ${NBTHREADS} -gt 1 ] ; then
+            NBTHREADS=$((${NBTHREADS} - 1 )) # keep 1 thread for mariadb in calc
+        fi
     fi
     echo -e "[${VHOST_NAME}]\n
-user = ${VHOST_USER_FPM}
+user  = ${VHOST_USER_FPM}
 group = ${VHOST_GROUP}\n
 listen = /run/php/${VHOST_NAME}.sock
 listen.owner = www-data
 listen.group = ${VHOST_GROUP}\n
 pm = dynamic
-pm.max_children = $(( 6 * ${NBTHREADS} ))
-pm.start_servers = $(( 2 * ${NBTHREADS} ))
-pm.min_spare_servers = ${NBTHREADS}
-pm.max_spare_servers = $(( 4 * ${NBTHREADS} ))\n
-php_admin_value[open_basedir]=${VHOST_DIR}
-php_admin_value[upload_tmp_dir]=${VHOST_DIR}/var/tmp
-php_admin_value[sys_temp_dir]=${VHOST_DIR}/var/tmp" > ${TMP_FPM_CONF}
+pm.max_children      = $(( 8 * ${NBTHREADS} ))
+pm.max_spare_servers = $(( 2 * ${NBTHREADS} ))
+pm.start_servers     = ${NBTHREADS}
+pm.min_spare_servers = ${NBTHREADS}\n
+php_admin_value[open_basedir]   = ${VHOST_DIR}
+php_admin_value[upload_tmp_dir] = ${VHOST_DIR}/var/tmp
+php_admin_value[sys_temp_dir]   = ${VHOST_DIR}/var/tmp" > ${TMP_FPM_CONF}
 
     if [ $(grep -r "/run/php/${VHOST_NAME}.sock" /etc/php/ | grep -v ${VHOST_FPM_CONF} | wc -l) -ge 1 ]; then
         echo -e "${C_RED}"
