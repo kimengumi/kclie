@@ -45,13 +45,14 @@
 # - In the wizard, all generated credentials will be displayed in yellow
 #
 # Usage :
-# ./prod-apache-vhost [user] [x.y/static/redir] [y/n] [servername] ([serveralias])(...)
+# ./vhost [user] [x.y/static/redir] [y/n] [servername] ([serveralias])(...)
 #
-# user             : User which will be owner of the vhost directory
-# x.y/static/redir : PHP version (using https://deb.sury.org PPA) / static without PHP / redir vhost without docroot
-# y/n              : (re)generate a Let's encrypt SSL certificate (using acme.sh) or not
-# servername       : Vhost ServerName (also used for standardized directories/files structures)
-# serveralias      : Multiple optional ServerAlias (SSL cert will include those if generated)
+# user          : User which will be owner of the vhost directory
+# prod/mutu/val/static/redir : type (determine fpm scale vars) / static without PHP / redir vhost without docroot
+# x.y/n         : PHP version (using https://deb.sury.org PPA) / any value if static or redir vhost
+# y/n           : (re)generate a Let's encrypt SSL certificate (using acme.sh) or not
+# servername    : Vhost ServerName (also used for standardized directories/files structures)
+# [serveralias] : Multiple optional ServerAlias (SSL cert will include those if generated)
 #
 
 # Help mode
@@ -91,18 +92,26 @@ VHOST_USER_FPM=${VHOST_USER}-fpm
 VHOST_GROUP=${VHOST_USER}
 
 if [ "x$2" != "x" ]; then
-    PHP_VER=$2
+    VHOST_USAGE=$2
 else
-    read -p 'PHP Version (x.y/static/redir) : ' PHP_VER
+    read -p 'PHP usage (prod/mutu/val/static/redir) : ' VHOST_USAGE
 fi
-case ${PHP_VER} in
-    static) PHP_VER=''; IS_STATIC='1'; IS_REDIR='';;
-    redir)  PHP_VER=''; IS_STATIC='';  IS_REDIR='1';;
-    *)                  IS_STATIC='';  IS_REDIR='';;
+case ${VHOST_USAGE} in
+    static) IS_STATIC='1'; IS_REDIR='';;
+    redir)  IS_STATIC='';  IS_REDIR='1';;
+    *)      IS_STATIC='';  IS_REDIR='';;
 esac
 
-if [ "x$3" != "x" ]; then
-    REGEN_SSL=$3
+if [ "${IS_REDIR}${IS_STATIC}" ]; then
+    PHP_VER=''
+elif [ "x$3" != "x" ]; then
+    PHP_VER=$3
+else
+    read -p 'PHP Version (x.y) : ' PHP_VER
+fi
+
+if [ "x$4" != "x" ]; then
+    REGEN_SSL=$4
 else
     read -p "Do you want to (re)generate an Acme / Let's encrypt SSL Certificate (y/n) ? " REGEN_SSL
 fi
@@ -112,14 +121,14 @@ case ${REGEN_SSL} in
     *) REGEN_SSL='';;
 esac
 
-if [ "x$4" != "x" ]; then
-    VHOST_NAME=$4
+if [ "x$5" != "x" ]; then
+    VHOST_NAME=$5
 else
     read -p 'ServerName (will also determine directory) : ' VHOST_NAME
 fi
 
-if [ "x$5" != "x" ]; then
-    VHOST_ALIASES=("${@:5}")
+if [ "x$6" != "x" ]; then
+    VHOST_ALIASES=("${@:6}")
 elif [ -t 1 ]; then #interactive
     while true; do
         read -p 'ServerAlias (hit enter to stop add) :' VHOST_ALIAS
@@ -316,13 +325,24 @@ if [ "${PHP_VER}" ]; then
     # PHP-fpm conf
     TMP_FPM_CONF="/tmp/${VHOST_NAME}.php-${PHP_VER}-fpm.conf"
     VHOST_FPM_CONF="/etc/php/${PHP_VER}/fpm/pool.d/${VHOST_NAME}.conf"
-    NBTHREADS=1
+    NB_CPU_THREADS=1
     if [ -r /proc/cpuinfo ] ; then # default dynamic sizing from number of threads
-        NBTHREADS=$(LANG=C; awk -F ": " '/^processor/ {t++}; END { print t}' /proc/cpuinfo)
-        if [ ${NBTHREADS} -gt 1 ] ; then
-            NBTHREADS=$((${NBTHREADS} - 1 )) # keep 1 thread for mariadb in calc
-        fi
+        NB_CPU_THREADS=$(LANG=C; awk -F ": " '/^processor/ {t++}; END { print t}' /proc/cpuinfo)
     fi
+    case ${VHOST_USAGE} in
+        prod) PM_MAX_CHILD=$(( 32 * ${NB_CPU_THREADS} ))
+              PM_MAX_SPARE=$(( 8 * ${NB_CPU_THREADS} ))
+              PM_START_MIN=$(( 2 * ${NB_CPU_THREADS} ))
+              ;;
+        mutu) PM_MAX_CHILD=$(( 16 * ${NB_CPU_THREADS} ))
+              PM_MAX_SPARE=$(( 2 * ${NB_CPU_THREADS} ))
+              PM_START_MIN=1
+              ;;
+        *)    PM_MAX_CHILD=$(( 2 * ${NB_CPU_THREADS} ))
+              PM_MAX_SPARE=${NB_CPU_THREADS}
+              PM_START_MIN=1
+              ;;
+    esac
     echo -e "[${VHOST_NAME}]\n
 user  = ${VHOST_USER_FPM}
 group = ${VHOST_GROUP}\n
@@ -330,10 +350,10 @@ listen = /run/php/${VHOST_NAME}.sock
 listen.owner = www-data
 listen.group = ${VHOST_GROUP}\n
 pm = dynamic
-pm.max_children      = $(( 8 * ${NBTHREADS} ))
-pm.max_spare_servers = $(( 2 * ${NBTHREADS} ))
-pm.start_servers     = ${NBTHREADS}
-pm.min_spare_servers = ${NBTHREADS}\n
+pm.max_children      = ${PM_MAX_CHILD}
+pm.max_spare_servers = ${PM_MAX_SPARE}
+pm.start_servers     = ${PM_START_MIN}
+pm.min_spare_servers = ${PM_START_MIN}\n
 php_admin_value[open_basedir]   = ${VHOST_DIR}
 php_admin_value[upload_tmp_dir] = ${VHOST_DIR}/var/tmp
 php_admin_value[sys_temp_dir]   = ${VHOST_DIR}/var/tmp" > ${TMP_FPM_CONF}

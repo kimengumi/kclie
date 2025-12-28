@@ -21,7 +21,7 @@
 #
 
 #
-# Create a dump for each vhost created with wizard/prod-apache-vhost
+# Create a dump for each vhost created with wizard/vhost
 #
 
 if ! declare -F BatchEcho > /dev/null; then
@@ -35,7 +35,7 @@ mysql -Bse "FLUSH TABLES WITH READ LOCK;" 2>/dev/null && SKIP_LOCK_TABLES="--ski
 
 REMAIN_DBS=($(mysql -Bse "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME NOT IN ('information_schema', 'mysql', 'performance_schema', 'sys');"))
 
-# dump matching wizard/prod-apache-vhost DBs in the according vhost dir
+# dump matching wizard/vhost DBs in the according vhost dir
 for SEARCH in $(ls --color=never -d  /home/*/web/*/db.config.php); do
 
     VHOST_DIR=$(dirname ${SEARCH});
