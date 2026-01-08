@@ -106,6 +106,9 @@ elif [ -r /sys/class/dmi/id/product_name ] && (grep -q "OpenStack" /sys/class/dm
 elif [ -r /sys/class/dmi/id/sys_vendor ] && (grep -q "Amazon EC2" /sys/class/dmi/id/sys_vendor 2>/dev/null) && [ -x /usr/bin/ec2metadata ] ; then
 	echo -n "`cat /sys/class/dmi/id/sys_vendor ` / `ec2metadata --instance-type` / `ec2metadata --availability-zone` / `ec2metadata --instance-id`"
 	VCPU="v"
+elif [ -r /sys/hypervisor/uuid ] && (grep -qa 'ec2' /sys/hypervisor/uuid 2>/dev/null) && [ -x /usr/bin/ec2metadata ] ; then
+	echo -n "Amazon EC2 / `ec2metadata --instance-type` / `ec2metadata --availability-zone` / `ec2metadata --instance-id`"
+	VCPU="v"
 elif [ -r /sys/class/dmi/id/board_vendor ] ; then
 	echo -n "`cat /sys/class/dmi/id/board_vendor` / `cat /sys/class/dmi/id/product_name`"
 fi
