@@ -73,8 +73,6 @@ elif [ -r /root/.ovhrc ] ; then
 	echo -n "OVH / "
 elif [ "${WNIX}" = 'linux' ] && (grep -qa 'pve' /proc/version 2>/dev/null) ; then
 	echo -n "Proxmox Virtual Environment / "
-elif [ -r /sys/hypervisor/uuid ] && (grep -qa 'ec2' /sys/hypervisor/uuid 2>/dev/null) ; then
-	echo -n "Amazon EC2 / "
 fi
 # hardware / virtual
 VCPU=""
@@ -105,8 +103,8 @@ elif [ -r /sys/class/dmi/id/sys_vendor ] && (grep -q "VMware" /sys/class/dmi/id/
 elif [ -r /sys/class/dmi/id/product_name ] && (grep -q "OpenStack" /sys/class/dmi/id/sys_vendor 2>/dev/null) ;then
 	echo -n "`cat /sys/class/dmi/id/product_name` / `cat /sys/class/dmi/id/chassis_vendor` Virtual Machine"
 	VCPU="v"
-elif [ -r /sys/hypervisor/uuid ] && (grep -qa 'ec2' /sys/hypervisor/uuid 2>/dev/null) && [ -x /usr/bin/ec2metadata ] ; then
-	echo -n "`ec2metadata --availability-zone` / `ec2metadata --profile` / `ec2metadata --instance-type` / `ec2metadata --instance-id`"
+elif [ -r /sys/class/dmi/id/sys_vendor ] && (grep -q "Amazon EC2" /sys/class/dmi/id/sys_vendor 2>/dev/null) && [ -x /usr/bin/ec2metadata ] ; then
+	echo -n "`cat /sys/class/dmi/id/sys_vendor ` / `ec2metadata --instance-type` / `ec2metadata --availability-zone` / `ec2metadata --instance-id`"
 	VCPU="v"
 elif [ -r /sys/class/dmi/id/board_vendor ] ; then
 	echo -n "`cat /sys/class/dmi/id/board_vendor` / `cat /sys/class/dmi/id/product_name`"
@@ -125,6 +123,12 @@ if [ -r /proc/cpuinfo ] ; then
 	SOCKETS="${NBSOCKETS} x "
 	THREADS="${NBTHREADS} ${VCPU}Threads"
 	CORES="${NBCORES} ${VCPU}Cores"
+    if [ -z "${CPUINFO}" ] ; then
+        CPUINFO=$(lscpu | grep "BIOS Model name:" | sed 's/BIOS Model name: *//')
+    fi
+    if [ -z "${CPUINFO}" ] ; then
+        CPUINFO=$(lscpu | grep "Model name:" | sed 's/Model name: *//')
+    fi
 	if [ "${NBSOCKETS}" -eq "1" ] || [ "x${VCPU}" != "xv" ] ; then
 		SOCKETS=""
 	fi
