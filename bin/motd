@@ -159,17 +159,20 @@ else
 	echo "Kernel `uname -srm`"
 fi
 # OS version
-if [ -r /etc/redhat-release ] ; then
-	cat /etc/redhat-release
+if [ -e /etc/os-release ] ; then
+	. /etc/os-release
+	echo "${NAME} ${VERSION}"
 elif [ -e /etc/lsb-release ] ; then
 	. /etc/lsb-release
 	echo "${DISTRIB_ID} ${DISTRIB_CODENAME} ${DISTRIB_RELEASE} (${DISTRIB_DESCRIPTION})"
 elif [ -r /etc/debian_version ] ; then
 	echo "Debian `cat /etc/debian_version`"
-elif [ -r /etc/gentoo-release ] ; then
-	cat /etc/gentoo-release
 elif [ -r /etc/fedora-release ] ; then
 	cat /etc/fedora-release
+elif [ -r /etc/gentoo-release ] ; then
+	cat /etc/gentoo-release
+elif [ -r /etc/redhat-release ] ; then
+  	cat /etc/redhat-release
 elif [ -r /etc/amazon-linux-release ] ; then
 	cat /etc/amazon-linux-release
 elif [ "${WNIX}" = 'osx' ] ; then #OSX
