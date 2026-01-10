@@ -103,11 +103,14 @@ elif [ -r /sys/class/dmi/id/sys_vendor ] && (grep -q "VMware" /sys/class/dmi/id/
 elif [ -r /sys/class/dmi/id/product_name ] && (grep -q "OpenStack" /sys/class/dmi/id/sys_vendor 2>/dev/null) ;then
 	echo -n "`cat /sys/class/dmi/id/product_name` / `cat /sys/class/dmi/id/chassis_vendor` Virtual Machine"
 	VCPU="v"
-elif [ -r /sys/class/dmi/id/sys_vendor ] && (grep -q "Amazon EC2" /sys/class/dmi/id/sys_vendor 2>/dev/null) && [ -x /usr/bin/ec2metadata ] ; then
-	echo -n "`cat /sys/class/dmi/id/sys_vendor ` / `ec2metadata --instance-type` / `ec2metadata --availability-zone` / `ec2metadata --instance-id`"
-	VCPU="v"
-elif [ -r /sys/hypervisor/uuid ] && (grep -qa 'ec2' /sys/hypervisor/uuid 2>/dev/null) && [ -x /usr/bin/ec2metadata ] ; then
-	echo -n "Amazon EC2 / `ec2metadata --instance-type` / `ec2metadata --availability-zone` / `ec2metadata --instance-id`"
+elif ([ -r /sys/class/dmi/id/sys_vendor ] && (grep -q "EC2$" /sys/class/dmi/id/sys_vendor 2>/dev/null)) || \
+    ([ -r /sys/hypervisor/uuid ] && (grep -q "^ec2" /sys/hypervisor/uuid 2>/dev/null)) ;then
+    echo -n "Amazon EC2 "
+    if [ -x /usr/bin/ec2metadata ] ;then
+        echo -n "/ `ec2metadata --instance-type` / `ec2metadata --availability-zone` / `ec2metadata --instance-id`"
+    elif [ -x /usr/bin/ec2-metadata ] ; then
+        echo -n "/ `ec2-metadata --quiet -t` / `ec2-metadata --quiet -z` / `ec2-metadata --quiet -i`"
+    fi
 	VCPU="v"
 elif [ -r /sys/class/dmi/id/board_vendor ] ; then
 	echo -n "`cat /sys/class/dmi/id/board_vendor` / `cat /sys/class/dmi/id/product_name`"
@@ -167,6 +170,8 @@ elif [ -r /etc/gentoo-release ] ; then
 	cat /etc/gentoo-release
 elif [ -r /etc/fedora-release ] ; then
 	cat /etc/fedora-release
+elif [ -r /etc/amazon-linux-release ] ; then
+	cat /etc/amazon-linux-release
 elif [ "${WNIX}" = 'osx' ] ; then #OSX
 	echo `/usr/bin/sw_vers -productName` `/usr/bin/sw_vers -productVersion` `/usr/bin/sw_vers -buildVersion`
 else
