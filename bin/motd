@@ -59,12 +59,15 @@ if [ "x${KCLIE_TEAM_HOSTING_NAME}" != "x" ] && ( \
 	[ "x${KCLIE_TEAM_HOSTING_NAME}" != "x${KCLIE_TEAM_ADMIN_NAME}" ] ); then
 	echo -e "Hardware Hosting : ${KCLIE_TEAM_HOSTING_COLOR}${KCLIE_TEAM_HOSTING_NAME}\033[0m"
 fi
-if [ "${WNIX}" = 'wsl' ] ; then
-	echo -e "\n\t${KCLIE_HOSTNAME_COLOR}`hostname`\033[0m\n"
-else
-	echo -e "\n\t${KCLIE_HOSTNAME_COLOR}`hostname -f`\033[0m\n"
+if command -v hostname >/dev/null 2>&1; then
+    if [ "${WNIX}" = 'wsl' ] ; then
+        echo -e "\n\t${KCLIE_HOSTNAME_COLOR}`hostname`\033[0m\n"
+    else
+        echo -e "\n\t${KCLIE_HOSTNAME_COLOR}`hostname -f`\033[0m\n"
+    fi
+elif [ -r /etc/hostname ] ; then
+    echo -e "\n\t${KCLIE_HOSTNAME_COLOR}`cat /etc/hostname`\033[0m\n"
 fi
-
 
 # hosting
 if [ -r /root/.mdg ] ; then
@@ -159,20 +162,24 @@ else
 	echo "Kernel `uname -srm`"
 fi
 # OS version
-if [ -e /etc/os-release ] ; then
-	. /etc/os-release
-	echo "${NAME} ${VERSION}"
-elif [ -e /etc/lsb-release ] ; then
+if [ -r /etc/redhat-release ] ; then
+  	cat /etc/redhat-release
+elif [ -r /etc/lsb-release ] ; then
 	. /etc/lsb-release
 	echo "${DISTRIB_ID} ${DISTRIB_CODENAME} ${DISTRIB_RELEASE} (${DISTRIB_DESCRIPTION})"
+elif [ -r /etc/os-release ] ; then
+	. /etc/os-release
+	if [ -r /etc/debian_version ] ; then
+	    echo "${NAME} `cat /etc/debian_version` (${VERSION_CODENAME})"
+	else
+	    echo "${NAME} ${VERSION}"
+	fi
 elif [ -r /etc/debian_version ] ; then
 	echo "Debian `cat /etc/debian_version`"
 elif [ -r /etc/fedora-release ] ; then
 	cat /etc/fedora-release
 elif [ -r /etc/gentoo-release ] ; then
 	cat /etc/gentoo-release
-elif [ -r /etc/redhat-release ] ; then
-  	cat /etc/redhat-release
 elif [ -r /etc/amazon-linux-release ] ; then
 	cat /etc/amazon-linux-release
 elif [ "${WNIX}" = 'osx' ] ; then #OSX
