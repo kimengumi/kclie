@@ -32,6 +32,11 @@ GetVhostDirFromCurrentDir() {
                 VHOST_DIR=${DIR%/}
                 return
             fi
+            CHECK="/home/${SUDO_USER}/web/$(basename ${DIR})"
+            if [[ -L "${CHECK}" && "$(readlink -f "${CHECK}")" == "${DIR}" ]] ; then
+                VHOST_DIR=${CHECK}
+                return
+            fi
         fi
         DIR=$(dirname "${DIR}")
     done
