@@ -44,16 +44,19 @@ if ((${VHOST_HAVE_PHP})); then
     # ensure php tmp dir
     mkdir -p ${VHOST_DIR}/var/tmp
     chmod 771 ${VHOST_DIR}/var ${VHOST_DIR}/var/tmp
+    chmod -R g+w ${VHOST_DIR}/var/tmp
 fi
 
+mkdir -p ${VHOST_DIR}/www
 chown -R ${VHOST_USER}:${VHOST_GROUP} ${VHOST_DIR}
 
 #ensure minimal chmod
 chmod -R o-w ${VHOST_DIR}
 chmod o-r ${VHOST_DIR}
+chmod ugo+x ${VHOST_DIR} ${VHOST_DIR}/www
 if [ -e ${VHOST_DIR}/.env.local ]; then
-    chmod o-rwx ${VHOST_DIR}/.env.local
+    chmod 640 ${VHOST_DIR}/.env.local
 fi
 if [ -e ${VHOST_DIR}/db.config.php ]; then
-    chmod o-rwx ${VHOST_DIR}/db.config.php
+    chmod 640 ${VHOST_DIR}/db.config.php
 fi
