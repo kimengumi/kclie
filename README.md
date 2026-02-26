@@ -73,6 +73,12 @@ A user "user", sudoer with password "user" is created within the sandbox contain
 
     docker compose run kclie-ubuntu-devel
 
+### Fedora
+
+#### Current
+
+    docker compose run kclie-fedora-latest
+
 License
 -------------
 

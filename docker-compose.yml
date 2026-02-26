@@ -33,7 +33,7 @@ services:
                 target: /opt/kclie
             - debian-oldoldstable-var-cache-apt:/var/cache/apt
             - debian-oldoldstable-var-lib-apt:/var/lib/apt
-        command: bash -c ". /opt/kclie/docker-entrypoint.sh"
+        command: bash -c ". /opt/kclie/docker-entrypoint-deb.sh"
 
     kclie-debian-oldstable:
         container_name: kclie-debian-oldstable
@@ -47,10 +47,10 @@ services:
                 target: /opt/kclie
             - debian-oldstable-var-cache-apt:/var/cache/apt
             - debian-oldstable-var-lib-apt:/var/lib/apt
-        command: bash -c ". /opt/kclie/docker-entrypoint.sh"
+        command: bash -c ". /opt/kclie/docker-entrypoint-deb.sh"
 
     kclie-debian-stable:
-        container_name: kclie-debian
+        container_name: kclie-debian-stable
         image: debian:stable
         pull_policy: always
         stdin_open: true
@@ -61,10 +61,10 @@ services:
                 target: /opt/kclie
             - debian-stable-var-cache-apt:/var/cache/apt
             - debian-stable-var-lib-apt:/var/lib/apt
-        command: bash -c ". /opt/kclie/docker-entrypoint.sh"
+        command: bash -c ". /opt/kclie/docker-entrypoint-deb.sh"
 
     kclie-debian-testing:
-        container_name: kclie-debian
+        container_name: kclie-debian-testing
         image: debian:testing
         pull_policy: always
         stdin_open: true
@@ -75,10 +75,10 @@ services:
                 target: /opt/kclie
             - debian-testing-var-cache-apt:/var/cache/apt
             - debian-testing-var-lib-apt:/var/lib/apt
-        command: bash -c ". /opt/kclie/docker-entrypoint.sh"
+        command: bash -c ". /opt/kclie/docker-entrypoint-deb.sh"
 
     kclie-ubuntu-latest:
-        container_name: kclie-ubuntu
+        container_name: kclie-ubuntu-latest
         image: ubuntu:latest
         pull_policy: always
         stdin_open: true
@@ -89,10 +89,10 @@ services:
                 target: /opt/kclie
             - ubuntu-latest-var-cache-apt:/var/cache/apt
             - ubuntu-latest-var-lib-apt:/var/lib/apt
-        command: bash -c ". /opt/kclie/docker-entrypoint.sh"
+        command: bash -c ". /opt/kclie/docker-entrypoint-deb.sh"
 
     kclie-ubuntu-rolling:
-        container_name: kclie-ubuntu
+        container_name: kclie-ubuntu-rolling
         image: ubuntu:rolling
         pull_policy: always
         stdin_open: true
@@ -103,10 +103,10 @@ services:
                 target: /opt/kclie
             - ubuntu-rolling-var-cache-apt:/var/cache/apt
             - ubuntu-rolling-var-lib-apt:/var/lib/apt
-        command: bash -c ". /opt/kclie/docker-entrypoint.sh"
+        command: bash -c ". /opt/kclie/docker-entrypoint-deb.sh"
 
     kclie-ubuntu-devel:
-        container_name: kclie-ubuntu
+        container_name: kclie-ubuntu-devel
         image: ubuntu:devel
         pull_policy: always
         stdin_open: true
@@ -117,7 +117,22 @@ services:
                 target: /opt/kclie
             - ubuntu-devel-var-cache-apt:/var/cache/apt
             - ubuntu-devel-var-lib-apt:/var/lib/apt
-        command: bash -c ". /opt/kclie/docker-entrypoint.sh"
+        command: bash -c ". /opt/kclie/docker-entrypoint-deb.sh"
+
+    kclie-fedora-latest:
+        container_name: kclie-fedora-latest
+        image: fedora:latest
+        pull_policy: always
+        stdin_open: true
+        tty: true
+        volumes:
+            -   type: bind
+                source: ./
+                target: /opt/kclie
+            - fedora-latest-var-cache-libdnf5:/var/cache/libdnf5
+            - fedora-latest-var-lib-dnf:/var/lib/dnf
+        command: bash -c ". /opt/kclie/docker-entrypoint-yum.sh"
+
 volumes:
     debian-oldoldstable-var-cache-apt:
     debian-oldoldstable-var-lib-apt:
@@ -133,3 +148,5 @@ volumes:
     ubuntu-latest-var-lib-apt:
     ubuntu-rolling-var-cache-apt:
     ubuntu-rolling-var-lib-apt:
+    fedora-latest-var-cache-libdnf5:
+    fedora-latest-var-lib-dnf:
