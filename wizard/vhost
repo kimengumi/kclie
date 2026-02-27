@@ -314,7 +314,8 @@ if [ "${PHP_VER}${IS_STATIC}" ]; then
     fi
     #ensure minimalistic chown/chmod
     chown ${VHOST_USER}:${VHOST_GROUP} /home/${VHOST_USER} /home/${VHOST_USER}/web ${VHOST_DIR} ${VHOST_DIR}/www
-    chmod o-rw /home /home/${VHOST_USER} /home/${VHOST_USER}/web ${VHOST_DIR} ${VHOST_DIR}/www
+    chmod 711 /home /home/${VHOST_USER} /home/${VHOST_USER}/web ${VHOST_DIR}
+    chmod u+rwx,g+rx,o+x-rw ${VHOST_DIR}/www
 fi
 
 # vhost PHP FPM
