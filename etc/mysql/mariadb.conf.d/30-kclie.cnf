@@ -23,13 +23,19 @@
 # THIS FILE IS MANAGED/UPDATED BY WIZARD DEPLOYMENT. PLEASE DO NOT MODIFY.
 #
 
-[client]
-default-character-set = utf8mb4
+[mytop]
+socket = /run/mysqld/mysqld.sock
 
 [mysql]
 default-character-set = utf8mb4
 
+[client]
+default-character-set = utf8mb4
+
 [mysqld]
+character-set-server=utf8mb4
+collation-server=utf8mb4_general_ci
+
 skip-name-resolve
 max_connections = 2048
 local_infile = 0
