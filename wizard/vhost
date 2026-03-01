@@ -359,9 +359,9 @@ php_admin_value[open_basedir]   = ${VHOST_DIR}
 php_admin_value[upload_tmp_dir] = ${VHOST_DIR}/var/tmp
 php_admin_value[sys_temp_dir]   = ${VHOST_DIR}/var/tmp" > ${TMP_FPM_CONF}
 
-    if [ $(grep -r "/run/php/${VHOST_NAME}.sock" /etc/php/ | grep -v ${VHOST_FPM_CONF} | wc -l) -ge 1 ]; then
+    if [ $(grep -r "/run/php/${VHOST_NAME}.sock" /etc/php/*/fpm/pool.d/*.conf | grep -v ${VHOST_FPM_CONF} | wc -l) -ge 1 ]; then
         echo -e "${C_RED}"
-        grep -rl "/run/php/${VHOST_NAME}.sock" /etc/php/
+        grep -rl "/run/php/${VHOST_NAME}.sock" /etc/php/*/fpm/pool.d/*.conf
         echo -e "already declares the same socket name, not applying config !!!!\n"
         echo -e "${C_YEL}The new file is available in ${TMP_FPM_CONF} for manual deploy/merge\n${C_OFF}"
     elif [ -e ${VHOST_FPM_CONF} ] && ! cmp -s ${TMP_FPM_CONF} ${VHOST_FPM_CONF} ; then
@@ -398,16 +398,16 @@ if [ "${IS_REDIR}" ]; then
 fi
 echo -e "</VirtualHost>" >> ${TMP_APACHE_CONF}
 
-if [ $(grep -r "${VHOST_NAME}" /etc/apache2/sites-enabled/ | grep -v ${VHOST_APACHE_CONF} | wc -l) -ge 1 ]; then
-    echo -e "${C_RED}"
-    grep -rl "${VHOST_NAME}" /etc/apache2/sites-enabled/
-    echo -e "already declares the same vhost name, not applying config !!!!\n"
-    echo -e "${C_YEL}The new file is available in ${TMP_APACHE_CONF} for manual deploy/merge\n${C_OFF}"
-elif  [ -e ${VHOST_APACHE_CONF} ] && ! cmp -s ${TMP_APACHE_CONF} ${VHOST_APACHE_CONF} ; then
+if  [ -e ${VHOST_APACHE_CONF} ] && ! cmp -s ${TMP_APACHE_CONF} ${VHOST_APACHE_CONF} ; then
     echo -e "${C_RED}\n${VHOST_APACHE_CONF}\nalready exists with a different config : not deploying!\n${C_OFF}"
     diff --color ${TMP_APACHE_CONF} ${VHOST_APACHE_CONF}
     echo diff ${TMP_APACHE_CONF} ${VHOST_APACHE_CONF}
     echo -e "${C_YEL}The new config is kept on the temporary file of the diff above for manual deploy/merge${C_OFF}\n"
+elif [ ! -e ${VHOST_APACHE_CONF} ] && [ $(egrep -r "Base ${VHOST_NAME}|Alias ${VHOST_NAME}|Name ${VHOST_NAME}" /etc/apache2/sites-enabled/*.conf | grep -v ${VHOST_APACHE_CONF} | wc -l) -ge 1 ]; then
+    echo -e "${C_RED}"
+    grep -rl "${VHOST_NAME}" /etc/apache2/sites-enabled/*.conf
+    echo -e "already declares the same vhost name, not applying config !!!!\n"
+    echo -e "${C_YEL}The new file is available in ${TMP_APACHE_CONF} for manual deploy/merge\n${C_OFF}"
 else
     echo -e "${C_GRE}Deploy ${VHOST_APACHE_CONF}${C_OFF}"
     mv ${TMP_APACHE_CONF} ${VHOST_APACHE_CONF}
