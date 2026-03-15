@@ -21,45 +21,36 @@
 #
 
 #
-# Reinit the owner of all files of the current vhost to the SSH user
+# Lock all files in readonly for the fpm user except minimal Wordpress needed directories for writing content.
 #
-# Usage: vhost-chown-reinit
+# Usage: vhost-write-lock-wp
 #
 
-if [ "${USER}x" != 'rootx' ]; then
-    sudo ${BASH_SOURCE[0]:-$0}
-    exit $?
-fi
+[ -z "${KCLIE_PATH}" ] && KCLIE_PATH=$(dirname ${BASH_SOURCE[0]:-$0})/../
 
-source "$(dirname ${BASH_SOURCE[0]:-$0})/../lib/vhost.bash"
+source ${KCLIE_PATH}/lib/vhost.bash
 
 GetVhostDirFromCurrentDir
 if [ "x${VHOST_DIR}" = "x" ] ; then
     echo -e "Currently not in a existing vhost."
     exit 1
 fi
-GetVhostVarsFromVhostDir
 
-if ((${VHOST_HAVE_PHP})); then
-    # ensure php tmp dir
-    mkdir -p ${VHOST_DIR}/var/tmp
-    chmod 771 ${VHOST_DIR}/var ${VHOST_DIR}/var/tmp
-    chmod -R g+w ${VHOST_DIR}/var/tmp
-fi
+# ensure files owner
+${KCLIE_PATH}/bin/vhost-chown-reinit
 
-mkdir -p ${VHOST_DIR}/www
-chown -R ${VHOST_USER}:${VHOST_GROUP} ${VHOST_DIR}
+# make read only for fpm user
+chmod -R go-w ${VHOST_DIR}/www
 
-#ensure minimal chmod
-chmod -R o-w ${VHOST_DIR}
-chmod o-r ${VHOST_DIR}
-chmod ugo+x ${VHOST_DIR} ${VHOST_DIR}/www
-if [ -e ${VHOST_DIR}/.env.local ]; then
-    chmod 640 ${VHOST_DIR}/.env.local
+# allow write on specific dirs only
+for CONTENT_DIR in "cache" "languages" "uploads" "webp-express/config" "wflogs" "wp-rocket-config" ; do
+    if [ -e ${VHOST_DIR}/www/wp-content/${CONTENT_DIR} ] ; then
+       chmod -R g+w ${VHOST_DIR}/www/wp-content/${CONTENT_DIR}
+    fi
+done
+
+# disallow php in uploads
+if [ ! -e ${VHOST_DIR}/www/wp-content/uploads/.htaccess ] ; then
+    echo -e "<Files *.php>\nRequire all denied\n</Files>" > ${VHOST_DIR}/www/wp-content/uploads/.htaccess
 fi
-if [ -e ${VHOST_DIR}/db.config.php ]; then
-    chmod 640 ${VHOST_DIR}/db.config.php
-fi
-if [ -e ${VHOST_DIR}/db.dump.sql.gz ]; then
-    chmod 600 ${VHOST_DIR}/db.dump.sql.gz
-fi
+chmod go-w ${VHOST_DIR}/www/wp-content/uploads/.htaccess
