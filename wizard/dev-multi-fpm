@@ -41,20 +41,20 @@ if [ "${SUDO_USER}x" = 'x' ] || [ "${SUDO_USER}x" = 'rootx' ]; then
     exit 1
 fi
 
-echo -e "\n# ADD PHP Ondrej PPA\n"
-
 export DEBIAN_FRONTEND=noninteractive
+
+echo -e "\n# Add/Update PHP Ondrej PPA\n"
 if [ -x /usr/bin/add-apt-repository ]; then
-    add-apt-repository -y ppa:ondrej/php
-    apt-get update -y
-else
-    apt-get -y install apt-transport-https lsb-release ca-certificates
+    # ensure removal of old ondrej launchpad.net repo
+    add-apt-repository -y --remove ppa:ondrej/php
+fi
+if [ ! -e /etc/apt/trusted.gpg.d/php.gpg ]; then
+    # use php packages from https://deb.sury.org
+    apt install -qqy apt-transport-https lsb-release ca-certificates
     wget -O /etc/apt/trusted.gpg.d/php.gpg https://packages.sury.org/php/apt.gpg
     echo "deb https://packages.sury.org/php/ $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/php.list
-    apt-get update
 fi
-
-
+apt update -qqy
 
 
 echo -e "\n### INSTALL ###\n"
