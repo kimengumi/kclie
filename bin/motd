@@ -302,9 +302,19 @@ if [ -x /usr/bin/mailq ] ; then
 fi
 echo
 
-# OS Update notifier (if available
+# Updates that need a reboot
+if [ -s /run/reboot-required.pkgs ] ; then
+    echo -e "\n${KCLIE_HOSTNAME_COLOR}Reboot required\033[0m for the following packages:"
+    {
+        grep -E '^linux-image-[0-9]' /run/reboot-required.pkgs | sort -V | tail -n 1
+        grep -vE '^linux-image-[0-9]' /run/reboot-required.pkgs
+    } | sort -V | uniq
+	echo
+fi
+
+# OS Update notifier (if available)
 if [ -d /usr/lib/update-notifier ] ; then
-	for info in `ls /usr/lib/update-notifier/update-motd-* 2>/dev/null` ; do
+	for info in $()ls /usr/lib/update-notifier/update-motd-* 2>/dev/null` ; do
 		$info 2>/dev/null
 	done
 	echo
