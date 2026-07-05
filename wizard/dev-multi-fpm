@@ -41,11 +41,9 @@ if [ "${SUDO_USER}x" = 'x' ] || [ "${SUDO_USER}x" = 'rootx' ]; then
     exit 1
 fi
 
+echo "# INSTALL STACK"
 export DEBIAN_FRONTEND=noninteractive
-
 ${KCLIE_PATH}/sbin/apt-use-sury-php-packages
-
-echo -e "\n### INSTALL ###\n"
 
 # Detect available PHPs from fpm packages
 apt-cache --generate pkgnames >/tmp/pkgnames.list
@@ -59,21 +57,15 @@ for VP in ${PHPS}; do
     done
 done
 
-# filte r to avoid install of nonexistent modules on certain php versions
-grep -wFf /tmp/phpinstall.list /tmp/pkgnames.list | xargs apt install -qqy apache2 apache2-utils mariadb-server mariadb-client
+# filter to avoid install of nonexistent modules on certain php versions
+grep -wFf /tmp/phpinstall.list /tmp/pkgnames.list | xargs apt install -qqy apache2 apache2-utils mariadb-server mariadb-client libnss3-tools mkcert
 
-echo -e "\n#### CONFIG ###\n"
-echo -e "# CONFIG APACHE"
-
+echo "# CONFIG APACHE"
 # Apply kclie apache skeleton
 cp -r ${KCLIE_PATH}/etc/apache2/* /etc/apache2/
-PXXVCONF="/etc/apache2/sites-available/0010-kclie-dev-phpxx-localhost.conf"
-printf "\n\n# This file is auto-generated on each update on KCLIE dev-multi-fpm stack. Please do not modify\n\n" >${PXXVCONF}
+PHPXX_CONF="/etc/apache2/sites-available/kclie-dev-multi-fpm.conf"
+printf "\n\n# This file is auto-generated on each update on KCLIE dev-multi-fpm stack. Please do not modify\n\n" >${PHPXX_CONF}
 
-if [ -e /etc/apache2/sites-available/0000-kclie-dev-default.conf ] ; then
-    a2dissite 0000-kclie-dev-default.conf
-    rm /etc/apache2/sites-available/0000-kclie-dev-default.conf
-fi
 a2dissite 000-default
 a2dissite default-ssl
 a2enmod rewrite
@@ -85,8 +77,29 @@ a2enmod macro
 a2enconf kclie-base.conf
 a2enconf kclie-dev-multi-fpm.conf
 a2ensite 0000-kclie-default.conf
-a2ensite 0010-kclie-dev-phpxx-localhost.conf
+a2ensite kclie-dev-multi-fpm.conf
 
+# remove old global files from previous versions
+for OLDCONF in 0000-kclie-dev-default 0010-kclie-dev-phpxx-localhost ; do
+    if [ -e /etc/apache2/sites-available/${OLDCONF}.conf ] ; then
+        rm -f /etc/apache2/sites-*/${OLDCONF}.conf
+    fi
+done
+
+echo "# CONFIG SSL"
+# SSL local cert
+sudo -u ${SUDO_USER} mkcert -install
+export CAROOT=/home/${SUDO_USER}/.local/share/mkcert
+mkcert -cert-file /etc/ssl/certs/kclie-dev-multi-fpm.pem -key-file /etc/ssl/private/kclie-dev-multi-fpm.key '*.dev.localhost' '127.0.0.1' '::1'
+
+if [ -e /usr/bin/ddev ] ; then
+    echo -e "\n# CONFIG DDEV compatibility"
+    a2enmod proxy_http
+    a2ensite kclie-ddev.conf
+    mkcert -cert-file /etc/ssl/certs/kclie-ddev.pem -key-file /etc/ssl/private/kclie-ddev.key '*.ddev.site' '127.0.0.1' '::1'
+fi
+
+echo "# CONFIG DIRS"
 # Web root is in current user home
 chmod ugo+x /home/${SUDO_USER}
 sudo -u ${SUDO_USER} mkdir -p /home/${SUDO_USER}/web/
@@ -95,8 +108,16 @@ echo '<?php phpinfo();' >/home/${SUDO_USER}/web/phpinfo.php
 # Allow current user to directly write custom vhost
 chown ${SUDO_USER}:www-data /etc/apache2/sites-enabled
 
+# Default vhost
+if [ ! -e /var/www/html/index.html ] || grep -q 'Default Page: It works' /var/www/html/index.html ; then
+    echo "<html></html>" > /var/www/html/index.html
+fi
+if [ ! -e /var/www/html/robots.txt ]; then
+    echo -e "User-Agent: *\nDisallow: /" > /var/www/html/robots.txt
+fi
+
 # Config FPMs
-echo -e "# CONFIG PHP"
+echo "# CONFIG PHP"
 for VP in ${PHPS}; do
     echo -n "$VP  "
 
@@ -104,16 +125,19 @@ for VP in ${PHPS}; do
     sed -i "s/user \= www-data/user \= ${SUDO_USER}/g" /etc/php/${VP}/fpm/pool.d/www.conf
     sed -i "s/pm.start_servers \= 2/pm.start_servers \= 1/g" /etc/php/${VP}/fpm/pool.d/www.conf
 
-    # generated default phpXX.localhost vhost foreach php version
+    # generated default phpXX.dev.localhost vhost foreach php version
     NP=$(echo ${VP} | sed "s/\.//g")
-    echo "Use DevPhpFpmVhost ${VP} php${NP}.localhost /home/${SUDO_USER}/web/" >>${PXXVCONF}
+    echo "Use DevPhpVhost ${VP} php${NP} /home/${SUDO_USER}/web/" >>${PHPXX_CONF}
+    # retro-compatibility for old style urls
+    echo "Use DevPhpFpmVhost ${VP} php${NP}.localhost /home/${SUDO_USER}/web/" >>${PHPXX_CONF}
 
-    # remove old style stack vhosts
-    rm -f /etc/apache2/sites-enabled/php${NP}.localhost.conf
+    # remove old files by php version from previous versions
+    if [ -e /etc/apache2/sites-enabled/php${NP}.localhost.conf ] ; then
+        rm -f /etc/apache2/sites-*/php${NP}.localhost.conf
+    fi
 done
 
-echo -e "\n# CONFIG MARIADB"
-
+echo "# CONFIG MARIADB"
 # Allow usage of local Mariadb from docker
 MBD_MAJ_VER=$(mysql -V | awk '{ print $5 }' | sed 's/,//' | awk -F. '{ print $2 }')
 MBD_MIN_VER=$(mysql -V | awk '{ print $5 }' | sed 's/,//' | awk -F. '{ print $1 }')
@@ -128,9 +152,9 @@ for LOCALHOST in "127.0.0.1" "::1" "localhost" "172.%"; do
     mysql -e "GRANT USAGE ON * . * TO 'dev'@'${LOCALHOST}'"
     mysql -e "GRANT ALL PRIVILEGES ON \`dev\_%\` . * TO 'dev'@'${LOCALHOST}'"
     mysql -e "GRANT TRIGGER ON \`dev\_%\` . * TO 'dev'@'${LOCALHOST}'"
+    # retro-compatibility of previous versions
     mysql -e "GRANT ALL PRIVILEGES ON \`git\_%\` . * TO 'dev'@'${LOCALHOST}'"
     mysql -e "GRANT TRIGGER ON \`git\_%\` . * TO 'dev'@'${LOCALHOST}'"
-    # Backwards compatibility of mysql_create_local_user
     mysql -e "GRANT ALL PRIVILEGES ON \`${SUDO_USER}\_%\` . * TO 'dev'@'${LOCALHOST}'"
     mysql -e "GRANT TRIGGER ON \`${SUDO_USER}\_%\` . * TO 'dev'@'${LOCALHOST}'"
 done
@@ -141,21 +165,35 @@ host     = localhost
 user     = dev
 password = dev" >/home/${SUDO_USER}/.my.cnf
 
-echo -e "\n#### RESTART STACK ###\n"
+echo "# RESTART STACK"
 systemctl restart apache2 || service apache2 restart
 systemctl restart mysql || service mariadb restart
 for VP in ${PHPS}; do
     systemctl restart php${VP}-fpm || service php${VP}-fpm  restart
 done
 
-echo -e "\n#### DONE ###\n"
+echo -e "\n#### HOW TO USE #######################\n"
 rm /tmp/phpinstall.list /tmp/pkgnames.list
 
-echo -e "Available local vhosts are:"
+echo -e "Available default vhosts foreach php version are:"
+COUNT=0
 for VP in ${PHPS}; do
-    echo "https://php$(echo ${VP} | sed "s/\.//g").localhost"
+    echo -n "https://php$(echo ${VP} | sed "s/\.//g").dev.localhost  "
+    COUNT=$((COUNT + 1))
+    if [ $((COUNT % 3)) -eq 0 ]; then
+        echo ""
+    fi
 done
-echo -e "\nAll pointing to : /home/${SUDO_USER}/web/\n"
-echo "Your local Mysql/MariaDb user is :"
-cat /home/${SUDO_USER}/.my.cnf
-echo -e "\nIt can access/manage any database prefixed by : \n-dev_*\n-git_*\n-${SUDO_USER}_*\n"
+echo "All pointing to : /home/${SUDO_USER}/web/
+
+Your local Mysql/MariaDb user is :
+$(cat /home/${SUDO_USER}/.my.cnf)
+It can access/manage any database prefixed by : dev_*
+
+Your can quickly declare custom dev vhost in with the following macro :
+    Use DevPhpVhost x.y name /path/to/docroot
+
+example for https://mywebsite.dev.localhost :
+    /etc/apache2/sites-enabled/mywebsite.conf :
+    Use DevPhpVhost 8.5 mywebsite /path/to/mywebsite
+"
