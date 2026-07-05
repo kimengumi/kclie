@@ -43,19 +43,7 @@ fi
 
 export DEBIAN_FRONTEND=noninteractive
 
-echo -e "\n# Add/Update PHP Ondrej PPA\n"
-if [ -x /usr/bin/add-apt-repository ]; then
-    # ensure removal of old ondrej launchpad.net repo
-    add-apt-repository -y --remove ppa:ondrej/php
-fi
-if [ ! -e /etc/apt/trusted.gpg.d/php.gpg ]; then
-    # use php packages from https://deb.sury.org
-    apt install -qqy apt-transport-https lsb-release ca-certificates
-    wget -O /etc/apt/trusted.gpg.d/php.gpg https://packages.sury.org/php/apt.gpg
-    echo "deb https://packages.sury.org/php/ $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/php.list
-fi
-apt update -qqy
-
+${KCLIE_PATH}/sbin/apt-use-sury-php-packages
 
 echo -e "\n### INSTALL ###\n"
 
@@ -71,7 +59,7 @@ for VP in ${PHPS}; do
     done
 done
 
-# filter to avoid install of nonexistent modules on certain php versions
+# filte r to avoid install of nonexistent modules on certain php versions
 grep -wFf /tmp/phpinstall.list /tmp/pkgnames.list | xargs apt install -qqy apache2 apache2-utils mariadb-server mariadb-client
 
 echo -e "\n#### CONFIG ###\n"

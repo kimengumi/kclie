@@ -1,0 +1,48 @@
+#!/bin/bash
+#
+# Kimengumi Command Line Interface Environnement (kclie)
+#
+# Licensed under the EUPL, Version 1.2 or – as soon they will be approved by
+# the European Commission - subsequent versions of the EUPL (the "Licence");
+# You may not use this work except in compliance with the Licence.
+# You may obtain a copy of the Licence at:
+#
+# https://joinup.ec.europa.eu/software/page/eupl
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the Licence is distributed on an "AS IS" basis,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the Licence for the specific language governing permissions and
+# limitations under the Licence.
+#
+# @author Antonio Rossetti <antonio@rossetti.fr>
+# @copyright since 2009 Antonio Rossetti
+# @license <https://joinup.ec.europa.eu/software/page/eupl> EUPL
+#
+
+#
+# Use php packages from https://deb.sury.org
+#
+# Inspired from https://packages.sury.org/php/README.txt
+#
+
+PHP_GPG="/usr/share/keyrings/debsuryorg-archive-keyring.gpg"
+PHP_LST="/etc/apt/sources.list.d/php.list"
+
+if [ ! -e ${PHP_GPG} ] || [ ! -e ${PHP_LST} ] || [ -n "$(find ${PHP_LST} -mtime +1 2>/dev/null)" ]; then
+
+    echo -e "Add/Update packages.sury.org"
+
+    if [ -x /usr/bin/add-apt-repository ]; then
+        # ensure removal of old ondrej launchpad.net repo on Ubuntu
+        add-apt-repository -y --remove ppa:ondrej/php
+    fi
+
+    wget -O ${PHP_GPG} https://packages.sury.org/php/apt.gpg
+    apt install -qqy apt-transport-https lsb-release ca-certificates
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=${PHP_GPG}] https://packages.sury.org/php/ $(lsb_release -sc) main" > ${PHP_LST}
+    apt update -qqy
+
+else
+    echo -e "packages.sury.org already updated today"
+fi
