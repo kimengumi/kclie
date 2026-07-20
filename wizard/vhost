@@ -159,6 +159,7 @@ if [ "${PHP_VER}" ]; then
     else
         echo "MariaDB already installed"
     fi
+    chmod o-r /var/lib/mysql
 fi
 
 # APACHE
@@ -177,6 +178,7 @@ a2dissite 000-default
 a2enmod deflate expires headers http2 macro proxy_fcgi rewrite ssl
 a2enconf kclie-base kclie-prod-multi-fpm
 a2ensite 0000-kclie-default
+find /etc/apache2 -type d -exec chmod o-r {} \;
 if [ ! -e /var/www/html/index.html ] || grep -q 'Default Page: It works' /var/www/html/index.html ; then
     # on default vhost, silence is golden (but don't override custom pages if exist)
     echo "<html></html>" > /var/www/html/index.html
@@ -218,6 +220,8 @@ if [ "${PHP_VER}" ]; then
     else
         echo -e "\nPHP-FPM ${PHP_VER} already available"
     fi
+    find /etc/php -type d -exec chmod o-r {} \;
+    chmod o-r /run/php
 fi
 
 echo -e "\n${C_GRE}####### Vhost init/update${C_OFF}\n"
