@@ -204,7 +204,7 @@ if [ "${PHP_VER}" ]; then
 
         # Get all usual mods
         echo 'libfcgi-bin' > /tmp/phpinstall.list
-        for MOD in fpm bcmath bz2 curl gd imagick intl memcache memcached mbstring mcrypt mysql opcache redis readline soap xml zip; do
+        for MOD in fpm bcmath bz2 curl gd imagick intl json memcache memcached mbstring mcrypt mysql opcache redis readline soap xml zip; do
             echo php${PHP_VER}-${MOD} >>/tmp/phpinstall.list
         done
 
