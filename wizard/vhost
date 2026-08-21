@@ -221,6 +221,7 @@ if [ "${PHP_VER}" ]; then
         echo -e "\nPHP-FPM ${PHP_VER} already available"
     fi
     find /etc/php -type d -exec chmod o-r {} \;
+    chmod o+r /etc/php/*/cli/conf.d
     chmod o-r /run/php
 fi
 
