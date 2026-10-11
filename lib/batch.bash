@@ -24,22 +24,22 @@
 # Library helping write batch scripts
 #
 
-export SCRIPT_NAME=""
-export HOSTNAME=$(hostname)
-export BACKUP_DIR_LOCK=""
-export BACKUP_DIR_MOUNT=""
-export IS_FULL_DAY=1
-export CURRENT_WEEK_DAY=$(date +%u)
-export CURRENT_MONTH_DAY=$(date +%d)
-export CURRENT_YEAR_DAY=$(date +%j)
-export DEFAULT_BACKUP_DIR="/home/backup/"
-export DEFAULT_LOG_DIR="/var/log/kclie/"
-export DEFAULT_LIB_DIR="/var/lib/kclie/"
-export IFS_STD="${IFS}"
-export IFS_LIB=$(echo -en "\n\b")
-export NICE=19
-export QUIET_TIMELOG=""
-export SINGLE_QUIET_DELAY=15
+export SCRIPT_NAME="${SCRIPT_NAME:-}"
+export HOSTNAME="${HOSTNAME:-$(hostname)}"
+export BACKUP_DIR_LOCK="${BACKUP_DIR_LOCK:-}"
+export BACKUP_DIR_MOUNT="${BACKUP_DIR_MOUNT:-}"
+export IS_FULL_DAY="${IS_FULL_DAY:-1}"
+export CURRENT_WEEK_DAY="${CURRENT_WEEK_DAY:-$(date +%u)}"
+export CURRENT_MONTH_DAY="${CURRENT_MONTH_DAY:-$(date +%d)}"
+export CURRENT_YEAR_DAY="${CURRENT_YEAR_DAY:-$(date +%j)}"
+export DEFAULT_BACKUP_DIR="${DEFAULT_BACKUP_DIR:-/home/backup/}"
+export DEFAULT_LOG_DIR="${DEFAULT_LOG_DIR:-/var/log/kclie/}"
+export DEFAULT_LIB_DIR="${DEFAULT_LIB_DIR:-/var/lib/kclie/}"
+export IFS_STD="${IFS_STD:-${IFS}}"
+export IFS_LIB="${IFS_LIB:-$(echo -en "\n\b")}"
+export NICE="${NICE:-19}"
+export QUIET_TIMELOG="${QUIET_TIMELOG:-}"
+export SINGLE_QUIET_DELAY="${SINGLE_QUIET_DELAY:-15}"
 
 BatchStart() {
     if [ "x$1" = "x" ]; then
