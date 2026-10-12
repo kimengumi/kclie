@@ -43,8 +43,8 @@ GetVhostDirFromCurrentDir() {
 }
 
 GetVhostDirFromVhostName() {
-    for SEARCH in `ls --color=never -d  /home/*/web/$1 2>/dev/null`; do
-        if [ -d "${SEARCH}" ]; then
+    for SEARCH in /home/${USER}/web/$1 $(ls --color=never -d  /home/*/web/$1 2>/dev/null); do
+        if [ -d "${SEARCH}" ] || [ -L "${SEARCH}" ]; then
             VHOST_DIR=${SEARCH}
             return
         fi
